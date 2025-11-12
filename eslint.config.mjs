@@ -5,7 +5,7 @@ import unusedImports from 'eslint-plugin-unused-imports';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', '.serena', '.kamui']
+    ignores: ['dist', 'node_modules', '.serena', '.kamui', 'doc/NodeVision-skeleton-v1.0.4_secure/**']
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

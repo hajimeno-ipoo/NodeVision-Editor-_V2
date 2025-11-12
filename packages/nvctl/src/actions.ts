@@ -1,11 +1,11 @@
 import path from 'node:path';
 
-import { ensureTempRoot } from '@nodevision/system-check';
 import {
   loadSettings,
   NodeVisionSettings,
   updateSettings
 } from '@nodevision/settings';
+import { ensureTempRoot } from '@nodevision/system-check';
 import {
   createTokenManager,
   TokenManager,
