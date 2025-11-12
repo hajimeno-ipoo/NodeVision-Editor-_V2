@@ -82,3 +82,15 @@
 - 実施者: Codex (Agent)
 - エビデンス: `.serena/project.yml` 生成 + `uvx --from git+https://github.com/oraios/serena serena project index` ログ（`.serena/cache/typescript/document_symbols_cache_v23-06-25.pkl`）
 - 備考: スケジュール/チェックリスト再読込後にSerena Activate→Indexを実行し、今後のA-01〜A-05証跡参照基盤を整備
+
+- チェック対象: A-01 lint strict pass
+- 実施日: 2025-11-12
+- 実施者: Codex (Agent)
+- エビデンス: `pnpm lint` (doc/NodeVision-skeleton-v1.0.4_secure/** ignore + import順整備) ログ
+- 備考: apps/desktop-electron, packages/{settings,system-check,tokens,nvctl}, vitest.config.ts の import/order を整理し警告ゼロを確認
+
+- チェック対象: A-02 FFmpeg未検出時の設定誘導
+- 実施日: 2025-11-12
+- 実施者: Codex (Agent)
+- エビデンス: apps/desktop-electron/src/main.ts#L24-L138 で BinaryNotFoundError を捕捉し設定ファイル誘導ダイアログを追加
+- 備考: FFmpeg/ffprobe 未検出時に `dialog.showMessageBox` で設定パスを提示し、その後 `shell.showItemInFolder` で `settings.json` へ遷移可

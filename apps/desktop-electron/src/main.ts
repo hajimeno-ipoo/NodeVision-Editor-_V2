@@ -1,7 +1,6 @@
-import { app, BrowserWindow, dialog } from 'electron';
-
-import { loadSettings, NodeVisionSettings, updateSettings } from '@nodevision/settings';
+import { getSettingsFilePath, loadSettings, NodeVisionSettings, updateSettings } from '@nodevision/settings';
 import {
+  BinaryNotFoundError,
   detectFFmpeg,
   ensureTempRoot,
   enforceTempRoot,
@@ -9,6 +8,7 @@ import {
   ResourceLimitError
 } from '@nodevision/system-check';
 import { createTokenManager, TokenRecord } from '@nodevision/tokens';
+import { app, BrowserWindow, dialog, shell } from 'electron';
 
 const tokenManager = createTokenManager();
 
@@ -20,6 +20,23 @@ interface BootStatus {
 
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+async function promptForFFmpegSetup(reason: string): Promise<void> {
+  const settingsPath = getSettingsFilePath();
+  const result = await dialog.showMessageBox({
+    type: 'error',
+    title: 'FFmpeg/FFprobe が見つかりません',
+    message: 'FFmpeg または FFprobe を検出できませんでした。',
+    detail: `${reason}\n\nFFmpeg をインストールするか、設定ファイルで ffmpegPath と ffprobePath を指定してください。\n設定ファイル: ${settingsPath}`,
+    buttons: ['設定ファイルを開く', '閉じる'],
+    defaultId: 0,
+    cancelId: 1
+  });
+
+  if (result.response === 0) {
+    await shell.showItemInFolder(settingsPath);
+  }
+}
 
 async function ensureHttpToken(settings: NodeVisionSettings): Promise<TokenRecord> {
   const tokens = await tokenManager.list();
@@ -104,11 +121,23 @@ function createWindow(status: BootStatus): void {
   win.loadURL(`data:text/html,${encodeURIComponent(buildHtml(status))}`);
 }
 
-function reportFatal(error: unknown): void {
+function reportFatal(error: unknown, options: { silent?: boolean } = {}): void {
   const message = error instanceof Error ? error.message : String(error);
   console.error('[NodeVision] bootstrap failed:', message);
-  dialog.showErrorBox('NodeVision bootstrap failed', message);
+  if (!options.silent) {
+    dialog.showErrorBox('NodeVision bootstrap failed', message);
+  }
   app.quit();
+}
+
+async function handleBootstrapError(error: unknown): Promise<void> {
+  if (error instanceof BinaryNotFoundError) {
+    await promptForFFmpegSetup(error.message);
+    reportFatal(error, { silent: true });
+    return;
+  }
+
+  reportFatal(error);
 }
 
 app.whenReady().then(() => {
@@ -118,11 +147,11 @@ app.whenReady().then(() => {
       console.log('[NodeVision] NV_HTTP_TOKEN issued for', status.settings.http.tokenLabel);
       createWindow(status);
     })
-    .catch(reportFatal);
+    .catch(handleBootstrapError);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      bootstrapFoundation().then(createWindow).catch(reportFatal);
+      bootstrapFoundation().then(createWindow).catch(handleBootstrapError);
     }
   });
 });

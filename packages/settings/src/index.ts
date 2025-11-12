@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
 
 const SETTINGS_SCHEMA_VERSION = '1.0.7';
 const SETTINGS_FILE_NAME = 'settings.json';

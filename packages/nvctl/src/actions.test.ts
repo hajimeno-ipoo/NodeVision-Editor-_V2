@@ -1,10 +1,9 @@
 import os from 'node:os';
 import path from 'node:path';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { NodeVisionSettings } from '@nodevision/settings';
 import { TokenManager, TokenRecord, TokenStore } from '@nodevision/tokens';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   issueTokenAction,
