@@ -1,0 +1,17 @@
+{
+  "name": "desktop-electron",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "pnpm run build && electron dist/main.js"
+  },
+  "dependencies": {
+    "@nodevision/settings": "workspace:*",
+    "@nodevision/system-check": "workspace:*",
+    "@nodevision/tokens": "workspace:*",
+    "electron": "^32.1.2",
+    "tslib": "^2.7.0"
+  }
+}

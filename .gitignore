@@ -1,0 +1,14 @@
+node_modules/
+.pnpm-store/
+dist/
+out/
+build/
+coverage/
+.vscode/
+.DS_Store
+*.log
+pnpm-lock.yaml
+*.tsbuildinfo
+.temp/
+scripts/sample-media/
+.env*

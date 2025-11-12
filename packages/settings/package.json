@@ -1,0 +1,16 @@
+{
+  "name": "@nodevision/settings",
+  "version": "0.0.1",
+  "description": "Settings persistence utilities for NodeVision Editor",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.6.0"
+  }
+}

@@ -16,7 +16,7 @@
 - [x] A-02 初回起動で FFmpeg/ffprobe を自動検出し、見つからない場合は設定画面へ誘導（AC-FFMPEG-001）。
 - [x] A-03 `nvctl token issue/rotate/revoke` が macOS Keychain / Windows DPAPI / Linux Secret Service に保存される（Doc §4）。
 - [x] A-04 設定保存に tempRoot, FFmpeg パス, プリセット, HTTP有効フラグが含まれる（Doc §3,5）。
-- [x] A-05 自動生成のサンプルメディア（720p/1080p 10s）が scripts ディレクトリから再生成可能（Doc §9）。
+- [x] A-05 自動生成のサンプルメディア（720p/1080p 10s）が scripts ディレクトリから再生成可能（Doc §9, `scripts/generate-sample-media.ts`）。
 
 ## B. 実行エンジン & リソース
 - [ ] B-01 実行並列度は1で固定され、プレビュー生成はジョブ完了後の直列フロー（Doc §3）。

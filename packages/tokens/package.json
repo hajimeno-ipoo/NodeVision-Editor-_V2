@@ -1,0 +1,20 @@
+{
+  "name": "@nodevision/tokens",
+  "version": "0.0.1",
+  "description": "Secure token lifecycle helpers for NodeVision Editor",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nodevision/settings": "workspace:*"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.6.0"
+  }
+}

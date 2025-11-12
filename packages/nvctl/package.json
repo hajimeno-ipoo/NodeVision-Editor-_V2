@@ -1,0 +1,24 @@
+{
+  "name": "@nodevision/nvctl",
+  "version": "0.0.1",
+  "description": "NodeVision control line interface",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "nvctl": "dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nodevision/system-check": "workspace:*",
+    "@nodevision/settings": "workspace:*",
+    "@nodevision/tokens": "workspace:*",
+    "commander": "^12.1.0",
+    "picocolors": "^1.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.6.0"
+  }
+}
