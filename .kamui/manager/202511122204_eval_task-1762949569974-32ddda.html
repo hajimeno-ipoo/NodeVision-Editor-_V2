@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート — task-1762949569974-32ddda</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #eef2f4;
+        margin: 0;
+        padding: 24px;
+        color: #1f2a30;
+        line-height: 1.6;
+      }
+      .report-wrapper {
+        max-width: 1280px;
+        margin: 0 auto;
+        background: #fff;
+        border: 1px solid #c8d6dc;
+        padding: 32px;
+      }
+      header {
+        margin-bottom: 24px;
+      }
+      header h1 {
+        margin: 0 0 8px 0;
+        font-size: 28px;
+      }
+      .scoreboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .agent-score {
+        border: 1px solid #d5e1e6;
+        padding: 16px;
+        background: #f7fafb;
+      }
+      .agent-label {
+        font-size: 14px;
+        color: #54626c;
+      }
+      .agent-total {
+        font-size: 32px;
+        font-weight: 700;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .agent-total span.medal {
+        font-size: 36px;
+      }
+      .task-summary {
+        margin-bottom: 24px;
+        padding: 16px;
+        background: #f5f9fb;
+        border-left: 4px solid #7ab7cc;
+      }
+      table.comparison {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+        table-layout: fixed;
+      }
+      table.comparison th,
+      table.comparison td {
+        border: 1px solid #d5e1e6;
+        padding: 16px;
+        vertical-align: top;
+      }
+      table.comparison th {
+        background: #e1edf2;
+        text-align: left;
+      }
+      .hexchart {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .metric-list {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 13px;
+      }
+      .analysis-block h4 {
+        margin-top: 16px;
+        margin-bottom: 8px;
+        font-size: 15px;
+      }
+      .analysis-block ul {
+        margin: 0 0 12px 0;
+        padding-left: 18px;
+      }
+      code {
+        background: #f0f4f6;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: "SFMono-Regular", Consolas, monospace;
+      }
+      a {
+        color: #0a6ea4;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .commits {
+        border-top: 1px solid #d5e1e6;
+        padding-top: 16px;
+        font-size: 14px;
+        color: #54626c;
+      }
+      svg radar {
+        width: 160px;
+        height: 160px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="report-wrapper">
+      <header>
+        <h1>評価レポート</h1>
+        <p>W1: M0 Foundation / task-1762949569974-32ddda — 2エージェント成果比較 (600点満点)。</p>
+      </header>
+      <div class="scoreboard">
+        <div class="agent-score">
+          <div class="agent-label">Agent task-1762949565764-faf44a</div>
+          <div class="agent-total"><span>485</span><span>/ 600</span><span class="medal">🥇</span></div>
+        </div>
+        <div class="agent-score">
+          <div class="agent-label">Agent task-1762949567882-468d47</div>
+          <div class="agent-total"><span>430</span><span>/ 600</span><span class="medal">🥈</span></div>
+        </div>
+      </div>
+      <section class="task-summary">
+        <strong>タスク概要:</strong> NodeVision Editor _V2 の M0 Foundation として FFmpeg/system-check・設定保存・HTTPトークンCLI・Electronシェル・サンプルメディア生成を2並列エージェントで実装。各ブランチの git 状態と差分、テスト/ドキュメント整備状況を監査後に比較評価した。
+      </section>
+      <table class="comparison">
+        <colgroup>
+          <col />
+          <col />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>task-1762949565764-faf44a</th>
+            <th>task-1762949567882-468d47</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="hexchart">
+                <svg width="160" height="160" viewBox="0 0 160 160" aria-label="六角形チャート">
+                  <polygon points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" fill="none" stroke="#d0dde2" stroke-width="1" />
+                  <polygon points="80.0,26.0 124.2,54.5 129.4,108.5 80.0,128.0 43.6,101.0 46.2,60.5" fill="rgba(122,183,204,0.35)" stroke="#5aa1b8" stroke-width="2" />
+                  <circle cx="80" cy="80" r="3" fill="#5aa1b8" />
+                </svg>
+                <ul class="metric-list">
+                  <li>設計品質 90点</li>
+                  <li>機能充足 85点</li>
+                  <li>テスト 95点</li>
+                  <li>パフォーマンス/信頼性 80点</li>
+                  <li>ドキュメント 70点</li>
+                  <li>プロジェクト衛生 65点</li>
+                </ul>
+              </div>
+              <div class="analysis-block">
+                <h4>Strengths</h4>
+                <ul>
+                  <li>FFmpeg 検出と tempRoot 監視を `packages/system-check` に集約し、Windows 拡張や ENOENT を含む例外系までテスト済み（packages/system-check/src/index.ts:1-210, packages/system-check/src/index.test.ts:1-212）。</li>
+                  <li>設定・トークンを完全に型付きで永続化し、Vitest で作成/更新/診断プレビューを網羅（packages/settings/src/index.ts:1-116, packages/settings/src/index.test.ts:1-90）。</li>
+                  <li>Electron bootstrap で tempRoot enforce → FFmpeg detect → HTTP トークン自動発行を直線的に実装し、ステータスHTMLで可視化（apps/desktop-electron/src/main.ts:1-103）。</li>
+                  <li>scripts/generate-sample-media.ts から 720p/1080p のFFmpeg再生産ができ、A-05要件に直リンク（scripts/generate-sample-media.ts:6-55）。</li>
+                </ul>
+                <h4>Improvements / Findings</h4>
+                <ul>
+                  <li><code>packages/tokens/src/index.ts:5</code> で `@nodevision/settings` を直接 import しているが、<code>tsconfig.base.json:3-17</code> / <code>packages/tokens/tsconfig.json:1-8</code> には `paths` や `references` がなく、クリーン環境で <code>pnpm --filter @nodevision/tokens build</code> を実行すると依存解決できずに TS2307 で落ちる（事前ビルド必須なのは明示されていない）。</li>
+                  <li>FFmpeg が未検出の場合でも <code>apps/desktop-electron/src/main.ts:45-63</code> は `dialog.showErrorBox` で即終了するだけで、A-02 に記載の「設定画面へ誘導する」動線や再設定ハンドラーが存在しない。</li>
+                  <li>チェックリストで A-01〜A-05 を `[x]` にしたが（doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:14-19）、commit ID や証跡リンクが空欄のままでレビュアーが追跡できない。</li>
+                  <li>大量の追加ファイルが `git status` 上 `??` のまま（コミット無し）。レビュー対象を固定できるよう最低限 `git add` しておくと良い。</li>
+                </ul>
+                <h4>成果物リンク</h4>
+                <ul>
+                  <li><a href="../.worktrees/task-1762949565764-faf44a/apps/desktop-electron/src/main.ts">apps/desktop-electron/src/main.ts</a></li>
+                  <li><a href="../.worktrees/task-1762949565764-faf44a/packages/system-check/src/index.ts">packages/system-check/src/index.ts</a></li>
+                  <li><a href="../.worktrees/task-1762949565764-faf44a/packages/tokens/src/index.ts">packages/tokens/src/index.ts</a></li>
+                  <li><a href="../.worktrees/task-1762949565764-faf44a/scripts/generate-sample-media.ts">scripts/generate-sample-media.ts</a></li>
+                </ul>
+              </div>
+            </td>
+            <td>
+              <div class="hexchart">
+                <svg width="160" height="160" viewBox="0 0 160 160" aria-label="六角形チャート">
+                  <polygon points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" fill="none" stroke="#d0dde2" stroke-width="1" />
+                  <polygon points="80.0,35.0 116.4,59.0 129.4,108.5 80.0,125.0 46.2,99.5 54.0,65.0" fill="rgba(255,191,105,0.35)" stroke="#e28743" stroke-width="2" />
+                  <circle cx="80" cy="80" r="3" fill="#e28743" />
+                </svg>
+                <ul class="metric-list">
+                  <li>設計品質 75点</li>
+                  <li>機能充足 70点</li>
+                  <li>テスト 95点</li>
+                  <li>パフォーマンス/信頼性 75点</li>
+                  <li>ドキュメント 65点</li>
+                  <li>プロジェクト衛生 50点</li>
+                </ul>
+              </div>
+              <div class="analysis-block">
+                <h4>Strengths</h4>
+                <ul>
+                  <li>nvctl CLI は DI 可能な `buildProgram` + commander で token/system/settings をまとめ、モジュールごとにVitestでE2Eに近い検証ができている（packages/nvctl/src/cli.ts:1-143, packages/nvctl/src/cli.test.ts:1-210）。</li>
+                  <li>設定モジュールは `env-paths` を使い OS ごとの保存先を自動解決し、破損ファイル退避や監視閾値のマージを提供（packages/settings/src/index.ts:1-82）。</li>
+                  <li>FFmpegサンプル生成スクリプトは ffmpeg-static + spawn を抽象化し、モック可能な設計でテスト済み（scripts/src/generate-sample-media.ts:1-74, scripts/src/generate-sample-media.test.ts:1-72）。</li>
+                </ul>
+                <h4>Improvements / Findings</h4>
+                <ul>
+                  <li>HTTPトークン検証は `validateToken(label, token)` でラベル指定前提になっており、HTTPヘッダに含まれないラベル情報をサーバー側が知る術がないため、実運用では不可能（packages/tokens/src/index.ts:100-118）。トークン値だけで探索するAPIを提供すべき。</li>
+                  <li>Electronメインプロセスは設定を読み込んで表示するだけで FFmpeg 検出・tempRoot enforce・トークン発行といった Foundation の肝機能を一切呼び出していない（apps/desktop-electron/src/main/main.ts:1-37）。チェックリスト A-02/A-03 を満たす処理が欠落している。</li>
+                  <li>CLIの `token issue` は常に新規発行し設定を `httpEnabled: true` にするが、トークン値をファイルへ保存したりマスキング表示する仕組みがなく、ログから漏洩するリスクがある（packages/nvctl/src/cli.ts:24-74）。</li>
+                  <li>こちらのブランチも全差分が未コミット状態で、追跡しづらい。</li>
+                </ul>
+                <h4>成果物リンク</h4>
+                <ul>
+                  <li><a href="../.worktrees/task-1762949567882-468d47/packages/nvctl/src/cli.ts">packages/nvctl/src/cli.ts</a></li>
+                  <li><a href="../.worktrees/task-1762949567882-468d47/packages/settings/src/index.ts">packages/settings/src/index.ts</a></li>
+                  <li><a href="../.worktrees/task-1762949567882-468d47/packages/tokens/src/index.ts">packages/tokens/src/index.ts</a></li>
+                  <li><a href="../.worktrees/task-1762949567882-468d47/apps/desktop-electron/src/main/main.ts">apps/desktop-electron/src/main/main.ts</a></li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <section class="commits">
+        <p>Gitログは両ブランチとも初期コミット <code>f4afcc5</code> から進んでおらず、作業差分はすべて未コミット状態でした。次ラウンドではタスク単位で commit/タグを切り、チェックリストの「エビデンス=commit」の要件を満たすよう推奨します。</p>
+      </section>
+    </div>
+  </body>
+</html>
