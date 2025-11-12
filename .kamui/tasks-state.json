@@ -22,5 +22,28 @@
     "scoringConfig": null,
     "worktreePath": null,
     "medal": "gold"
+  },
+  {
+    "id": "task-1762956607796-8139a5",
+    "name": "CodexCLI1: A. Foundation & 設定で抜けはないですか？",
+    "model": "Codex CLI",
+    "status": "working",
+    "importance": "medium",
+    "urgency": "medium",
+    "createdAt": "2025-11-12T14:10:07.796Z",
+    "updatedAt": "2025-11-12T14:10:07.796Z",
+    "requiresTerminal": true,
+    "createWorktree": true,
+    "branchName": "task/task-1762956607796-8139a5",
+    "baseBranch": "main",
+    "useTmux": true,
+    "aiCompetitionEntry": true,
+    "aiCompetitionResult": null,
+    "aiCompetitionGroupId": "comp-1762956607796-autudqpq",
+    "aiCompetitionGroupName": "A. Foundation & 設定で抜けはないですか？",
+    "aiCompetitionMonitor": false,
+    "monitorTargets": null,
+    "scoringConfig": null,
+    "worktreePath": ".worktrees/task-1762956607796-8139a5"
   }
 ]

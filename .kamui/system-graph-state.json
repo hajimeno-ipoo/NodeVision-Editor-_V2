@@ -5,17 +5,17 @@
   "graphRenderingMode": "multi-agent",
   "linkDisplayMode": "all",
   "graphStats": {
-    "totalNodes": 72,
-    "folders": 23,
-    "files": 49,
+    "totalNodes": 98,
+    "folders": 37,
+    "files": 61,
     "images": 3,
     "videos": 0,
     "audio": 0,
-    "code": 12,
-    "text": 8,
-    "html": 0,
+    "code": 17,
+    "text": 11,
+    "html": 2,
     "yaml": 2,
-    "json": 18,
+    "json": 20,
     "other": 6,
     "totalLines": 0,
     "maxLines": 0
@@ -43,6 +43,27 @@
         "name": ".kamui",
         "type": "directory",
         "children": [
+          {
+            "name": "manager",
+            "type": "directory",
+            "children": [
+              {
+                "name": "202511122115_monitor_task-1762949569974-32ddda.html",
+                "type": "file",
+                "lines": 0
+              },
+              {
+                "name": "202511122204_eval_task-1762949569974-32ddda.html",
+                "type": "file",
+                "lines": 0
+              },
+              {
+                "name": "monitor_task-1762949569974-32ddda.json",
+                "type": "file",
+                "lines": 0
+              }
+            ]
+          },
           {
             "name": "model-versions-cache.json",
             "type": "file",
@@ -90,12 +111,27 @@
             "type": "directory",
             "children": [
               {
+                "name": "a_foundation_fixlog_20251112.md",
+                "type": "file",
+                "lines": 0
+              },
+              {
+                "name": "a_foundation_review_20251112.md",
+                "type": "file",
+                "lines": 0
+              },
+              {
                 "name": "activation_20251112.md",
                 "type": "file",
                 "lines": 0
               },
               {
                 "name": "m0_foundation_20251112.md",
+                "type": "file",
+                "lines": 0
+              },
+              {
+                "name": "monitoring_20251112.md",
                 "type": "file",
                 "lines": 0
               }
@@ -154,6 +190,114 @@
             "name": ".DS_Store",
             "type": "file",
             "lines": 0
+          },
+          {
+            "name": "NodeVision-skeleton-v1.0.4_secure",
+            "type": "directory",
+            "children": [
+              {
+                "name": "NodeGraph.schema.json",
+                "type": "file",
+                "lines": 0
+              },
+              {
+                "name": "apps",
+                "type": "directory",
+                "children": [
+                  {
+                    "name": "desktop-electron",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "main",
+                        "type": "directory",
+                        "children": [
+                          {
+                            "name": "httpServer.ts",
+                            "type": "file",
+                            "lines": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "packages",
+                "type": "directory",
+                "children": [
+                  {
+                    "name": "engine",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "src",
+                        "type": "directory",
+                        "children": [
+                          {
+                            "name": "history",
+                            "type": "directory",
+                            "children": [
+                              {
+                                "name": "history.ts",
+                                "type": "file",
+                                "lines": 0
+                              }
+                            ]
+                          },
+                          {
+                            "name": "inspect",
+                            "type": "directory",
+                            "children": [
+                              {
+                                "name": "concat.ts",
+                                "type": "file",
+                                "lines": 0
+                              }
+                            ]
+                          },
+                          {
+                            "name": "probe",
+                            "type": "directory",
+                            "children": [
+                              {
+                                "name": "ffprobe.ts",
+                                "type": "file",
+                                "lines": 0
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "shared",
+                    "type": "directory",
+                    "children": [
+                      {
+                        "name": "src",
+                        "type": "directory",
+                        "children": [
+                          {
+                            "name": "migrations",
+                            "type": "directory",
+                            "children": [
+                              {
+                                "name": "index.ts",
+                                "type": "file",
+                                "lines": 0
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           },
           {
             "name": "NodeVision_Edit_要件定義書_v1.0.7.md",
@@ -420,12 +564,12 @@
         "highlighted": false,
         "parentPath": null,
         "childFileCount": 10,
-        "x": 25.456043721492396,
-        "y": -13.105414006322196,
-        "z": -39.05652875569846,
-        "vx": -1.5114414560372102e-15,
-        "vy": -2.187262056260575e-14,
-        "vz": -1.25236555992077e-14
+        "x": 0.6136320110799401,
+        "y": 14.967359375722276,
+        "z": 85.71282578752964,
+        "vx": 9.001173414126349e-9,
+        "vy": 9.355551006241262e-9,
+        "vz": 8.090792949963684e-9
       },
       {
         "id": "NodeVision Editor _V2/.DS_Store",
@@ -438,16 +582,16 @@
         "baseColor": "#57606f",
         "originalColor": "#57606f",
         "defaultGlow": 0.18,
-        "glowIntensity": 2.4,
-        "highlighted": true,
+        "glowIntensity": 0,
+        "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 29.905331177886254,
-        "y": 13.58083765261942,
-        "z": -9.523247824457933,
-        "vx": -1.437939233827774e-14,
-        "vy": -1.8982646425038286e-14,
-        "vz": -9.35867468961617e-15
+        "x": -2.7021995610258243,
+        "y": 44.26694170436831,
+        "z": 109.049473581482,
+        "vx": 1.9545091468113695e-8,
+        "vy": 1.9559620610158168e-8,
+        "vz": -1.3165507680995628e-9
       },
       {
         "id": "NodeVision Editor _V2/.editorconfig",
@@ -464,12 +608,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 18.8925542629403,
-        "y": -18.107375713175255,
-        "z": -0.612397585398601,
-        "vx": -7.016099712260651e-15,
-        "vy": -2.2646944423073204e-14,
-        "vz": -8.343981321944858e-15
+        "x": -13.976971911872377,
+        "y": -5.808924373819621,
+        "z": 116.45969077340447,
+        "vx": 7.107399238396431e-9,
+        "vy": 5.336106896758914e-9,
+        "vz": 4.6033947245997815e-9
       },
       {
         "id": "NodeVision Editor _V2/.gitignore",
@@ -486,12 +630,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 41.94125950317733,
-        "y": 16.693440777781387,
-        "z": -59.66171069556326,
-        "vx": -1.9889261761253205e-14,
-        "vy": -1.1612279719997321e-14,
-        "vz": -1.771984005312256e-14
+        "x": -19.008520632906087,
+        "y": 10.654310110192895,
+        "z": 50.87926256650291,
+        "vx": 1.4994128786770252e-8,
+        "vy": 1.2683471916902033e-8,
+        "vz": 3.885087930665199e-9
       },
       {
         "id": "NodeVision Editor _V2/.kamui",
@@ -508,12 +652,100 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 3,
-        "x": -48.347738734367354,
-        "y": 13.584420899598902,
-        "z": -106.29903237618028,
-        "vx": -9.172392195022812e-15,
-        "vy": -1.5167691635246415e-14,
-        "vz": -9.971828750706863e-15
+        "x": -37.47258097050463,
+        "y": 103.411250275554,
+        "z": 42.084361979099704,
+        "vx": 8.957107472739917e-9,
+        "vy": 9.29259751849575e-9,
+        "vz": -1.6003702095822097e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/.kamui/manager",
+        "name": "manager",
+        "path": "NodeVision Editor _V2/.kamui/manager",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/.kamui",
+        "childFileCount": 3,
+        "x": -34.78342417359453,
+        "y": 190.99368986704454,
+        "z": 32.3336459616325,
+        "vx": 2.3842673939704916e-9,
+        "vy": 1.1563877964061007e-8,
+        "vz": -7.966660154995239e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/.kamui/manager/202511122115_monitor_task-1762949569974-32ddda.html",
+        "name": "202511122115_monitor_task-1762949569974-32ddda.html",
+        "path": "NodeVision Editor _V2/.kamui/manager/202511122115_monitor_task-1762949569974-32ddda.html",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#e44d26",
+        "originalColor": "#e44d26",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/.kamui/manager",
+        "childFileCount": 0,
+        "x": -48.79111267360187,
+        "y": 229.24828003551698,
+        "z": 34.76907058346606,
+        "vx": -3.037980143634661e-9,
+        "vy": 1.0921993506739174e-8,
+        "vz": -6.64300954907672e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/.kamui/manager/202511122204_eval_task-1762949569974-32ddda.html",
+        "name": "202511122204_eval_task-1762949569974-32ddda.html",
+        "path": "NodeVision Editor _V2/.kamui/manager/202511122204_eval_task-1762949569974-32ddda.html",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#e44d26",
+        "originalColor": "#e44d26",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/.kamui/manager",
+        "childFileCount": 0,
+        "x": -30.84420937395973,
+        "y": 222.1943784405556,
+        "z": 7.320926384941261,
+        "vx": 4.161770021458131e-9,
+        "vy": 1.4334128627932979e-8,
+        "vz": -6.469349761414777e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/.kamui/manager/monitor_task-1762949569974-32ddda.json",
+        "name": "monitor_task-1762949569974-32ddda.json",
+        "path": "NodeVision Editor _V2/.kamui/manager/monitor_task-1762949569974-32ddda.json",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#8e44ad",
+        "originalColor": "#8e44ad",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/.kamui/manager",
+        "childFileCount": 0,
+        "x": -18.798281469836528,
+        "y": 225.87721398876124,
+        "z": 45.71400587475245,
+        "vx": 1.6269844036513583e-9,
+        "vy": 1.4065714211369207e-8,
+        "vz": -1.1044561839432406e-8
       },
       {
         "id": "NodeVision Editor _V2/.kamui/model-versions-cache.json",
@@ -526,16 +758,16 @@
         "baseColor": "#8e44ad",
         "originalColor": "#8e44ad",
         "defaultGlow": 0.18,
-        "glowIntensity": 2.4,
-        "highlighted": true,
+        "glowIntensity": 0,
+        "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.kamui",
         "childFileCount": 0,
-        "x": -83.72451650530093,
-        "y": 31.233619320740488,
-        "z": -106.5804882207951,
-        "vx": -1.580932831244545e-14,
-        "vy": -2.497614481682691e-14,
-        "vz": -2.8013703355194065e-14
+        "x": -30.051664980267013,
+        "y": 135.1017722974978,
+        "z": 59.85406550043107,
+        "vx": 1.1134124790824801e-8,
+        "vy": 1.1555604118627137e-8,
+        "vz": -7.947220618042084e-9
       },
       {
         "id": "NodeVision Editor _V2/.kamui/prompt",
@@ -552,12 +784,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.kamui",
         "childFileCount": 1,
-        "x": -93.70063017443496,
-        "y": 14.795268927100386,
-        "z": -148.17229843710732,
-        "vx": -8.989866061940964e-15,
-        "vy": -1.2249541623311563e-14,
-        "vz": -1.5509553886997007e-14
+        "x": -84.3478370615802,
+        "y": 100.88268448676669,
+        "z": 9.813087727572936,
+        "vx": 1.1594660112514491e-8,
+        "vy": 1.2065968510182335e-8,
+        "vz": -7.728165242693512e-9
       },
       {
         "id": "NodeVision Editor _V2/.kamui/prompt/merge-prompt.txt",
@@ -570,16 +802,16 @@
         "baseColor": "#95a5a6",
         "originalColor": "#95a5a6",
         "defaultGlow": 0.18,
-        "glowIntensity": 2.4,
-        "highlighted": true,
+        "glowIntensity": 0,
+        "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.kamui/prompt",
         "childFileCount": 0,
-        "x": -123.89377776416688,
-        "y": 20.24253780874378,
-        "z": -177.2236716120258,
-        "vx": -1.494706058736067e-14,
-        "vy": -9.179415049906277e-15,
-        "vz": -1.3462476261316872e-14
+        "x": -118.9455561016446,
+        "y": 100.71038916346497,
+        "z": -13.294351633933159,
+        "vx": 9.425733315768189e-9,
+        "vy": 1.6922807286268076e-8,
+        "vz": -1.1805257710604834e-8
       },
       {
         "id": "NodeVision Editor _V2/.kamui/system-graph-state.json",
@@ -592,16 +824,16 @@
         "baseColor": "#8e44ad",
         "originalColor": "#8e44ad",
         "defaultGlow": 0.18,
-        "glowIntensity": 2.4,
-        "highlighted": true,
+        "glowIntensity": 0,
+        "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.kamui",
         "childFileCount": 0,
-        "x": -50.8515040707706,
-        "y": 48.853954369691884,
-        "z": -126.11288548461964,
-        "vx": -2.4907453248363528e-14,
-        "vy": -1.1344530236062436e-14,
-        "vz": -1.2947594729827609e-14
+        "x": -43.47550764572218,
+        "y": 121.33747057793231,
+        "z": 9.359858098961773,
+        "vx": 1.808209958047383e-8,
+        "vy": 5.35400837500597e-9,
+        "vz": -5.991589246159184e-9
       },
       {
         "id": "NodeVision Editor _V2/.kamui/tasks-state.json",
@@ -614,16 +846,16 @@
         "baseColor": "#8e44ad",
         "originalColor": "#8e44ad",
         "defaultGlow": 0.18,
-        "glowIntensity": 2.4,
-        "highlighted": true,
+        "glowIntensity": 0,
+        "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.kamui",
         "childFileCount": 0,
-        "x": -66.85743678853922,
-        "y": 26.6591938461977,
-        "z": -137.1337444264113,
-        "vx": 5.2212373432562515e-15,
-        "vy": -3.585534010527269e-14,
-        "vz": -3.116361731907613e-14
+        "x": -68.8472248720746,
+        "y": 118.93697717549017,
+        "z": 56.62734124572572,
+        "vx": 6.616986517545658e-9,
+        "vy": 1.3270471487923389e-8,
+        "vz": -9.808395770608666e-9
       },
       {
         "id": "NodeVision Editor _V2/.prettierrc.json",
@@ -640,12 +872,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 54.76215913490358,
-        "y": -38.400150206561705,
-        "z": -38.9299945012978,
-        "vx": 2.841499806549444e-15,
-        "vy": -2.0021362731373257e-14,
-        "vz": -1.1528092048391158e-14
+        "x": 8.713458043248316,
+        "y": -24.07949864720388,
+        "z": 94.404032114082,
+        "vx": 1.809637146625387e-8,
+        "vy": 9.67885100479782e-9,
+        "vz": 4.141796772570976e-9
       },
       {
         "id": "NodeVision Editor _V2/.serena",
@@ -662,12 +894,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 2,
-        "x": 54.32796016578837,
-        "y": -113.07092478508928,
-        "z": -44.057156905022005,
-        "vx": -3.229055334837274e-15,
-        "vy": -8.058053719367349e-15,
-        "vz": -7.491984953534954e-15
+        "x": 96.91723138439666,
+        "y": 47.58061341528151,
+        "z": 111.97747190200954,
+        "vx": 9.035906918246151e-9,
+        "vy": 6.895428287989813e-9,
+        "vz": 9.99238735059535e-9
       },
       {
         "id": "NodeVision Editor _V2/.serena/.gitignore",
@@ -684,12 +916,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.serena",
         "childFileCount": 0,
-        "x": 47.43147322097992,
-        "y": -149.84514644192356,
-        "z": -31.38715210050165,
-        "vx": 7.0962587832306095e-15,
-        "vy": -1.2103433049444213e-14,
-        "vz": -3.852824374819337e-15
+        "x": 128.79167424412682,
+        "y": 26.895176219486586,
+        "z": 114.64047515185308,
+        "vx": 1.5646457164525724e-8,
+        "vy": 1.3921056436827116e-8,
+        "vz": 6.9093734930387466e-9
       },
       {
         "id": "NodeVision Editor _V2/.serena/memories",
@@ -705,13 +937,57 @@
         "glowIntensity": 0,
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.serena",
-        "childFileCount": 2,
-        "x": 86.14578963683769,
-        "y": -189.88877741264665,
-        "z": -46.71276198591056,
-        "vx": -1.0322163129420693e-14,
-        "vy": -1.5725167887327447e-14,
-        "vz": -6.025141811883375e-15
+        "childFileCount": 5,
+        "x": 182.4714236510483,
+        "y": 80.5138729989135,
+        "z": 136.27748913212287,
+        "vx": 8.628131653803305e-9,
+        "vy": 4.616917975633e-9,
+        "vz": 1.2617589587258549e-8
+      },
+      {
+        "id": "NodeVision Editor _V2/.serena/memories/a_foundation_fixlog_20251112.md",
+        "name": "a_foundation_fixlog_20251112.md",
+        "path": "NodeVision Editor _V2/.serena/memories/a_foundation_fixlog_20251112.md",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3498db",
+        "originalColor": "#3498db",
+        "defaultGlow": 0.18,
+        "glowIntensity": 2.4,
+        "highlighted": true,
+        "parentPath": "NodeVision Editor _V2/.serena/memories",
+        "childFileCount": 0,
+        "x": 203.9280154020575,
+        "y": 99.6970269241573,
+        "z": 110.22179084846235,
+        "vx": 1.6039364518197187e-8,
+        "vy": 6.508312518626097e-9,
+        "vz": 1.8352252690871824e-8
+      },
+      {
+        "id": "NodeVision Editor _V2/.serena/memories/a_foundation_review_20251112.md",
+        "name": "a_foundation_review_20251112.md",
+        "path": "NodeVision Editor _V2/.serena/memories/a_foundation_review_20251112.md",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3498db",
+        "originalColor": "#3498db",
+        "defaultGlow": 0.18,
+        "glowIntensity": 2.4,
+        "highlighted": true,
+        "parentPath": "NodeVision Editor _V2/.serena/memories",
+        "childFileCount": 0,
+        "x": 205.51554665193163,
+        "y": 89.32430126879217,
+        "z": 168.28306939484327,
+        "vx": 1.143744771250403e-8,
+        "vy": 2.629967549805112e-9,
+        "vz": 1.219849414629626e-8
       },
       {
         "id": "NodeVision Editor _V2/.serena/memories/activation_20251112.md",
@@ -728,12 +1004,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.serena/memories",
         "childFileCount": 0,
-        "x": 114.45120107285967,
-        "y": -218.9753417405202,
-        "z": -46.033715643112465,
-        "vx": -1.2806174814085675e-14,
-        "vy": -2.3971046158285713e-14,
-        "vz": -3.9766475487388844e-15
+        "x": 217.30153128286483,
+        "y": 63.69823122657951,
+        "z": 146.76819591387292,
+        "vx": 1.0982952513612185e-8,
+        "vy": 9.345125014049207e-9,
+        "vz": 1.2955340139234838e-8
       },
       {
         "id": "NodeVision Editor _V2/.serena/memories/m0_foundation_20251112.md",
@@ -750,12 +1026,34 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.serena/memories",
         "childFileCount": 0,
-        "x": 86.43207422622811,
-        "y": -230.43080665937313,
-        "z": -51.06203115351318,
-        "vx": -1.404775976415162e-14,
-        "vy": -1.8616988158839762e-14,
-        "vz": -3.565734403950887e-15
+        "x": 195.23421648954678,
+        "y": 116.21000308156307,
+        "z": 148.22666259571918,
+        "vx": 1.446469376074844e-8,
+        "vy": 1.8175149513790135e-9,
+        "vz": 1.611741498060053e-8
+      },
+      {
+        "id": "NodeVision Editor _V2/.serena/memories/monitoring_20251112.md",
+        "name": "monitoring_20251112.md",
+        "path": "NodeVision Editor _V2/.serena/memories/monitoring_20251112.md",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3498db",
+        "originalColor": "#3498db",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/.serena/memories",
+        "childFileCount": 0,
+        "x": 222.08298530524613,
+        "y": 91.84944326302693,
+        "z": 133.96070597677218,
+        "vx": 1.0710072403796479e-8,
+        "vy": 2.3388331589581175e-9,
+        "vz": 1.9873066239137048e-8
       },
       {
         "id": "NodeVision Editor _V2/.serena/project.yml",
@@ -772,12 +1070,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/.serena",
         "childFileCount": 0,
-        "x": 61.51301340051498,
-        "y": -147.0567262920984,
-        "z": -62.37552926035964,
-        "vx": 5.94341426963347e-15,
-        "vy": -6.720575572860239e-15,
-        "vz": -6.076073769288273e-15
+        "x": 122.73872866836196,
+        "y": 58.444569048758794,
+        "z": 136.93242868041378,
+        "vx": 5.2415809146854464e-9,
+        "vy": 1.5225027449041763e-8,
+        "vz": 1.0729752911088566e-8
       },
       {
         "id": "NodeVision Editor _V2/AGENTS.md",
@@ -794,12 +1092,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": -4.1911823767679,
-        "y": 12.054902866149865,
-        "z": -32.56426397285316,
-        "vx": -3.776500536504556e-15,
-        "vy": -1.6174464475604287e-14,
-        "vz": -1.7377652120971802e-14
+        "x": -35.90352939716386,
+        "y": 26.990562755627845,
+        "z": 89.3507984136197,
+        "vx": 7.916315701171795e-9,
+        "vy": 7.357153166311184e-9,
+        "vz": 6.412993307345833e-9
       },
       {
         "id": "NodeVision Editor _V2/apps",
@@ -816,12 +1114,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 91.45576116705995,
-        "y": -37.20657552064039,
-        "z": 17.700886183411676,
-        "vx": 3.4683780442069015e-15,
-        "vy": -5.865715688295663e-15,
-        "vz": -1.554241534618221e-14
+        "x": 21.01583941901794,
+        "y": -50.962560405980426,
+        "z": 153.48441354776676,
+        "vx": 8.27024952875647e-9,
+        "vy": 7.4324392794228915e-9,
+        "vz": 1.5567253408784387e-9
       },
       {
         "id": "NodeVision Editor _V2/apps/desktop-electron",
@@ -838,12 +1136,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/apps",
         "childFileCount": 2,
-        "x": 156.3150704916928,
-        "y": -64.5385177008608,
-        "z": 71.8170021651313,
-        "vx": 1.3075763055854528e-14,
-        "vy": 6.272494392104514e-15,
-        "vz": -1.1897915515484865e-14
+        "x": 42.81725713969653,
+        "y": -111.42638326132646,
+        "z": 221.77672818344234,
+        "vx": 7.284959460679606e-9,
+        "vy": 4.746507242031475e-10,
+        "vz": 8.957086605308878e-10
       },
       {
         "id": "NodeVision Editor _V2/apps/desktop-electron/package.json",
@@ -860,12 +1158,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/apps/desktop-electron",
         "childFileCount": 0,
-        "x": 164.88484491256443,
-        "y": -93.97016332864874,
-        "z": 92.67611414687265,
-        "vx": 1.29063017913656e-14,
-        "vy": 7.516759101306726e-15,
-        "vz": -4.695386213363018e-15
+        "x": 33.938552279571994,
+        "y": -121.66466441459853,
+        "z": 256.69191032818173,
+        "vx": 8.159061885781378e-9,
+        "vy": -6.045779552641719e-9,
+        "vz": -2.574670820201005e-9
       },
       {
         "id": "NodeVision Editor _V2/apps/desktop-electron/src",
@@ -882,12 +1180,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/apps/desktop-electron",
         "childFileCount": 1,
-        "x": 200.8786503455404,
-        "y": -90.63709420094749,
-        "z": 105.87654755811512,
-        "vx": 1.903189577016757e-14,
-        "vy": 1.5656983333255943e-14,
-        "vz": -1.1039941229483253e-14
+        "x": 63.24833289633379,
+        "y": -150.04676469856778,
+        "z": 267.7139276019798,
+        "vx": 3.063946748540325e-9,
+        "vy": 4.114092196584789e-9,
+        "vz": -4.393686804770044e-9
       },
       {
         "id": "NodeVision Editor _V2/apps/desktop-electron/src/main.ts",
@@ -900,16 +1198,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/apps/desktop-electron/src",
         "childFileCount": 0,
-        "x": 228.737815606143,
-        "y": -109.78832222081611,
-        "z": 129.7298506898144,
-        "vx": 2.520151903266368e-14,
-        "vy": 2.017789748421421e-14,
-        "vz": -7.973006191657767e-15
+        "x": 76.72227773844179,
+        "y": -175.57851059204336,
+        "z": 298.1601084695105,
+        "vx": 8.836805835289826e-10,
+        "vy": 2.7397770328931705e-9,
+        "vz": -6.6076264254451315e-9
       },
       {
         "id": "NodeVision Editor _V2/apps/desktop-electron/tsconfig.json",
@@ -926,12 +1224,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/apps/desktop-electron",
         "childFileCount": 0,
-        "x": 184.78277170989645,
-        "y": -51.19351727379083,
-        "z": 93.10836943859715,
-        "vx": 1.4238817146124356e-14,
-        "vy": 1.170610394008345e-14,
-        "vz": -1.4848873019471096e-14
+        "x": 61.703796241450625,
+        "y": -141.65930297190462,
+        "z": 233.05241806282206,
+        "vx": 3.0396480221272384e-10,
+        "vy": -3.737834229270581e-9,
+        "vz": 2.823053342567118e-9
       },
       {
         "id": "NodeVision Editor _V2/doc",
@@ -948,12 +1246,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 2,
-        "x": 114.24588120221325,
-        "y": -14.574647778577555,
-        "z": -180.34925787479094,
-        "vx": -1.1220438582602962e-14,
-        "vy": -2.3118483575426847e-15,
-        "vz": -1.2110215819606785e-14
+        "x": 106.04347655774005,
+        "y": -44.74906023330863,
+        "z": -96.06724307853224,
+        "vx": 6.233152801998068e-10,
+        "vy": 7.011270669695663e-9,
+        "vz": 2.957723670323806e-9
       },
       {
         "id": "NodeVision Editor _V2/doc/.DS_Store",
@@ -966,16 +1264,434 @@
         "baseColor": "#57606f",
         "originalColor": "#57606f",
         "defaultGlow": 0.18,
-        "glowIntensity": 2.4,
-        "highlighted": true,
+        "glowIntensity": 0,
+        "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc",
         "childFileCount": 0,
-        "x": 101.55656053842475,
-        "y": 3.9459602166234533,
-        "z": -208.41740997630995,
-        "vx": -2.297880293940324e-15,
-        "vy": -5.720172302971577e-15,
-        "vz": -2.279854763862994e-14
+        "x": 124.16926431125954,
+        "y": -63.64302630827119,
+        "z": -73.45469420279757,
+        "vx": 2.780566014103734e-9,
+        "vy": 5.009931912304905e-9,
+        "vz": -1.4654966239993498e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "name": "NodeVision-skeleton-v1.0.4_secure",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc",
+        "childFileCount": 1,
+        "x": 171.83788289229958,
+        "y": -77.95086414060877,
+        "z": -229.1585615292281,
+        "vx": 2.4174641074871737e-9,
+        "vy": 2.5836127994086184e-9,
+        "vz": 8.008623262892969e-10
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/NodeGraph.schema.json",
+        "name": "NodeGraph.schema.json",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/NodeGraph.schema.json",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#8e44ad",
+        "originalColor": "#8e44ad",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "childFileCount": 0,
+        "x": 171.74138082746452,
+        "y": -99.2306501823246,
+        "z": -257.4845349902626,
+        "vx": 5.7244672420921556e-9,
+        "vy": 1.8457708450910497e-9,
+        "vz": -2.5897045805757413e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps",
+        "name": "apps",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "childFileCount": 0,
+        "x": 240.87010012356365,
+        "y": -101.13149075631495,
+        "z": -244.79810093079433,
+        "vx": 4.359767140109206e-9,
+        "vy": 1.8354678962121205e-10,
+        "vz": -2.16367676955736e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron",
+        "name": "desktop-electron",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps",
+        "childFileCount": 0,
+        "x": 307.9799266208097,
+        "y": -123.2188276415304,
+        "z": -257.03010742258505,
+        "vx": 7.322861299690061e-9,
+        "vy": -1.8634900630387233e-9,
+        "vz": -2.2518495126357104e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main",
+        "name": "main",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron",
+        "childFileCount": 1,
+        "x": 360.1362409183535,
+        "y": -140.09106245148848,
+        "z": -266.4199238280097,
+        "vx": 9.159146758347557e-9,
+        "vy": -3.0230985806746534e-9,
+        "vz": -2.4845139955481154e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main/httpServer.ts",
+        "name": "httpServer.ts",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main/httpServer.ts",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3178c6",
+        "originalColor": "#3178c6",
+        "defaultGlow": 0.1,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main",
+        "childFileCount": 0,
+        "x": 395.9522357209457,
+        "y": -151.4278074144476,
+        "z": -274.6246235974449,
+        "vx": 1.0149910404734632e-8,
+        "vy": -3.475602197950931e-9,
+        "vz": -3.1476423388153378e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages",
+        "name": "packages",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "childFileCount": 0,
+        "x": 178.98890315499284,
+        "y": -89.31746189306799,
+        "z": -349.69254979252935,
+        "vx": 4.2722820716989284e-9,
+        "vy": 1.2916759757746284e-9,
+        "vz": -1.6902891247940247e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine",
+        "name": "engine",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages",
+        "childFileCount": 0,
+        "x": 158.79056176131516,
+        "y": -127.71212397046652,
+        "z": -421.73078386804605,
+        "vx": 5.90862315655565e-9,
+        "vy": 1.9026555103423525e-10,
+        "vz": -4.927331985669113e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "name": "src",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine",
+        "childFileCount": 0,
+        "x": 141.0641316757483,
+        "y": -161.6190413731351,
+        "z": -485.7686900225536,
+        "vx": 6.4677589787812974e-9,
+        "vy": -2.1375888255150145e-9,
+        "vz": -7.525531963312939e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history",
+        "name": "history",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "childFileCount": 1,
+        "x": 125.21867665493401,
+        "y": -208.24017971942413,
+        "z": -497.631269764991,
+        "vx": 6.419017295873061e-9,
+        "vy": -3.1255921957408814e-9,
+        "vz": -9.102135662651768e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history/history.ts",
+        "name": "history.ts",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history/history.ts",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3178c6",
+        "originalColor": "#3178c6",
+        "defaultGlow": 0.1,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history",
+        "childFileCount": 0,
+        "x": 113.0162712826937,
+        "y": -243.12661277558053,
+        "z": -511.6837780025906,
+        "vx": 5.8181486859746115e-9,
+        "vy": -4.7010672449158396e-9,
+        "vz": -8.441830745512492e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect",
+        "name": "inspect",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "childFileCount": 1,
+        "x": 165.07790243617308,
+        "y": -174.08886599449696,
+        "z": -529.1235350238915,
+        "vx": 7.1178693627937305e-9,
+        "vy": -2.0990986586197794e-9,
+        "vz": -8.197557607327094e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect/concat.ts",
+        "name": "concat.ts",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect/concat.ts",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3178c6",
+        "originalColor": "#3178c6",
+        "defaultGlow": 0.1,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect",
+        "childFileCount": 0,
+        "x": 179.45028234699396,
+        "y": -185.83000057330835,
+        "z": -564.1689317756404,
+        "vx": 8.651364361893579e-9,
+        "vy": -2.1091958496641556e-9,
+        "vz": -9.023532734460838e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe",
+        "name": "probe",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "childFileCount": 1,
+        "x": 106.77552933575407,
+        "y": -153.9562166366938,
+        "z": -523.5216578731564,
+        "vx": 6.3162909524614606e-9,
+        "vy": -1.4483570958586943e-9,
+        "vz": -7.910542035702783e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts",
+        "name": "ffprobe.ts",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3178c6",
+        "originalColor": "#3178c6",
+        "defaultGlow": 0.1,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe",
+        "childFileCount": 0,
+        "x": 81.94530611741499,
+        "y": -151.92549850970437,
+        "z": -554.577257867399,
+        "vx": 5.284636937734617e-9,
+        "vy": -2.466948013739621e-10,
+        "vz": -8.642445827459904e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared",
+        "name": "shared",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages",
+        "childFileCount": 0,
+        "x": 210.95445090509816,
+        "y": -57.30290178896649,
+        "z": -401.4405570959401,
+        "vx": 5.810148955388511e-9,
+        "vy": 1.3804323971125802e-9,
+        "vz": -2.8966499068698164e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src",
+        "name": "src",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared",
+        "childFileCount": 0,
+        "x": 241.9324776624185,
+        "y": -26.381844328210764,
+        "z": -448.11328952719225,
+        "vx": 7.554437676106809e-9,
+        "vy": 1.7597738537752687e-9,
+        "vz": -4.522651799264337e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations",
+        "name": "migrations",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#2c3038",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src",
+        "childFileCount": 1,
+        "x": 266.9715950450836,
+        "y": -0.7593021799217364,
+        "z": -487.38787016122484,
+        "vx": 8.606747473003731e-9,
+        "vy": 1.8441830492886816e-9,
+        "vz": -5.917508277226968e-9
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations/index.ts",
+        "name": "index.ts",
+        "path": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations/index.ts",
+        "type": "file",
+        "lines": 0,
+        "val": 6,
+        "color": "#2c3038",
+        "baseColor": "#3178c6",
+        "originalColor": "#3178c6",
+        "defaultGlow": 0.1,
+        "glowIntensity": 0,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations",
+        "childFileCount": 0,
+        "x": 284.70170404448675,
+        "y": 17.580168644476785,
+        "z": -515.7359961328372,
+        "vx": 9.289935492708563e-9,
+        "vy": 1.725566681716492e-9,
+        "vz": -7.005539584046362e-9
       },
       {
         "id": "NodeVision Editor _V2/doc/NodeVision_Edit_要件定義書_v1.0.7.md",
@@ -992,12 +1708,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc",
         "childFileCount": 0,
-        "x": 141.40425893870582,
-        "y": 9.306345806414884,
-        "z": -179.57881969715464,
-        "vx": -6.902448284784389e-15,
-        "vy": 1.6822244249225166e-16,
-        "vz": -1.4967288208530575e-14
+        "x": 119.76334559056377,
+        "y": -43.6511630285123,
+        "z": -128.05802406910524,
+        "vx": 6.856759113763193e-10,
+        "vy": 7.80677052242337e-9,
+        "vz": 2.1179096251088483e-9
       },
       {
         "id": "NodeVision Editor _V2/doc/check list",
@@ -1014,12 +1730,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc",
         "childFileCount": 1,
-        "x": 164.12171619570864,
-        "y": -38.250322547552884,
-        "z": -188.0031667350958,
-        "vx": -1.6491390430156709e-15,
-        "vy": -8.314687375383235e-16,
-        "vz": -1.3490689339629682e-14
+        "x": 106.99595959699852,
+        "y": -98.30713451756355,
+        "z": -99.89839391355162,
+        "vx": -2.014982944406527e-9,
+        "vy": 7.106942982251033e-9,
+        "vz": 5.470639866103965e-10
       },
       {
         "id": "NodeVision Editor _V2/doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md",
@@ -1032,16 +1748,16 @@
         "baseColor": "#3498db",
         "originalColor": "#3498db",
         "defaultGlow": 0.18,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/doc/check list",
         "childFileCount": 0,
-        "x": 201.2207533522196,
-        "y": -56.55766557986555,
-        "z": -196.90655211468982,
-        "vx": 1.359697743821763e-15,
-        "vy": -4.318109305711846e-15,
-        "vz": -1.5659814089005698e-14
+        "x": 107.93351596208377,
+        "y": -140.40269066273095,
+        "z": -102.91621948012246,
+        "vx": -3.3684610690744517e-9,
+        "vy": 5.538528424036095e-9,
+        "vz": -1.46658412390343e-9
       },
       {
         "id": "NodeVision Editor _V2/doc/inspect_concat_API_v1",
@@ -1058,12 +1774,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc",
         "childFileCount": 3,
-        "x": 183.23990256079892,
-        "y": 30.836002927723733,
-        "z": -222.0245848770453,
-        "vx": -6.559897413276883e-16,
-        "vy": 1.4962990913295302e-15,
-        "vz": -1.3257731987234372e-14
+        "x": 130.66864894346804,
+        "y": 6.837648962663373,
+        "z": -144.27163144696038,
+        "vx": 3.369887287010232e-9,
+        "vy": 5.397502961760796e-9,
+        "vz": 5.873190252632304e-11
       },
       {
         "id": "NodeVision Editor _V2/doc/inspect_concat_API_v1/inspect_concat.request.schema.json",
@@ -1080,12 +1796,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc/inspect_concat_API_v1",
         "childFileCount": 0,
-        "x": 197.02071146523107,
-        "y": 64.97768576122631,
-        "z": -239.81958949721334,
-        "vx": 6.305149607804034e-15,
-        "vy": 2.9623900112574293e-15,
-        "vz": -1.2926184452673281e-14
+        "x": 155.70831060052274,
+        "y": 21.616194948155744,
+        "z": -171.31188590925007,
+        "vx": 4.078831727394796e-9,
+        "vy": 4.667262283281725e-9,
+        "vz": -1.6611546978176414e-9
       },
       {
         "id": "NodeVision Editor _V2/doc/inspect_concat_API_v1/inspect_concat.response.schema.json",
@@ -1102,12 +1818,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc/inspect_concat_API_v1",
         "childFileCount": 0,
-        "x": 221.45368585682502,
-        "y": 46.18288493017238,
-        "z": -222.84441372059814,
-        "vx": 4.947299709880315e-15,
-        "vy": 1.00273910428754e-15,
-        "vz": -1.2414803280775601e-14
+        "x": 118.07186187314353,
+        "y": 30.125733802973716,
+        "z": -173.46659686717027,
+        "vx": 6.366370970424067e-9,
+        "vy": 4.901572068904634e-9,
+        "vz": -2.3181363585064323e-9
       },
       {
         "id": "NodeVision Editor _V2/doc/inspect_concat_API_v1/inspect_concat_API_v1.0.md",
@@ -1124,12 +1840,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc/inspect_concat_API_v1",
         "childFileCount": 0,
-        "x": 211.01375149111246,
-        "y": 35.03135276187876,
-        "z": -252.37282242475848,
-        "vx": 4.01902914871615e-15,
-        "vy": -7.079511281859937e-16,
-        "vz": -1.3437271516896646e-14
+        "x": 146.4320375241833,
+        "y": 42.67935896708294,
+        "z": -149.4510754953462,
+        "vx": 5.969451617927317e-9,
+        "vy": 4.812959868269969e-9,
+        "vz": -1.6713445553160292e-9
       },
       {
         "id": "NodeVision Editor _V2/doc/schedule",
@@ -1146,12 +1862,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc",
         "childFileCount": 1,
-        "x": 122.71861984064502,
-        "y": -54.31643163349184,
-        "z": -217.8577481895992,
-        "vx": -8.479404190473911e-16,
-        "vy": -2.032377306174306e-15,
-        "vz": -1.2516119980109582e-14
+        "x": 74.14099078633333,
+        "y": -67.55684730043116,
+        "z": -130.4725116136376,
+        "vx": 3.2002814349912144e-9,
+        "vy": 6.634339814121499e-9,
+        "vz": 1.5074616860574486e-10
       },
       {
         "id": "NodeVision Editor _V2/doc/schedule/NodeVision_Implementation_Schedule_v1.0.7.md",
@@ -1168,12 +1884,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc/schedule",
         "childFileCount": 0,
-        "x": 133.97971849750385,
-        "y": -83.34393616662507,
-        "z": -246.73075966592,
-        "vx": -6.165348454337627e-16,
-        "vy": -5.029269435533084e-15,
-        "vz": -1.9110484475590906e-14
+        "x": 50.906623735640906,
+        "y": -88.55567786476205,
+        "z": -156.8667216097394,
+        "vx": -2.3042502390170736e-10,
+        "vy": 5.8836915432835425e-9,
+        "vz": -2.9989350944129343e-10
       },
       {
         "id": "NodeVision Editor _V2/doc/workflow",
@@ -1190,12 +1906,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc",
         "childFileCount": 3,
-        "x": 104.33775483716161,
-        "y": -6.9562020617092974,
-        "z": -271.4383784030967,
-        "vx": 5.3433361178715764e-15,
-        "vy": -4.879577867425616e-15,
-        "vz": -1.290811133332913e-14
+        "x": 181.59500939733255,
+        "y": -75.67439181906724,
+        "z": -90.95148982404851,
+        "vx": -2.269702484320236e-9,
+        "vy": 3.759150130345412e-9,
+        "vz": 7.424014786595302e-10
       },
       {
         "id": "NodeVision Editor _V2/doc/workflow/NodeVision_job_state.svg",
@@ -1212,12 +1928,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc/workflow",
         "childFileCount": 0,
-        "x": 115.1873930117162,
-        "y": -16.886519960130336,
-        "z": -310.1801461355036,
-        "vx": 1.0253785428854316e-14,
-        "vy": -4.756601152608335e-15,
-        "vz": -1.558806942817411e-14
+        "x": 219.32574277930314,
+        "y": -68.42555951405718,
+        "z": -79.72576379079135,
+        "vx": -2.514722412761196e-10,
+        "vy": 1.8474677196551397e-11,
+        "vz": 4.098097316848254e-10
       },
       {
         "id": "NodeVision Editor _V2/doc/workflow/NodeVision_sequence.svg",
@@ -1234,12 +1950,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc/workflow",
         "childFileCount": 0,
-        "x": 101.54203680574416,
-        "y": 16.10870239843188,
-        "z": -305.473897984941,
-        "vx": 1.0186079321947246e-14,
-        "vy": -3.3052158603992027e-15,
-        "vz": -1.5901262605348815e-14
+        "x": 216.01946616605946,
+        "y": -90.91065138238875,
+        "z": -104.96572702385157,
+        "vx": -2.6388391647536957e-9,
+        "vy": 9.297601696461814e-10,
+        "vz": -2.8369599496178907e-10
       },
       {
         "id": "NodeVision Editor _V2/doc/workflow/NodeVision_user_workflow_activity.svg",
@@ -1256,12 +1972,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/doc/workflow",
         "childFileCount": 0,
-        "x": 82.75839758661614,
-        "y": -11.928010093936768,
-        "z": -305.556477912419,
-        "vx": 1.003268189778479e-14,
-        "vy": -4.8099803060442144e-15,
-        "vz": -1.693221312205284e-14
+        "x": 206.0993743584414,
+        "y": -104.93385932949971,
+        "z": -76.52570604363686,
+        "vx": -4.7532263751388855e-9,
+        "vy": 8.241975611096767e-10,
+        "vz": 5.850296365750045e-11
       },
       {
         "id": "NodeVision Editor _V2/eslint.config.mjs",
@@ -1274,16 +1990,16 @@
         "baseColor": "#57606f",
         "originalColor": "#57606f",
         "defaultGlow": 0.18,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 11.184986107851381,
-        "y": -34.89620373801122,
-        "z": -68.44921516845328,
-        "vx": -7.217679994715349e-15,
-        "vy": -1.406511177107133e-14,
-        "vz": -1.4935531443197853e-14
+        "x": 12.49851966032289,
+        "y": 8.672119348585976,
+        "z": 48.47493019056022,
+        "vx": 1.5003618952512975e-8,
+        "vy": 2.0476426356613326e-8,
+        "vz": 9.08992743807387e-9
       },
       {
         "id": "NodeVision Editor _V2/package.json",
@@ -1300,12 +2016,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 48.090424276137874,
-        "y": -14.054730105159107,
-        "z": -71.02000640966726,
-        "vx": -7.163151546946995e-15,
-        "vy": -1.536644804439239e-14,
-        "vz": -1.5678339178660986e-14
+        "x": 29.13269609708197,
+        "y": -10.844545725836118,
+        "z": 74.4119797277787,
+        "vx": 1.1564028520406482e-8,
+        "vy": 1.4414498336427983e-8,
+        "vz": 8.899990866207178e-9
       },
       {
         "id": "NodeVision Editor _V2/packages",
@@ -1322,12 +2038,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": -78.42996051847986,
-        "y": 26.240003008126596,
-        "z": 98.42555064461068,
-        "vx": 3.626503596258931e-15,
-        "vy": -1.4064827764243724e-15,
-        "vz": -7.633354410044536e-15
+        "x": -175.43430615581457,
+        "y": 37.68974336864521,
+        "z": 168.56956614694496,
+        "vx": 6.097698897481996e-9,
+        "vy": 3.793236541770623e-9,
+        "vz": 3.291410629648053e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/nvctl",
@@ -1344,12 +2060,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages",
         "childFileCount": 2,
-        "x": -98.73322218843072,
-        "y": 124.3373424404299,
-        "z": 127.60331751030257,
-        "vx": -6.1260510787340345e-15,
-        "vy": -9.277180522587665e-16,
-        "vz": 3.844648313968049e-15
+        "x": -284.83076445946693,
+        "y": 9.943839248516024,
+        "z": 145.27137382988383,
+        "vx": 8.422980397529108e-10,
+        "vy": -1.2072219504444616e-9,
+        "vz": 2.1924454384623496e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/nvctl/package.json",
@@ -1366,12 +2082,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/nvctl",
         "childFileCount": 0,
-        "x": -127.71315781990391,
-        "y": 146.25280937098617,
-        "z": 125.98461772493482,
-        "vx": -4.995678882642314e-15,
-        "vy": 6.460796181283412e-15,
-        "vz": 1.4959512744040536e-15
+        "x": -309.49975943551743,
+        "y": -18.361346504848473,
+        "z": 148.26333723253686,
+        "vx": -3.260875579374218e-9,
+        "vy": -1.5126620316224936e-9,
+        "vz": -2.2089740658863e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/nvctl/src",
@@ -1388,12 +2104,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/nvctl",
         "childFileCount": 3,
-        "x": -117.47779578476076,
-        "y": 211.41461192690352,
-        "z": 156.61261245378316,
-        "vx": -8.992147799578497e-15,
-        "vy": -2.960110958142602e-15,
-        "vz": -6.511719698132414e-17
+        "x": -377.643058191238,
+        "y": -3.382909040347917,
+        "z": 126.4136667136053,
+        "vx": -6.7269501542947965e-9,
+        "vy": -4.6306486216494515e-9,
+        "vz": 3.706344418952247e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/nvctl/src/actions.test.ts",
@@ -1406,16 +2122,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/packages/nvctl/src",
         "childFileCount": 0,
-        "x": -107.49519454378175,
-        "y": 249.84304922806544,
-        "z": 156.151080955295,
-        "vx": -1.1572015231117207e-14,
-        "vy": 6.292318704234731e-16,
-        "vz": -4.0079007133716443e-16
+        "x": -407.91010232145106,
+        "y": -28.942126237219682,
+        "z": 121.82620162304877,
+        "vx": -9.308185141271794e-9,
+        "vy": -4.6957707626726916e-9,
+        "vz": 4.7597490668747305e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/nvctl/src/actions.ts",
@@ -1428,16 +2144,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/packages/nvctl/src",
         "childFileCount": 0,
-        "x": -143.04624075985103,
-        "y": 241.8490971906867,
-        "z": 158.18255921494628,
-        "vx": -1.1102156517388275e-14,
-        "vy": -2.4777814902212435e-15,
-        "vz": -2.607804470062649e-15
+        "x": -407.4277507501602,
+        "y": 1.278163324120076,
+        "z": 100.27592158974458,
+        "vx": -9.718880503829534e-9,
+        "vy": -5.212014772454224e-9,
+        "vz": 4.754244224578077e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/nvctl/src/index.ts",
@@ -1454,12 +2170,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/nvctl/src",
         "childFileCount": 0,
-        "x": -121.90401994676199,
-        "y": 237.41700510084559,
-        "z": 186.4946914808542,
-        "vx": -1.0331370983978717e-14,
-        "vy": -1.787586086444301e-15,
-        "vz": -1.5045419239078097e-16
+        "x": -416.5676871935745,
+        "y": 3.608340717865528,
+        "z": 134.43071591620202,
+        "vx": -7.890404531908886e-9,
+        "vy": -5.168352179333963e-9,
+        "vz": 4.987075127681391e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/nvctl/tsconfig.json",
@@ -1476,12 +2192,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/nvctl",
         "childFileCount": 0,
-        "x": -83.17560041229157,
-        "y": 156.28184987686973,
-        "z": 135.28480778172096,
-        "vx": 6.762698786105025e-16,
-        "vy": -1.8603391864018093e-15,
-        "vz": 2.383104177131375e-15
+        "x": -315.57627705999084,
+        "y": 10.32320947870698,
+        "z": 124.48761137895087,
+        "vx": -2.2143301487529533e-10,
+        "vy": -3.2035328815886624e-9,
+        "vz": 2.149115695729646e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/settings",
@@ -1498,12 +2214,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages",
         "childFileCount": 2,
-        "x": -61.436553542937354,
-        "y": 49.14454359068689,
-        "z": 203.7889258667498,
-        "vx": 2.5169853056425792e-15,
-        "vy": -1.1351221550814972e-15,
-        "vz": 2.5948155437314943e-16
+        "x": -239.93779117665673,
+        "y": 120.70054235951577,
+        "z": 147.82117366626707,
+        "vx": -2.7341768366505254e-9,
+        "vy": 3.738138732947423e-9,
+        "vz": 5.474828312001607e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/settings/package.json",
@@ -1520,12 +2236,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/settings",
         "childFileCount": 0,
-        "x": -35.72097703920122,
-        "y": 54.8805756139324,
-        "z": 229.86053626021803,
-        "vx": 6.591695018247198e-15,
-        "vy": -1.0841320064710694e-15,
-        "vz": 3.4485564858677155e-15
+        "x": -270.6568962939705,
+        "y": 126.53553243032675,
+        "z": 127.57866139324608,
+        "vx": -4.3514284754641245e-9,
+        "vy": 7.829431631647678e-9,
+        "vz": 6.0223140867841e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/settings/src",
@@ -1542,12 +2258,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/settings",
         "childFileCount": 2,
-        "x": -49.93197555098323,
-        "y": 65.58436765770011,
-        "z": 281.71920036069713,
-        "vx": 1.8848937069260255e-15,
-        "vy": 1.4015084424917024e-15,
-        "vz": 3.9179088289096025e-15
+        "x": -282.80714056062953,
+        "y": 187.10576195760723,
+        "z": 132.13137241172726,
+        "vx": -1.026411359338325e-8,
+        "vy": 2.628564248936082e-9,
+        "vz": 7.3379639079888146e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/settings/src/index.test.ts",
@@ -1560,16 +2276,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/packages/settings/src",
         "childFileCount": 0,
-        "x": -60.16375852060432,
-        "y": 76.62746512033871,
-        "z": 319.2929523046607,
-        "vx": 2.5923523557999456e-15,
-        "vy": 3.082026886768146e-15,
-        "vz": 7.876386813517087e-15
+        "x": -309.1858778743849,
+        "y": 209.79117409500532,
+        "z": 112.60604280067052,
+        "vx": -1.3537616387476643e-8,
+        "vy": 2.543734679510852e-9,
+        "vz": 7.985132443175795e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/settings/src/index.ts",
@@ -1582,16 +2298,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/packages/settings/src",
         "childFileCount": 0,
-        "x": -30.779338543094052,
-        "y": 69.41152085696196,
-        "z": 317.1648335506439,
-        "vx": 3.003442396127046e-15,
-        "vy": 3.3619901496810927e-15,
-        "vz": 6.627173626981962e-15
+        "x": -293.35438518126176,
+        "y": 225.6188707471836,
+        "z": 134.10693442100003,
+        "vx": -1.3102647372267769e-8,
+        "vy": 3.0193916178746012e-9,
+        "vz": 8.913093767716205e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/settings/tsconfig.json",
@@ -1608,12 +2324,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/settings",
         "childFileCount": 0,
-        "x": -78.9513664264434,
-        "y": 52.87211237779864,
-        "z": 236.0627583577457,
-        "vx": 6.740827879111769e-16,
-        "vy": -4.886534374785781e-15,
-        "vz": -7.25552811992423e-15
+        "x": -259.65067813555356,
+        "y": 149.7365352061991,
+        "z": 160.41698403288683,
+        "vx": -3.106179849700805e-9,
+        "vy": 4.69875270501912e-9,
+        "vz": 4.2430827585237375e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/system-check",
@@ -1630,12 +2346,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages",
         "childFileCount": 2,
-        "x": -121.46802106414592,
-        "y": -45.88421429828323,
-        "z": 152.03242105424712,
-        "vx": 2.2213640530681833e-15,
-        "vy": 6.536318226403159e-15,
-        "vz": -5.7744001246207055e-15
+        "x": -216.67111797234418,
+        "y": 92.93653236039914,
+        "z": 256.0064847409893,
+        "vx": 3.210670701465314e-9,
+        "vy": 2.0997728199523422e-9,
+        "vz": 6.330099224267065e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/system-check/package.json",
@@ -1652,12 +2368,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/system-check",
         "childFileCount": 0,
-        "x": -145.60172193756367,
-        "y": -72.61689568407226,
-        "z": 146.92137703403884,
-        "vx": -2.482370375877409e-15,
-        "vy": 6.318866650628748e-15,
-        "vz": -3.7967491397926464e-16
+        "x": -242.2989839184758,
+        "y": 94.00003630367024,
+        "z": 283.04562220652406,
+        "vx": 3.246763180193252e-9,
+        "vy": -6.915528313235631e-10,
+        "vz": 8.68713045381997e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/system-check/src",
@@ -1674,12 +2390,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/system-check",
         "childFileCount": 2,
-        "x": -155.2043505256197,
-        "y": -105.77295859857213,
-        "z": 191.25408191153085,
-        "vx": 1.0807531414654556e-15,
-        "vy": 7.986890912979617e-15,
-        "vz": 3.1921628792202008e-15
+        "x": -250.24055128844873,
+        "y": 139.68440555067176,
+        "z": 315.3706652781077,
+        "vx": 1.1518778642448954e-9,
+        "vy": 9.669328877372474e-11,
+        "vz": 8.666038058460866e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/system-check/src/index.test.ts",
@@ -1696,12 +2412,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/system-check/src",
         "childFileCount": 0,
-        "x": -161.29633908804698,
-        "y": -132.7505108728318,
-        "z": 220.53789041193616,
-        "vx": 8.916980861076055e-16,
-        "vy": 4.961940865547505e-15,
-        "vz": 6.429494570476046e-15
+        "x": -279.32907788644883,
+        "y": 157.07789521308666,
+        "z": 338.7317428368508,
+        "vx": -2.627904872228645e-10,
+        "vy": -1.1240081469826654e-10,
+        "vz": 1.0185679857764037e-8
       },
       {
         "id": "NodeVision Editor _V2/packages/system-check/src/index.ts",
@@ -1714,16 +2430,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/packages/system-check/src",
         "childFileCount": 0,
-        "x": -183.058840621403,
-        "y": -133.89694739876057,
-        "z": 198.70138111056448,
-        "vx": 2.5473566976353956e-15,
-        "vy": 3.1864787889350483e-15,
-        "vz": 7.753604730463217e-15
+        "x": -252.31137513244238,
+        "y": 165.65952203047618,
+        "z": 346.6237789749977,
+        "vx": -4.800865108996606e-10,
+        "vy": -1.8010631263166125e-10,
+        "vz": 1.036040042601558e-8
       },
       {
         "id": "NodeVision Editor _V2/packages/system-check/tsconfig.json",
@@ -1740,12 +2456,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/system-check",
         "childFileCount": 0,
-        "x": -126.65364877547651,
-        "y": -55.5650448235146,
-        "z": 187.41148764860534,
-        "vx": 3.98563559603936e-15,
-        "vy": 9.67616843249616e-15,
-        "vz": -5.230139395094435e-15
+        "x": -208.32296966299285,
+        "y": 116.43861137710483,
+        "z": 283.8289256747497,
+        "vx": 7.301373253270247e-9,
+        "vy": -1.3161808294649067e-9,
+        "vz": 8.215337225739752e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/tokens",
@@ -1762,12 +2478,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages",
         "childFileCount": 2,
-        "x": -186.37072705382624,
-        "y": 32.13712082598655,
-        "z": 114.38695156342597,
-        "vx": 1.3157262777354317e-16,
-        "vy": 3.315380243613538e-15,
-        "vz": -6.409166285878891e-15
+        "x": -222.15380277895528,
+        "y": -23.394081056568343,
+        "z": 242.59833776304475,
+        "vx": 7.366649179130328e-9,
+        "vy": -2.6598808961591374e-9,
+        "vz": 4.223245723245358e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/tokens/package.json",
@@ -1784,12 +2500,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/tokens",
         "childFileCount": 0,
-        "x": -213.91059528103094,
-        "y": 50.747289369228334,
-        "z": 130.63629410851374,
-        "vx": 5.90871556466718e-15,
-        "vy": 7.230735471631271e-15,
-        "vz": -5.394877164766998e-15
+        "x": -230.79499177282565,
+        "y": -58.04312711363069,
+        "z": 252.90748856294917,
+        "vx": 8.650080879216122e-9,
+        "vy": -4.217083527303944e-9,
+        "vz": 6.571373316818728e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/tokens/src",
@@ -1806,12 +2522,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/tokens",
         "childFileCount": 2,
-        "x": -265.37023398558455,
-        "y": 34.3996547072374,
-        "z": 131.16306591542386,
-        "vx": -2.8898700026783088e-15,
-        "vy": 5.1626136222754904e-15,
-        "vz": -7.793620701664555e-15
+        "x": -259.05644906631244,
+        "y": -63.585242898547754,
+        "z": 301.27758755406825,
+        "vx": 3.878895167246804e-9,
+        "vy": -5.403002036010815e-9,
+        "vz": 6.592253597091584e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/tokens/src/index.test.ts",
@@ -1824,16 +2540,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2/packages/tokens/src",
         "childFileCount": 0,
-        "x": -303.35556193041174,
-        "y": 47.79281293148907,
-        "z": 129.41584300045508,
-        "vx": -6.7690941216136345e-15,
-        "vy": 5.51297521531287e-15,
-        "vz": -8.35464904809856e-15
+        "x": -268.230782728438,
+        "y": -75.02056456509378,
+        "z": 338.8715572010495,
+        "vx": 1.1918083310971375e-9,
+        "vy": -5.645520976504893e-9,
+        "vz": 8.115632895423608e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/tokens/src/index.ts",
@@ -1850,12 +2566,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/tokens/src",
         "childFileCount": 0,
-        "x": -300.3938632414807,
-        "y": 24.990733508865524,
-        "z": 148.95146194078947,
-        "vx": -6.044497567322805e-15,
-        "vy": 6.028700100209088e-15,
-        "vz": -7.236035707924275e-15
+        "x": -286.5125691239386,
+        "y": -88.36726258973965,
+        "z": 318.0074135209254,
+        "vx": 1.830745877525535e-9,
+        "vy": -5.380368587193803e-9,
+        "vz": 7.492896772347665e-9
       },
       {
         "id": "NodeVision Editor _V2/packages/tokens/tsconfig.json",
@@ -1872,12 +2588,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/packages/tokens",
         "childFileCount": 0,
-        "x": -219.69883053968366,
-        "y": 27.240128100729283,
-        "z": 97.54029800691254,
-        "vx": -2.531016777343698e-15,
-        "vy": 5.822010084745287e-16,
-        "vz": -3.1869005397195746e-15
+        "x": -249.06951916300568,
+        "y": -23.8428110908413,
+        "z": 267.49402918414603,
+        "vx": 8.556429165549698e-9,
+        "vy": -6.80796901658202e-9,
+        "vz": 5.468058575120165e-9
       },
       {
         "id": "NodeVision Editor _V2/pnpm-workspace.yaml",
@@ -1894,12 +2610,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 13.294883779081122,
-        "y": -48.83915033085957,
-        "z": -27.14125480535799,
-        "vx": -9.944075380657488e-15,
-        "vy": -1.8232400262510028e-14,
-        "vz": -1.325422642223532e-14
+        "x": -33.180267787455,
+        "y": -9.154260645112032,
+        "z": 88.57574977982343,
+        "vx": 9.42055367980437e-9,
+        "vy": 1.0518520236587349e-8,
+        "vz": 2.585241016713105e-9
       },
       {
         "id": "NodeVision Editor _V2/scripts",
@@ -1916,12 +2632,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 1,
-        "x": 36.895729089882316,
-        "y": 47.56142180424101,
-        "z": -31.420886830765344,
-        "vx": -2.8970886994071526e-16,
-        "vy": -1.733189513612415e-14,
-        "vz": -1.632980195091638e-14
+        "x": 7.91641435086781,
+        "y": 22.84924738499269,
+        "z": 142.40661455476305,
+        "vx": 8.285438464003763e-9,
+        "vy": 6.1432481577207505e-9,
+        "vz": 3.85232885250611e-9
       },
       {
         "id": "NodeVision Editor _V2/scripts/generate-sample-media.ts",
@@ -1938,12 +2654,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2/scripts",
         "childFileCount": 0,
-        "x": 46.76948416100169,
-        "y": 89.55108459849168,
-        "z": -25.22389527346196,
-        "vx": 1.147692310118714e-14,
-        "vy": -6.0388665262864405e-15,
-        "vz": -1.95167665382041e-14
+        "x": 11.27842554453661,
+        "y": 28.94015458127735,
+        "z": 184.90638690656215,
+        "vx": 6.0977019768995234e-9,
+        "vy": 4.0189136065624134e-9,
+        "vz": 3.2827755384720792e-9
       },
       {
         "id": "NodeVision Editor _V2/tsconfig.base.json",
@@ -1960,12 +2676,12 @@
         "highlighted": false,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": 60.022228881552955,
-        "y": 0.0435319779548423,
-        "z": -22.834117293494224,
-        "vx": 7.24113822819536e-17,
-        "vy": -1.219144976399776e-14,
-        "vz": -1.9955999036417753e-14
+        "x": 37.86061315120964,
+        "y": 17.293964241671116,
+        "z": 95.29077109109014,
+        "vx": 1.1971740303563398e-8,
+        "vy": 1.5246851348556e-8,
+        "vz": 4.596822926279391e-9
       },
       {
         "id": "NodeVision Editor _V2/vitest.config.ts",
@@ -1978,16 +2694,16 @@
         "baseColor": "#3178c6",
         "originalColor": "#3178c6",
         "defaultGlow": 0.1,
-        "glowIntensity": 0,
-        "highlighted": false,
+        "glowIntensity": 2.4,
+        "highlighted": true,
         "parentPath": "NodeVision Editor _V2",
         "childFileCount": 0,
-        "x": -11.463970176491504,
-        "y": -27.40199728028324,
-        "z": -35.34775642438636,
-        "vx": -8.045387522425956e-15,
-        "vy": -1.0617539503644764e-14,
-        "vz": -1.501141901933627e-14
+        "x": -13.116801005593684,
+        "y": -20.224122863443053,
+        "z": 66.86018407007914,
+        "vx": 1.2297065549094996e-8,
+        "vy": 1.1384766445602129e-8,
+        "vz": 2.6416524243164364e-9
       }
     ],
     "links": [
@@ -2009,6 +2725,26 @@
       {
         "source": "NodeVision Editor _V2",
         "target": "NodeVision Editor _V2/.kamui",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/.kamui",
+        "target": "NodeVision Editor _V2/.kamui/manager",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/.kamui/manager",
+        "target": "NodeVision Editor _V2/.kamui/manager/202511122115_monitor_task-1762949569974-32ddda.html",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/.kamui/manager",
+        "target": "NodeVision Editor _V2/.kamui/manager/202511122204_eval_task-1762949569974-32ddda.html",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/.kamui/manager",
+        "target": "NodeVision Editor _V2/.kamui/manager/monitor_task-1762949569974-32ddda.json",
         "type": "tree"
       },
       {
@@ -2058,12 +2794,27 @@
       },
       {
         "source": "NodeVision Editor _V2/.serena/memories",
+        "target": "NodeVision Editor _V2/.serena/memories/a_foundation_fixlog_20251112.md",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/.serena/memories",
+        "target": "NodeVision Editor _V2/.serena/memories/a_foundation_review_20251112.md",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/.serena/memories",
         "target": "NodeVision Editor _V2/.serena/memories/activation_20251112.md",
         "type": "tree"
       },
       {
         "source": "NodeVision Editor _V2/.serena/memories",
         "target": "NodeVision Editor _V2/.serena/memories/m0_foundation_20251112.md",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/.serena/memories",
+        "target": "NodeVision Editor _V2/.serena/memories/monitoring_20251112.md",
         "type": "tree"
       },
       {
@@ -2114,6 +2865,101 @@
       {
         "source": "NodeVision Editor _V2/doc",
         "target": "NodeVision Editor _V2/doc/.DS_Store",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/NodeGraph.schema.json",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main/httpServer.ts",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history/history.ts",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect/concat.ts",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations",
+        "target": "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations/index.ts",
         "type": "tree"
       },
       {
@@ -2352,6 +3198,9 @@
     ".DS_Store",
     ".editorconfig",
     ".gitignore",
+    ".kamui/manager/202511122115_monitor_task-1762949569974-32ddda.html",
+    ".kamui/manager/202511122204_eval_task-1762949569974-32ddda.html",
+    ".kamui/manager/monitor_task-1762949569974-32ddda.json",
     ".kamui/model-versions-cache.json",
     ".kamui/prompt/merge-prompt.txt",
     ".kamui/system-graph-state.json",
@@ -2360,12 +3209,19 @@
     ".serena/.gitignore",
     ".serena/memories/activation_20251112.md",
     ".serena/memories/m0_foundation_20251112.md",
+    ".serena/memories/monitoring_20251112.md",
     ".serena/project.yml",
     "AGENTS.md",
     "apps/desktop-electron/package.json",
     "apps/desktop-electron/src/main.ts",
     "apps/desktop-electron/tsconfig.json",
     "doc/.DS_Store",
+    "doc/NodeVision-skeleton-v1.0.4_secure/NodeGraph.schema.json",
+    "doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main/httpServer.ts",
+    "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history/history.ts",
+    "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect/concat.ts",
+    "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts",
+    "doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations/index.ts",
     "doc/NodeVision_Edit_要件定義書_v1.0.7.md",
     "doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md",
     "doc/inspect_concat_API_v1/inspect_concat.request.schema.json",
@@ -2468,7 +3324,17 @@
       "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src",
       "NodeVision Editor _V2/NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src",
       "NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations",
-      "NodeVision Editor _V2/NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations"
+      "NodeVision Editor _V2/NodeVision Editor _V2/doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations",
+      "task-1762956607796-8139a5",
+      "NodeVision Editor _V2/task-1762956607796-8139a5",
+      "task-1762956607796-8139a5/.serena",
+      "NodeVision Editor _V2/task-1762956607796-8139a5/.serena",
+      "task-1762956607796-8139a5/.serena/memories",
+      "NodeVision Editor _V2/task-1762956607796-8139a5/.serena/memories",
+      "task-1762956607796-8139a5/.kamui",
+      "NodeVision Editor _V2/task-1762956607796-8139a5/.kamui",
+      "task-1762956607796-8139a5/doc",
+      "NodeVision Editor _V2/task-1762956607796-8139a5/doc"
     ],
     "selectedPath": null
   },
@@ -2482,9 +3348,10 @@
     "mode": "full",
     "isPartial": false,
     "branchPulse": {
-      "generatedAt": 1762955693771,
+      "generatedAt": 1762958633767,
       "targets": [
         "main",
+        "task/task-1762956607796-8139a5",
         "master",
         "task/task-1762949565764-faf44a"
       ],
@@ -2493,7 +3360,7 @@
           "branch": "task/task-1762949565764-faf44a",
           "head": "b2058a5a5ec3107ff57e42e1436f3b5ba400dc8d",
           "baseRef": "main",
-          "baseHead": "85761d47e12f04f18164a6868e30c018a3e17f58",
+          "baseHead": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
           "mergeBase": "b2058a5a5ec3107ff57e42e1436f3b5ba400dc8d",
           "divergence": {
             "aheadCount": 0,
@@ -2501,25 +3368,42 @@
           },
           "baseline": {
             "aheadCount": 0,
-            "behindCount": 2,
-            "fileCount": 1
+            "behindCount": 4,
+            "fileCount": 17
           },
           "upstream": null
         },
         "main": {
           "branch": "main",
-          "head": "85761d47e12f04f18164a6868e30c018a3e17f58",
+          "head": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
           "baseRef": "origin/main",
-          "baseHead": "f4afcc581cc6b05a80e0c5bbafd34a4f7af3791d",
-          "mergeBase": "f4afcc581cc6b05a80e0c5bbafd34a4f7af3791d",
+          "baseHead": "7dbafc2a17dbd7907f6c8e81862b1c74f736732c",
+          "mergeBase": "7dbafc2a17dbd7907f6c8e81862b1c74f736732c",
           "divergence": {
-            "aheadCount": 3,
-            "fileCount": 32
+            "aheadCount": 1,
+            "fileCount": 1
           },
           "baseline": {
-            "aheadCount": 3,
+            "aheadCount": 1,
             "behindCount": 0,
-            "fileCount": 32
+            "fileCount": 1
+          },
+          "upstream": null
+        },
+        "task/task-1762956607796-8139a5": {
+          "branch": "task/task-1762956607796-8139a5",
+          "head": "7943687d1e3934e0d7f2fb49e6f9995ef0f1b416",
+          "baseRef": "main",
+          "baseHead": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+          "mergeBase": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+          "divergence": {
+            "aheadCount": 1,
+            "fileCount": 12
+          },
+          "baseline": {
+            "aheadCount": 1,
+            "behindCount": 0,
+            "fileCount": 12
           },
           "upstream": null
         }
@@ -2528,16 +3412,16 @@
   },
   "gitHistoryState": {
     "selectedTimelineIndex": 1,
-    "activeCommitHash": null,
+    "activeCommitHash": "7943687d1e3934e0d7f2fb49e6f9995ef0f1b416",
     "entries": [
       {
         "type": "live",
         "label": "現在のコードベース",
         "files": [],
         "branch": "main",
-        "targetCommitHash": "85761d47e12f04f18164a6868e30c018a3e17f58",
+        "targetCommitHash": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
         "worktreePath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
-        "timestamp": 1762955693800,
+        "timestamp": 1762958634022,
         "lane": 0,
         "branchLabel": "main",
         "branchTags": [
@@ -2548,34 +3432,234 @@
         "index": 0
       },
       {
-        "type": "staged",
-        "label": "ステージ済み (16)",
+        "type": "commit",
+        "label": "fix: tighten foundation lint and ffmpeg fallback",
+        "commit": {
+          "hash": "7943687d1e3934e0d7f2fb49e6f9995ef0f1b416",
+          "subject": "fix: tighten foundation lint and ffmpeg fallback",
+          "author": "hajimeno-ipoo",
+          "timestamp": 1762958630,
+          "parents": [
+            "477e6d2905572d11ebb9429dfe11a295f8bb8acf"
+          ],
+          "parent": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+          "refs": "task/task-1762956607796-8139a5",
+          "branches": [
+            "task/task-1762956607796-8139a5"
+          ]
+        },
+        "commitHash": "7943687d1e3934e0d7f2fb49e6f9995ef0f1b416",
+        "lane": 1,
+        "parentLinks": [
+          {
+            "hash": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+            "lane": 0
+          }
+        ],
+        "primaryBranchName": "task/task-1762956607796-8139a5",
+        "branchColor": "#b84fe8",
+        "branchTags": [],
+        "worktrees": [
+          {
+            "path": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2/.worktrees/task-1762956607796-8139a5",
+            "head": "7943687d1e3934e0d7f2fb49e6f9995ef0f1b416",
+            "branch": "task/task-1762956607796-8139a5",
+            "isMerged": false,
+            "mergeCommitHash": null,
+            "status": {
+              "staged": [],
+              "unstaged": [],
+              "untracked": [],
+              "capturedAt": 1762958633518
+            },
+            "normalizedPath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2/.worktrees/task-1762956607796-8139a5",
+            "lane": 1
+          }
+        ],
+        "index": 1
+      },
+      {
+        "type": "anchor",
+        "label": "[作業中] CodexCLI1: A. Foundation & 設定で抜け…",
+        "branch": "task/task-1762956607796-8139a5",
+        "worktreePath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2/.worktrees/task-1762956607796-8139a5",
+        "parentCommitHash": "7943687d1e3934e0d7f2fb49e6f9995ef0f1b416",
+        "lane": 1,
+        "isMerged": false,
+        "mergeCommitHash": null,
+        "statusChildren": [],
+        "isDefaultWorktree": false,
+        "renderMode": "node",
+        "shouldHide": false,
+        "tagLabel": "task/task-1762956607796-8139a5",
+        "taskId": "task-1762956607796-8139a5",
+        "taskStatus": "working",
+        "taskStatusLabel": "作業中",
+        "taskName": "CodexCLI1: A. Foundation & 設定で抜けはないですか？",
+        "tooltip": "タスク: CodexCLI1: A. Foundation & 設定で抜けはないですか？\nステータス: 作業中\nID: task-1762956607796-8139a5\nBranch: task/task-1762956607796-8139a5\nWorktree: Users/apple/Desktop/AI アプリ/NodeVision Editor _V2/.worktrees/task-1762956607796-8139a5",
+        "branchColor": "#b84fe8",
+        "index": 2
+      },
+      {
+        "type": "unstaged",
+        "label": "未ステージ (4)",
         "files": [
-          ".DS_Store",
-          ".kamui/manager/202511122115_monitor_task-1762949569974-32ddda.html",
-          ".kamui/manager/202511122204_eval_task-1762949569974-32ddda.html",
-          ".kamui/manager/monitor_task-1762949569974-32ddda.json",
           ".kamui/model-versions-cache.json",
-          ".kamui/prompt/merge-prompt.txt",
           ".kamui/system-graph-state.json",
           ".kamui/tasks-state.json",
-          ".serena/memories/monitoring_20251112.md",
-          "doc/.DS_Store",
-          "doc/NodeVision-skeleton-v1.0.4_secure/NodeGraph.schema.json",
-          "doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main/httpServer.ts",
-          "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history/history.ts",
-          "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect/concat.ts",
-          "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts",
-          "doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations/index.ts"
+          "doc/.DS_Store"
         ],
         "branch": "main",
-        "targetCommitHash": "85761d47e12f04f18164a6868e30c018a3e17f58",
+        "targetCommitHash": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
         "worktreePath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
-        "timestamp": 1762955693800,
+        "timestamp": 1762958634022,
+        "sortOrder": 0,
+        "lane": 0,
+        "branchColor": "#4f85e8",
+        "index": 3
+      },
+      {
+        "type": "staged",
+        "label": "ステージ済み (1)",
+        "files": [
+          "DS_Store"
+        ],
+        "branch": "main",
+        "targetCommitHash": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+        "worktreePath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
+        "timestamp": 1762958634022,
         "sortOrder": 1,
         "lane": 0,
         "branchColor": "#4f85e8",
-        "index": 1
+        "index": 4
+      },
+      {
+        "type": "commit",
+        "label": "Serenaインデックス更新",
+        "commit": {
+          "hash": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+          "subject": "Serenaインデックス更新",
+          "author": "hajimeno-ipoo",
+          "timestamp": 1762956456,
+          "parents": [
+            "7dbafc2a17dbd7907f6c8e81862b1c74f736732c"
+          ],
+          "parent": "7dbafc2a17dbd7907f6c8e81862b1c74f736732c",
+          "refs": "HEAD -> main",
+          "branches": [
+            "HEAD -> main",
+            "task/task-1762956607796-8139a5",
+            "main"
+          ]
+        },
+        "commitHash": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+        "lane": 0,
+        "parentLinks": [
+          {
+            "hash": "7dbafc2a17dbd7907f6c8e81862b1c74f736732c",
+            "lane": 0
+          }
+        ],
+        "primaryBranchName": "main",
+        "branchColor": "#4f85e8",
+        "branchTags": [
+          "main"
+        ],
+        "worktrees": [
+          {
+            "path": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
+            "head": "477e6d2905572d11ebb9429dfe11a295f8bb8acf",
+            "branch": "main",
+            "isMerged": false,
+            "mergeCommitHash": null,
+            "status": {
+              "staged": [
+                {
+                  "path": "DS_Store",
+                  "originalPath": null,
+                  "status": "modified",
+                  "rawPath": "DS_Store",
+                  "timestamp": 1762958633518
+                }
+              ],
+              "unstaged": [
+                {
+                  "path": ".kamui/model-versions-cache.json",
+                  "originalPath": null,
+                  "status": "modified",
+                  "rawPath": ".kamui/model-versions-cache.json",
+                  "timestamp": 1762958633518
+                },
+                {
+                  "path": ".kamui/system-graph-state.json",
+                  "originalPath": null,
+                  "status": "modified",
+                  "rawPath": ".kamui/system-graph-state.json",
+                  "timestamp": 1762958633518
+                },
+                {
+                  "path": ".kamui/tasks-state.json",
+                  "originalPath": null,
+                  "status": "modified",
+                  "rawPath": ".kamui/tasks-state.json",
+                  "timestamp": 1762958633518
+                },
+                {
+                  "path": "doc/.DS_Store",
+                  "originalPath": null,
+                  "status": "modified",
+                  "rawPath": "doc/.DS_Store",
+                  "timestamp": 1762958633518
+                }
+              ],
+              "untracked": [
+                {
+                  "path": ".worktrees/task-1762956607796-8139a5/",
+                  "status": "untracked",
+                  "rawPath": ".worktrees/task-1762956607796-8139a5/",
+                  "timestamp": 1762958633518
+                }
+              ],
+              "capturedAt": 1762958633518
+            },
+            "normalizedPath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
+            "lane": 0
+          }
+        ],
+        "index": 5
+      },
+      {
+        "type": "commit",
+        "label": "chore: add NodeVision skeleton artifacts and monitoring logs",
+        "commit": {
+          "hash": "7dbafc2a17dbd7907f6c8e81862b1c74f736732c",
+          "subject": "chore: add NodeVision skeleton artifacts and monitoring logs",
+          "author": "hajimeno-ipoo",
+          "timestamp": 1762955733,
+          "parents": [
+            "85761d47e12f04f18164a6868e30c018a3e17f58"
+          ],
+          "parent": "85761d47e12f04f18164a6868e30c018a3e17f58",
+          "refs": "origin/main, origin/HEAD",
+          "branches": [
+            "origin/main",
+            "origin/HEAD",
+            "task/task-1762956607796-8139a5",
+            "main"
+          ]
+        },
+        "commitHash": "7dbafc2a17dbd7907f6c8e81862b1c74f736732c",
+        "lane": 0,
+        "parentLinks": [
+          {
+            "hash": "85761d47e12f04f18164a6868e30c018a3e17f58",
+            "lane": 0
+          }
+        ],
+        "primaryBranchName": "main",
+        "branchColor": "#4f85e8",
+        "branchTags": [],
+        "index": 6
       },
       {
         "type": "commit",
@@ -2590,9 +3674,9 @@
             "b2058a5a5ec3107ff57e42e1436f3b5ba400dc8d"
           ],
           "parent": "8ff0838e6b457909069875054e61b58114889a3e",
-          "refs": "HEAD -> main",
+          "refs": "",
           "branches": [
-            "HEAD -> main",
+            "task/task-1762956607796-8139a5",
             "main",
             "task/task-1762949565764-faf44a"
           ]
@@ -2612,140 +3696,9 @@
         "primaryBranchName": "main",
         "branchColor": "#4f85e8",
         "branchTags": [
-          "main",
           "task/task-1762949565764-faf44a"
         ],
-        "worktrees": [
-          {
-            "path": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
-            "head": "85761d47e12f04f18164a6868e30c018a3e17f58",
-            "branch": "main",
-            "isMerged": false,
-            "mergeCommitHash": null,
-            "status": {
-              "staged": [
-                {
-                  "path": ".DS_Store",
-                  "originalPath": null,
-                  "status": "modified",
-                  "rawPath": ".DS_Store",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".kamui/manager/202511122115_monitor_task-1762949569974-32ddda.html",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": ".kamui/manager/202511122115_monitor_task-1762949569974-32ddda.html",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".kamui/manager/202511122204_eval_task-1762949569974-32ddda.html",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": ".kamui/manager/202511122204_eval_task-1762949569974-32ddda.html",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".kamui/manager/monitor_task-1762949569974-32ddda.json",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": ".kamui/manager/monitor_task-1762949569974-32ddda.json",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".kamui/model-versions-cache.json",
-                  "originalPath": null,
-                  "status": "modified",
-                  "rawPath": ".kamui/model-versions-cache.json",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".kamui/prompt/merge-prompt.txt",
-                  "originalPath": null,
-                  "status": "modified",
-                  "rawPath": ".kamui/prompt/merge-prompt.txt",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".kamui/system-graph-state.json",
-                  "originalPath": null,
-                  "status": "modified",
-                  "rawPath": ".kamui/system-graph-state.json",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".kamui/tasks-state.json",
-                  "originalPath": null,
-                  "status": "modified",
-                  "rawPath": ".kamui/tasks-state.json",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": ".serena/memories/monitoring_20251112.md",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": ".serena/memories/monitoring_20251112.md",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": "doc/.DS_Store",
-                  "originalPath": null,
-                  "status": "modified",
-                  "rawPath": "doc/.DS_Store",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": "doc/NodeVision-skeleton-v1.0.4_secure/NodeGraph.schema.json",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": "doc/NodeVision-skeleton-v1.0.4_secure/NodeGraph.schema.json",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": "doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main/httpServer.ts",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": "doc/NodeVision-skeleton-v1.0.4_secure/apps/desktop-electron/main/httpServer.ts",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history/history.ts",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/history/history.ts",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect/concat.ts",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/inspect/concat.ts",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": "doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts",
-                  "timestamp": 1762955693519
-                },
-                {
-                  "path": "doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations/index.ts",
-                  "originalPath": null,
-                  "status": "added",
-                  "rawPath": "doc/NodeVision-skeleton-v1.0.4_secure/packages/shared/src/migrations/index.ts",
-                  "timestamp": 1762955693519
-                }
-              ],
-              "unstaged": [],
-              "untracked": [],
-              "capturedAt": 1762955693519
-            },
-            "normalizedPath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
-            "lane": 0
-          }
-        ],
-        "index": 2
+        "index": 7
       },
       {
         "type": "commit",
@@ -2761,6 +3714,7 @@
           "parent": "f4afcc581cc6b05a80e0c5bbafd34a4f7af3791d",
           "refs": "",
           "branches": [
+            "task/task-1762956607796-8139a5",
             "main"
           ]
         },
@@ -2775,7 +3729,7 @@
         "primaryBranchName": "main",
         "branchColor": "#4f85e8",
         "branchTags": [],
-        "index": 3
+        "index": 8
       },
       {
         "type": "commit",
@@ -2791,11 +3745,12 @@
           "parent": "f4afcc581cc6b05a80e0c5bbafd34a4f7af3791d",
           "refs": "task/task-1762949565764-faf44a",
           "branches": [
-            "task/task-1762949565764-faf44a"
+            "task/task-1762949565764-faf44a",
+            "task/task-1762956607796-8139a5"
           ]
         },
         "commitHash": "b2058a5a5ec3107ff57e42e1436f3b5ba400dc8d",
-        "lane": 1,
+        "lane": 2,
         "parentLinks": [
           {
             "hash": "f4afcc581cc6b05a80e0c5bbafd34a4f7af3791d",
@@ -2805,7 +3760,7 @@
         "primaryBranchName": "task/task-1762949565764-faf44a",
         "branchColor": "#e84f7f",
         "branchTags": [],
-        "index": 4
+        "index": 9
       },
       {
         "type": "commit",
@@ -2817,13 +3772,12 @@
           "timestamp": 1762949401,
           "parents": [],
           "parent": null,
-          "refs": "origin/main, origin/HEAD, task/task-1762949569974-32ddda, task/task-1762949567882-468d47",
+          "refs": "task/task-1762949569974-32ddda, task/task-1762949567882-468d47",
           "branches": [
-            "origin/main",
-            "origin/HEAD",
             "task/task-1762949569974-32ddda",
             "task/task-1762949567882-468d47",
             "task/task-1762949565764-faf44a",
+            "task/task-1762956607796-8139a5",
             "main"
           ]
         },
@@ -2836,17 +3790,17 @@
           "task/task-1762949567882-468d47",
           "task/task-1762949569974-32ddda"
         ],
-        "index": 5
+        "index": 10
       },
       {
         "type": "empty",
         "label": "初期状態 (初回コミット以前)",
         "files": [],
         "marker": "pre-history",
-        "index": 6
+        "index": 11
       }
     ]
   },
   "projectRoot": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
-  "savedAt": 1762955703143
+  "savedAt": 1762958643153
 }
