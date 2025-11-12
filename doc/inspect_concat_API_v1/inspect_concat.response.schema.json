@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InspectConcatResponse",
+  "type": "object",
+  "required": [
+    "ok",
+    "canConcat",
+    "version"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "canConcat": {
+      "type": "boolean"
+    },
+    "equality": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "resolution": {
+          "type": "boolean"
+        },
+        "fps": {
+          "type": "boolean"
+        },
+        "pix_fmt": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "details": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "w",
+          "h",
+          "fps",
+          "pix_fmt"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "w": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "h": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "fps": {
+            "type": "number",
+            "minimum": 0
+          },
+          "fps_rational": {
+            "type": "object",
+            "properties": {
+              "num": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "den": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "num",
+              "den"
+            ],
+            "additionalProperties": false
+          },
+          "pix_fmt": {
+            "type": "string"
+          },
+          "sar": {
+            "type": "object",
+            "properties": {
+              "num": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "den": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "num",
+              "den"
+            ],
+            "additionalProperties": false
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "vcodec": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

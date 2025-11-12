@@ -1,0 +1,7 @@
+project_name: NodeVision Editor _V2
+language: typescript
+project_root: /Users/apple/Desktop/AI アプリ/NodeVision Editor _V2
+includes:
+  - doc/**
+notes:
+  - 'Initialized via Codex on 2025-11-12'

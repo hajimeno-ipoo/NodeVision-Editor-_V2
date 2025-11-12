@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "projectPath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
+  "projectRootName": "NodeVision Editor _V2",
+  "graphRenderingMode": "normal",
+  "linkDisplayMode": "all",
+  "graphStats": {
+    "totalNodes": 8,
+    "folders": 8,
+    "files": 0,
+    "images": 0,
+    "videos": 0,
+    "audio": 0,
+    "code": 0,
+    "text": 0,
+    "html": 0,
+    "yaml": 0,
+    "json": 0,
+    "other": 0,
+    "totalLines": 0,
+    "maxLines": 0
+  },
+  "directoryTree": {
+    "name": "NodeVision Editor _V2",
+    "type": "directory",
+    "children": [
+      {
+        "name": ".kamui",
+        "type": "directory",
+        "children": []
+      },
+      {
+        "name": ".serena",
+        "type": "directory",
+        "children": []
+      },
+      {
+        "name": "doc",
+        "type": "directory",
+        "children": [
+          {
+            "name": "check list",
+            "type": "directory",
+            "children": []
+          },
+          {
+            "name": "inspect_concat_API_v1",
+            "type": "directory",
+            "children": []
+          },
+          {
+            "name": "schedule",
+            "type": "directory",
+            "children": []
+          },
+          {
+            "name": "workflow",
+            "type": "directory",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "graphData": {
+    "nodes": [
+      {
+        "id": "NodeVision Editor _V2",
+        "name": "NodeVision Editor _V2",
+        "path": "NodeVision Editor _V2",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": null,
+        "childFileCount": 0,
+        "x": 21.03305296141907,
+        "y": -5.5762525834858465,
+        "z": -22.314135944620272,
+        "vx": 0.0012440716635115177,
+        "vy": -0.0000716330314995509,
+        "vz": -0.0007725075356366542
+      },
+      {
+        "id": "NodeVision Editor _V2/.kamui",
+        "name": ".kamui",
+        "path": "NodeVision Editor _V2/.kamui",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2",
+        "childFileCount": 0,
+        "x": 56.53752488525098,
+        "y": -7.5949978845701045,
+        "z": -26.839604980611355,
+        "vx": 0.0012469614014477954,
+        "vy": -0.00000767145567690114,
+        "vz": -0.0007443960854068689
+      },
+      {
+        "id": "NodeVision Editor _V2/.serena",
+        "name": ".serena",
+        "path": "NodeVision Editor _V2/.serena",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2",
+        "childFileCount": 0,
+        "x": 19.65977103038416,
+        "y": -18.11710094693476,
+        "z": -56.05849849821043,
+        "vx": 0.0010938809003336251,
+        "vy": -0.0000505304831914647,
+        "vz": -0.0007524348704049408
+      },
+      {
+        "id": "NodeVision Editor _V2/doc",
+        "name": "doc",
+        "path": "NodeVision Editor _V2/doc",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2",
+        "childFileCount": 0,
+        "x": -9.267509612393031,
+        "y": 4.149952060136094,
+        "z": 12.423805473275127,
+        "vx": 0.0012463921715179349,
+        "vy": -0.00004611248963886762,
+        "vz": -0.0007128559084500569
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/check list",
+        "name": "check list",
+        "path": "NodeVision Editor _V2/doc/check list",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc",
+        "childFileCount": 0,
+        "x": -15.998402173161915,
+        "y": -26.898532447595414,
+        "z": 30.068534215409482,
+        "vx": 0.0011559141122002437,
+        "vy": 0.00006322827435739707,
+        "vz": -0.0004890445860113535
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/inspect_concat_API_v1",
+        "name": "inspect_concat_API_v1",
+        "path": "NodeVision Editor _V2/doc/inspect_concat_API_v1",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc",
+        "childFileCount": 0,
+        "x": -17.59603351094021,
+        "y": 39.44460280920086,
+        "z": 11.401373492012302,
+        "vx": 0.0012500490785069813,
+        "vy": 0.00003387929106737795,
+        "vz": -0.0005538344226333838
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/schedule",
+        "name": "schedule",
+        "path": "NodeVision Editor _V2/doc/schedule",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc",
+        "childFileCount": 0,
+        "x": -44.62523763150237,
+        "y": 0.7585871047569155,
+        "z": 3.581442696184547,
+        "vx": 0.0011200856965443318,
+        "vy": 0.0000740687206257311,
+        "vz": -0.0003513492290979439
+      },
+      {
+        "id": "NodeVision Editor _V2/doc/workflow",
+        "name": "workflow",
+        "path": "NodeVision Editor _V2/doc/workflow",
+        "type": "directory",
+        "lines": 0,
+        "val": 14,
+        "color": "#4d515a",
+        "baseColor": "#4ec9b0",
+        "originalColor": "#4ec9b0",
+        "defaultGlow": 0.18,
+        "glowIntensity": 0.18,
+        "highlighted": false,
+        "parentPath": "NodeVision Editor _V2/doc",
+        "childFileCount": 0,
+        "x": -9.733158727804376,
+        "y": 13.833757297139737,
+        "z": 47.732050003445416,
+        "vx": 0.0016498662282324404,
+        "vy": 0.00002017982143680372,
+        "vz": -0.0006571204775329749
+      }
+    ],
+    "links": [
+      {
+        "source": "NodeVision Editor _V2",
+        "target": "NodeVision Editor _V2/.kamui",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2",
+        "target": "NodeVision Editor _V2/.serena",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2",
+        "target": "NodeVision Editor _V2/doc",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc",
+        "target": "NodeVision Editor _V2/doc/check list",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc",
+        "target": "NodeVision Editor _V2/doc/inspect_concat_API_v1",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc",
+        "target": "NodeVision Editor _V2/doc/schedule",
+        "type": "tree"
+      },
+      {
+        "source": "NodeVision Editor _V2/doc",
+        "target": "NodeVision Editor _V2/doc/workflow",
+        "type": "tree"
+      }
+    ]
+  },
+  "trackedFiles": [],
+  "uiState": {
+    "expandedDirs": [
+      "NodeVision Editor _V2"
+    ],
+    "selectedPath": null
+  },
+  "directoryTreeMeta": {
+    "mode": "full",
+    "maxDepthApplied": 10,
+    "maxEntriesPerDirectory": 0,
+    "isPartial": false
+  },
+  "gitHistoryMeta": {
+    "mode": "full",
+    "isPartial": false,
+    "branchPulse": null
+  },
+  "gitHistoryState": {
+    "selectedTimelineIndex": 1,
+    "activeCommitHash": null,
+    "entries": [
+      {
+        "type": "live",
+        "label": "現在のコードベース",
+        "files": [],
+        "branch": "main",
+        "targetCommitHash": "0000000000000000000000000000000000000000",
+        "worktreePath": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
+        "timestamp": 1762949029056,
+        "lane": 0,
+        "branchLabel": "main",
+        "branchTags": [
+          "main"
+        ],
+        "isDefaultWorktree": true,
+        "branchColor": "#4f85e8",
+        "index": 0
+      },
+      {
+        "type": "empty",
+        "label": "初期状態 (初回コミット以前)",
+        "files": [],
+        "marker": "pre-history",
+        "index": 1
+      }
+    ]
+  },
+  "projectRoot": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
+  "savedAt": 1762949031776
+}
