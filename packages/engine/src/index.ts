@@ -4,6 +4,16 @@ export { JobProgressTracker } from './job-progress';
 export { JobCancelledError } from './job-errors';
 export { InMemoryHistoryStore } from './job-history';
 export { TempRootManager } from './temp-root-manager';
+export { inspectConcat } from './inspect/concat';
+export {
+  createInspectHttpServer,
+  isLoopbackAddress,
+  mapInspectErrorToStatus,
+  buildHttpErrorBody,
+  firstHeaderValue,
+  shouldSkipEnd,
+  parseInspectPayload
+} from './http/inspect-server';
 export type {
   CancelAllSummary,
   JobHistoryEntry,
@@ -15,3 +25,16 @@ export type {
   QueueJobOptions
 } from './types';
 export type { TempRootManagerOptions } from './temp-root-manager';
+export type {
+  InspectClipDetails,
+  InspectClipRequest,
+  InspectConcatRequest,
+  InspectConcatResponse,
+  InspectConcatOptions,
+  InspectEquality,
+  InspectError,
+  InspectInclude,
+  InspectRatio
+} from './inspect/types';
+export { isNetworkPath, buildConcatFailure, ratioToNumber, parseRatio } from './inspect/concat';
+export type { InspectHttpServerOptions, TokenValidationSummary } from './http/inspect-server';

@@ -1,3 +1,6 @@
+import type { Server as HttpServer } from 'node:http';
+
+import { createInspectHttpServer, inspectConcat, type InspectConcatRequest } from '@nodevision/engine';
 import { getSettingsFilePath, loadSettings, NodeVisionSettings, updateSettings } from '@nodevision/settings';
 import {
   BinaryNotFoundError,
@@ -11,6 +14,7 @@ import { createTokenManager, TokenRecord } from '@nodevision/tokens';
 import { app, BrowserWindow, dialog, shell } from 'electron';
 
 const tokenManager = createTokenManager();
+let httpServer: HttpServer | null = null;
 
 interface BootStatus {
   settings: NodeVisionSettings;
@@ -53,6 +57,41 @@ async function ensureHttpToken(settings: NodeVisionSettings): Promise<TokenRecor
   });
   process.env.NV_HTTP_TOKEN = record.value;
   return record;
+}
+
+function maybeStartHttpServer(status: BootStatus): void {
+  const envEnabled = process.env.NV_HTTP === '1';
+  if (!envEnabled) {
+    console.log('[NodeVision] NV_HTTP is not set. HTTP server remains disabled.');
+    return;
+  }
+
+  if (!status.settings.http.enabled) {
+    console.log('[NodeVision] Settings disabled HTTP exposure. Skipping server start.');
+    return;
+  }
+
+  if (httpServer) {
+    console.log('[NodeVision] HTTP server already running. Skipping restart.');
+    return;
+  }
+
+  const server = createInspectHttpServer({
+    enabled: true,
+    port: status.settings.http.port,
+    maxConcurrent: 2,
+    validateToken: tokenValue => tokenManager.validate(tokenValue),
+    handleInspect: (payload: InspectConcatRequest) =>
+      inspectConcat(payload, {
+        ffprobePath: status.ffmpeg.ffprobe.path
+      }),
+    logger: console
+  });
+
+  if (server) {
+    httpServer = server;
+    console.log('[NodeVision] HTTP inspect server listening on port', status.settings.http.port);
+  }
 }
 
 async function bootstrapFoundation(): Promise<BootStatus> {
@@ -149,6 +188,7 @@ app.whenReady().then(() => {
     .then(status => {
       console.log('[NodeVision] FFmpeg ready at', status.ffmpeg.ffmpeg.path);
       console.log('[NodeVision] NV_HTTP_TOKEN issued for', status.settings.http.tokenLabel);
+      maybeStartHttpServer(status);
       createWindow(status);
     })
     .catch(handleBootstrapError);
@@ -163,5 +203,12 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  if (httpServer) {
+    httpServer.close();
+    httpServer = null;
   }
 });
