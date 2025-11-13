@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート</title>
+    <style>
+      body { font-family: 'Hiragino Sans','Noto Sans JP',system-ui,-apple-system,BlinkMacSystemFont,sans-serif; margin:24px; background:#e9f0f2; color:#1f2a30; }
+      .wrapper { max-width:1200px; margin:0 auto; background:#fff; padding:32px; border:1px solid #c4d3d7; }
+      h1 { margin-bottom:8px; font-size:28px; }
+      .task-summary { font-size:15px; color:#3a4b53; margin-bottom:24px; }
+      .scoreboard { display:flex; gap:16px; margin-bottom:24px; }
+      .score-card { flex:1; background:#dfe7ea; padding:16px; border:1px solid #c0d0d4; }
+      .score-value { font-size:32px; font-weight:700; }
+      .score-label { font-size:14px; color:#425058; }
+      table { width:100%; border-collapse:collapse; }
+      th, td { border:1px solid #c4d3d7; vertical-align:top; padding:16px; }
+      .agent-panel { display:flex; flex-direction:column; gap:16px; }
+      .chart-block { display:grid; grid-template-columns:260px 1fr; gap:16px; align-items:center; }
+      svg { width:240px; height:240px; }
+      .chart-grid { fill:none; stroke:#cbd6da; stroke-width:1; }
+      .chart-fill { fill:rgba(65,140,200,0.35); stroke:#1f78b4; stroke-width:2; }
+      .metric-label { font-size:9px; text-anchor:middle; fill:#2c3a40; }
+      .score-details { list-style:none; margin:0; padding:0; font-size:13px; }
+      .score-details li { margin-bottom:6px; }
+      .score-details strong { display:inline-block; min-width:140px; }
+      .artifact-list { margin:8px 0 0 18px; }
+      .artifact-list a { color:#1f78b4; }
+      .list-block ul { margin:8px 0 0 18px; }
+      .commit-ref { font-size:12px; color:#54626a; }
+</style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <h1>Queue/History/Logging 最新評価</h1>
+      <p class="task-summary">追加のサニタイズやQueueFullイベント処理を反映した差分を比較評価しました。</p>
+      <div class="scoreboard"><div class="score-card"><div class="score-value">519 / 600 🥇</div><div class="score-label">task-1763052317343-2cfd9b</div></div>
+<div class="score-card"><div class="score-value">548 / 600 🏆</div><div class="score-label">task-1763052319474-6c64ec</div></div></div>
+      <table>
+        <colgroup><col style="width:50%" /><col style="width:50%" /></colgroup>
+        <thead><tr><th>Agent task-1763052317343-2cfd9b</th><th>Agent task-1763052319474-6c64ec</th></tr></thead>
+        <tbody><tr><td>
+      <div class="agent-panel">
+        <div class="chart-block">
+          <svg viewBox="0 0 120 120" role="img" aria-label="task-1763052317343-2cfd9b metrics">
+            <polygon points="10.0,60.0 35.0,16.7 85.0,16.7 110.0,60.0 85.0,103.3 35.0,103.3" class="chart-grid" />
+            <polygon points="60.0,12.5 98.1,38.0 96.8,81.2 60.0,105.0 22.8,81.5 27.5,41.2" class="chart-fill" />
+            <text x="60.0" y="-8.0" class="metric-label">要件適合度 95</text>
+<text x="118.9" y="26.0" class="metric-label">コード品質 88</text>
+<text x="118.9" y="94.0" class="metric-label">テストと証跡 85</text>
+<text x="60.0" y="128.0" class="metric-label">UX/可視化 90</text>
+<text x="1.1" y="94.0" class="metric-label">観測性 86</text>
+<text x="1.1" y="26.0" class="metric-label">ドキュメント/共有 75</text>
+          </svg>
+          <ul class="score-details"><li><strong>要件適合度 95</strong><span>Queue timeout検知とinspect履歴20件固定でAC-LOG-EXPORT-001/F要件を満たした。</span></li>
+<li><strong>コード品質 88</strong><span>queue-alerts / sanitize など小さい責務ごとに分割し main / renderer を整理した。</span></li>
+<li><strong>テストと証跡 85</strong><span>sanitize・queue-alerts・inspect-historyにVitestを追加し退行検知を強化。</span></li>
+<li><strong>UX/可視化 90</strong><span>Queue/Inspectカードが20件固定＆警告バナー付きで視認性向上。</span></li>
+<li><strong>観測性 86</strong><span>inspect-serverログでremoteAddrやclipCountをExport診断に活用。</span></li>
+<li><strong>ドキュメント/共有 75</strong><span>Serenaメモのみで公式Doc/Checklist連携は未実施。</span></li></ul>
+        </div>
+        <p>サニタイズ/inspect履歴ヘルパー/queue-alertsを分離し、rendererは20件の履歴と警告を安全に描画できるようになった。inspect-serverの診断メタも維持しながらAC-LOG-EXPORT-001を満たしている。</p>
+        <ul class="artifact-list">
+          <li><a href="../task-1763052317343-2cfd9b/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+          <li><a href="../task-1763052317343-2cfd9b/apps/desktop-electron/src/queue-alerts.ts">apps/desktop-electron/src/queue-alerts.ts</a></li>
+          <li><a href="../task-1763052317343-2cfd9b/apps/desktop-electron/src/sanitize.ts">apps/desktop-electron/src/sanitize.ts</a></li>
+        </ul>
+        <p class="commit-ref">参照コミット: 1e09942</p>
+        <div class="list-block">
+          <h4>よかったところ</h4>
+          <ul><li>queue-alerts.tsでtimeout検知を共通化しmain.tsで再利用している。</li>
+<li>sanitize.tsと対応テストでQueue/Inspect履歴メッセージを安全に描画できる。</li></ul>
+          <h4>改善したいところ</h4>
+          <ul><li>deriveQueueTimeoutAlertはhistory.findで最初のtimeoutのみ拾うため、最新イベントが他のエントリにあると警告が更新されない (apps/desktop-electron/src/queue-alerts.ts:4-23)。</li>
+<li>queueFullアラートはプロセス内stateだけで履歴に残らず、renderer再起動時に情報が失われる (apps/desktop-electron/src/main.ts:41-118)。</li></ul>
+        </div>
+      </div>
+    </td><td>
+      <div class="agent-panel">
+        <div class="chart-block">
+          <svg viewBox="0 0 120 120" role="img" aria-label="task-1763052319474-6c64ec metrics">
+            <polygon points="10.0,60.0 35.0,16.7 85.0,16.7 110.0,60.0 85.0,103.3 35.0,103.3" class="chart-grid" />
+            <polygon points="60.0,12.0 99.8,37.0 100.3,83.2 60.0,106.0 18.9,83.8 25.4,40.0" class="chart-fill" />
+            <text x="60.0" y="-8.0" class="metric-label">要件適合度 96</text>
+<text x="118.9" y="26.0" class="metric-label">コード品質 92</text>
+<text x="118.9" y="94.0" class="metric-label">テストと証跡 93</text>
+<text x="60.0" y="128.0" class="metric-label">UX/可視化 92</text>
+<text x="1.1" y="94.0" class="metric-label">観測性 95</text>
+<text x="1.1" y="26.0" class="metric-label">ドキュメント/共有 80</text>
+          </svg>
+          <ul class="score-details"><li><strong>要件適合度 96</strong><span>QueueWarning/limits/QueueFullイベント処理を整備し、UIテストまで追加。</span></li>
+<li><strong>コード品質 92</strong><span>queue-warnings純関数＆JobQueue API拡張で責務が分離。</span></li>
+<li><strong>テストと証跡 93</strong><span>queue-warnings/ui-template/job-queue/inspect系のVitestで176件Coverage100%。</span></li>
+<li><strong>UX/可視化 92</strong><span>警告カード+20件履歴によりユーザーが状態を把握しやすい。</span></li>
+<li><strong>観測性 95</strong><span>inspect-history/log-exporterがremoteAddress/includeOptions/payloadVersionを保持。</span></li>
+<li><strong>ドキュメント/共有 80</strong><span>Serenaメモ共有はあるが schedule/checklist 更新は未反映。</span></li></ul>
+        </div>
+        <p>QueueWarning生成を専用モジュール化し、JobQueueがlimits/QueueFullEventを公開。UIテンプレは20件履歴＋警告カードを描画し、JSDOM/Vitestで退行を防いでいる。</p>
+        <ul class="artifact-list">
+          <li><a href="../task-1763052319474-6c64ec/apps/desktop-electron/src/queue-warnings.ts">apps/desktop-electron/src/queue-warnings.ts</a></li>
+          <li><a href="../task-1763052319474-6c64ec/packages/engine/src/job-queue.ts">packages/engine/src/job-queue.ts</a></li>
+          <li><a href="../task-1763052319474-6c64ec/apps/desktop-electron/src/ui-template.test.ts">apps/desktop-electron/src/ui-template.test.ts</a></li>
+        </ul>
+        <p class="commit-ref">参照コミット: 1e09942</p>
+        <div class="list-block">
+          <h4>よかったところ</h4>
+          <ul><li>consumeLastQueueFullEventとbuildQueueWarningsの組み合わせで実際のQueueFullErrorだけを表示できる。</li>
+<li>queue-warnings.test.ts / ui-template.test.ts / job-queue.test.ts が警告描画とlimits APIを自動テストしている。</li></ul>
+          <h4>改善したいところ</h4>
+          <ul><li>buildQueueWarningsはhistory.findで最初のtimeoutを返すため、最新イベントへアップデートされない (apps/desktop-electron/src/queue-warnings.ts:5-36)。</li>
+<li>consumeLastQueueFullEventがsnapshot1回でイベントを破棄するので、ポーリング間隔によってUIがQueueFullを取りこぼす可能性がある (packages/engine/src/job-queue.ts:140-168, apps/desktop-electron/src/main.ts:41-58)。</li></ul>
+        </div>
+      </div>
+    </td></tr></tbody>
+      </table>
+    </div>
+  </body>
+</html>
