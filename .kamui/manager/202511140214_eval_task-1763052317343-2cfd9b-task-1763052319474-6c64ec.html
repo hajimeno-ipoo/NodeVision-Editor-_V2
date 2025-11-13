@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート</title>
+    <style>
+      body {
+        font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 24px;
+        background: #e9f0f2;
+        color: #1f2a30;
+      }
+      .wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 32px;
+        border: 1px solid #c4d3d7;
+      }
+      h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      .task-summary {
+        font-size: 15px;
+        color: #3a4b53;
+        margin-bottom: 24px;
+      }
+      .scoreboard {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .score-card {
+        flex: 1;
+        background: #dfe7ea;
+        padding: 16px;
+        border: 1px solid #c0d0d4;
+      }
+      .score-value {
+        font-size: 32px;
+        font-weight: 700;
+      }
+      .score-label {
+        font-size: 14px;
+        color: #425058;
+      }
+      .eval-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .eval-table th,
+      .eval-table td {
+        border: 1px solid #c4d3d7;
+        vertical-align: top;
+        padding: 16px;
+      }
+      .agent-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .chart-block {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 16px;
+        align-items: center;
+      }
+      svg {
+        width: 240px;
+        height: 240px;
+      }
+      .chart-grid {
+        fill: none;
+        stroke: #cbd6da;
+        stroke-width: 1;
+      }
+      .chart-fill {
+        fill: rgba(65, 140, 200, 0.35);
+        stroke: #1f78b4;
+        stroke-width: 2;
+      }
+      .metric-label {
+        font-size: 9px;
+        text-anchor: middle;
+        fill: #2c3a40;
+      }
+      .score-details {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .score-details li {
+        margin-bottom: 6px;
+        font-size: 13px;
+      }
+      .score-details strong {
+        display: inline-block;
+        min-width: 130px;
+      }
+      .artifact-list {
+        list-style: disc;
+        margin: 8px 0 0 18px;
+      }
+      .artifact-list a {
+        color: #1f78b4;
+      }
+      .list-block ul {
+        margin: 8px 0 0 16px;
+      }
+      .commit-ref {
+        font-size: 12px;
+        color: #54626a;
+        margin-top: 4px;
+      }
+</style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <h1>Queue/History/Logging 改修タスク評価</h1>
+      <p class="task-summary">AC-LOG-EXPORT-001 と Fセクション強化のため、Queue/History UI・SHA256トースト・inspect-server診断を拡張した2つのアプローチを比較評価しています。</p>
+      <div class="scoreboard">
+        <div class="score-card">
+          <div class="score-value">470 / 600 🥈</div>
+          <div class="score-label">task-1763052317343-2cfd9b</div>
+        </div>
+<div class="score-card">
+          <div class="score-value">520 / 600 🏆</div>
+          <div class="score-label">task-1763052319474-6c64ec</div>
+        </div>
+      </div>
+      
+<table class="eval-table">
+  <colgroup>
+    <col style="width:50%" />
+    <col style="width:50%" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Agent task-1763052317343-2cfd9b</th>
+      <th>Agent task-1763052319474-6c64ec</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+      <div class="agent-panel">
+        <div class="chart-block">
+          <svg viewBox="0 0 120 120" role="img" aria-label="task-1763052317343-2cfd9b six-metric chart">
+            <polygon points="10.0,60.0 35.0,16.7 85.0,16.7 110.0,60.0 85.0,103.3 35.0,103.3" class="chart-grid" />
+            <polygon points="60.0,17.5 94.6,40.0 92.5,78.8 60.0,99.0 24.5,80.5 29.7,42.5" class="chart-fill" />
+            <text x="60.0" y="-8.0" class="metric-label">要件適合度 85</text>
+<text x="118.9" y="26.0" class="metric-label">コード品質 80</text>
+<text x="118.9" y="94.0" class="metric-label">テストと証跡 75</text>
+<text x="60.0" y="128.0" class="metric-label">UX/可視化 78</text>
+<text x="1.1" y="94.0" class="metric-label">観測性 82</text>
+<text x="1.1" y="26.0" class="metric-label">ドキュメント/共有 70</text>
+          </svg>
+          <ul class="score-details">
+            <li><strong>要件適合度 85</strong><span>Queueアラートと20件履歴を追加し、SHA256トーストも満たしている。</span></li>
+<li><strong>コード品質 80</strong><span>Electron mainでQueueAlert型を定義し、状態を一貫させている。</span></li>
+<li><strong>テストと証跡 75</strong><span>inspect-serverのVitestは増えたがUIまわりの自動テストは未整備。</span></li>
+<li><strong>UX/可視化 78</strong><span>バナー表示とログレベル表示は良いがInspect履歴は5件に留まる。</span></li>
+<li><strong>観測性 82</strong><span>Inspect履歴へremoteAddrやclipCountをメタとして流し出せる。</span></li>
+<li><strong>ドキュメント/共有 70</strong><span>Serenaメモ更新のみで公式ドキュメントの証跡が無い。</span></li>
+          </ul>
+        </div>
+        <p>Queue/History UIとExportトーストを中心にElectron Rendererを更新。main側ではQueueAlertをメモリに保持してqueue snapshotへ流し込んでいる。</p>
+        <ul class="artifact-list">
+          <li><a href="../task-1763052317343-2cfd9b/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+          <li><a href="../task-1763052317343-2cfd9b/apps/desktop-electron/src/main.ts">apps/desktop-electron/src/main.ts</a></li>
+          <li><a href="../task-1763052317343-2cfd9b/packages/engine/src/http/inspect-server.ts">packages/engine/src/http/inspect-server.ts</a></li>
+        </ul>
+        <p class="commit-ref">参照コミット: 1e09942 (feat: implement queue logging diagnostics)</p>
+        <div class="list-block">
+          <h4>よかったところ</h4>
+          <ul><li>UIにlogLevelバッジやアラートを追加し、要件の可視性を満たしている。</li>
+<li>inspect-serverのrequestHistoryへremoteAddr/clipCount/fpsをメタとして載せ、Exportログの診断情報が向上。</li></ul>
+          <h4>改善したいところ</h4>
+          <ul><li>apps/desktop-electron/src/main.ts:56-71 では message フィールドだけを検索しているため、errorMessageにtimeout文字列が入るケースを拾えない。</li>
+<li>apps/desktop-electron/src/ui-template.ts:705 でInspect履歴を5件に丸めており、要件の「20件履歴」と差がある。</li></ul>
+        </div>
+      </div>
+    </td>
+      <td>
+      <div class="agent-panel">
+        <div class="chart-block">
+          <svg viewBox="0 0 120 120" role="img" aria-label="task-1763052319474-6c64ec six-metric chart">
+            <polygon points="10.0,60.0 35.0,16.7 85.0,16.7 110.0,60.0 85.0,103.3 35.0,103.3" class="chart-grid" />
+            <polygon points="60.0,15.0 98.1,38.0 99.0,82.5 60.0,102.5 20.2,83.0 27.5,41.2" class="chart-fill" />
+            <text x="60.0" y="-8.0" class="metric-label">要件適合度 90</text>
+<text x="118.9" y="26.0" class="metric-label">コード品質 88</text>
+<text x="118.9" y="94.0" class="metric-label">テストと証跡 90</text>
+<text x="60.0" y="128.0" class="metric-label">UX/可視化 85</text>
+<text x="1.1" y="94.0" class="metric-label">観測性 92</text>
+<text x="1.1" y="26.0" class="metric-label">ドキュメント/共有 75</text>
+          </svg>
+          <ul class="score-details">
+            <li><strong>要件適合度 90</strong><span>Queue警告・limits・SHA256トースト・ログ拡張まで網羅。</span></li>
+<li><strong>コード品質 88</strong><span>QueueWarning/QueueSnapshot拡張を型で包み、jobQueue.getLimitsで再利用。</span></li>
+<li><strong>テストと証跡 90</strong><span>inspect-server/job-queue/log-exporterのVitestを拡充し100%を維持。</span></li>
+<li><strong>UX/可視化 85</strong><span>Queue/Inspect両履歴を20件表示し、warningカードで状態が掴みやすい。</span></li>
+<li><strong>観測性 92</strong><span>remoteAddress/clipCount/includeOptions/payloadVersionを履歴に直列化した。</span></li>
+<li><strong>ドキュメント/共有 75</strong><span>Serenaメモ追記はあるが checklist/schedule の証跡は未反映。</span></li>
+          </ul>
+        </div>
+        <p>QueueWarning/limitsを QueueSnapshot に含め、JobQueue.getLimits や log-exporter/inspect-history を改修して診断ログを強化。UIは20件のQueue/Inspect履歴をカード表示し、SHA256付きトーストも実装。</p>
+        <ul class="artifact-list">
+          <li><a href="../task-1763052319474-6c64ec/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+          <li><a href="../task-1763052319474-6c64ec/packages/engine/src/http/inspect-server.ts">packages/engine/src/http/inspect-server.ts</a></li>
+          <li><a href="../task-1763052319474-6c64ec/packages/engine/src/job-queue.ts">packages/engine/src/job-queue.ts</a></li>
+        </ul>
+        <p class="commit-ref">参照コミット: 1e09942 (feat: implement queue logging diagnostics)</p>
+        <div class="list-block">
+          <h4>よかったところ</h4>
+          <ul><li>QueueSnapshot.limits/warningsを型で表現し、UIが閾値とイベントを同時に描画できる。</li>
+<li>remoteAddressやpayloadVersionまで履歴へ分離し、log-exporter fixture/テストを更新済み。</li></ul>
+          <h4>改善したいところ</h4>
+          <ul><li>apps/desktop-electron/src/main.ts:45-88 は現在のqueue長だけでQUEUE_FULLを判定するため、実際のQueueFullError発生時刻が記録されず追跡できない。</li>
+<li>buildQueueWarningsやUIのwarning描画についてVitest/UIテストが無く、退行検知が難しい。</li></ul>
+        </div>
+      </div>
+    </td>
+    </tr>
+  </tbody>
+</table>
+
+    </div>
+  </body>
+</html>
