@@ -11,6 +11,10 @@ const createEntry = (id: string) => ({
   requestBytes: 128,
   responseCode: 'OK',
   logLevel: 'info' as const,
+  remoteAddress: '127.0.0.1',
+  clipCount: 2,
+  includeOptions: ['duration'],
+  payloadVersion: '1.0.7',
   meta: null
 });
 
@@ -18,13 +22,14 @@ describe('InMemoryInspectRequestHistory', () => {
   it('keeps only the configured number of entries', () => {
     const history = new InMemoryInspectRequestHistory(2);
     history.record(createEntry('one'));
-    history.record(createEntry('two'));
+    history.record({ ...createEntry('two'), includeOptions: null });
     history.record(createEntry('three'));
 
     const entries = history.entries();
     expect(entries).toHaveLength(2);
     expect(entries[0]?.id).toBe('three');
     expect(entries[1]?.id).toBe('two');
+    expect(entries[1]?.includeOptions).toBeNull();
   });
 
   it('returns defensive copies', () => {
@@ -39,10 +44,12 @@ describe('InMemoryInspectRequestHistory', () => {
       if (snapshot[0].meta) {
         snapshot[0].meta.foo = 'mutated';
       }
+      snapshot[0].includeOptions?.push('fps');
     }
 
     const fresh = history.entries();
     expect(fresh[0]?.id).toBe('beta');
     expect(fresh[0]?.meta?.foo).toBe('bar');
+    expect(fresh[0]?.includeOptions).toEqual(['duration']);
   });
 });

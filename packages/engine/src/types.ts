@@ -60,6 +60,11 @@ export interface JobRunResult<TResult = unknown> {
   result?: TResult;
 }
 
+export interface QueueFullEvent {
+  occurredAt: number;
+  queuedJobs: number;
+}
+
 export interface QueueJobOptions<TResult = unknown> {
   name: string;
   estimatedTotalTimeMs?: number | null;
@@ -82,6 +87,10 @@ export interface InspectRequestLog {
   requestBytes: number;
   responseCode?: string | null;
   logLevel: LogLevel;
+  remoteAddress: string | null;
+  clipCount: number | null;
+  includeOptions?: string[] | null;
+  payloadVersion?: string | null;
   meta?: Record<string, unknown> | null;
 }
 

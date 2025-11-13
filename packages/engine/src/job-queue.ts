@@ -14,7 +14,8 @@ import {
   JobRunResult,
   JobSnapshot,
   JobState,
-  QueueJobOptions
+  QueueJobOptions,
+  QueueFullEvent
 } from './types';
 
 interface InternalJob<TResult = unknown> {
@@ -55,6 +56,7 @@ export class JobQueue extends EventEmitter {
   private readonly maxParallelJobs: number;
   private readonly maxQueueLength: number;
   private readonly queueTimeoutMs: number;
+  private lastQueueFullEvent: QueueFullEvent | null = null;
 
   constructor(options: JobQueueOptions = {}) {
     super();
@@ -67,6 +69,10 @@ export class JobQueue extends EventEmitter {
 
   enqueue<TResult>(options: QueueJobOptions<TResult>): string {
     if (this.queue.length >= this.maxQueueLength) {
+      this.lastQueueFullEvent = {
+        occurredAt: Date.now(),
+        queuedJobs: this.queue.length
+      };
       throw new QueueFullError(this.maxQueueLength);
     }
 
@@ -118,6 +124,7 @@ export class JobQueue extends EventEmitter {
       summary.queuedJobIds.push(job.id);
       this.emit('job:finished', this.toSnapshot(job));
       this.recordHistory(job, { level: 'warn' });
+      this.clearQueueFullEventIfRecovered();
     }
 
     this.notifyIdleIfNeeded();
@@ -144,6 +151,18 @@ export class JobQueue extends EventEmitter {
     return this.history.entries();
   }
 
+  getLimits(): { maxParallelJobs: number; maxQueueLength: number; queueTimeoutMs: number } {
+    return {
+      maxParallelJobs: this.maxParallelJobs,
+      maxQueueLength: this.maxQueueLength,
+      queueTimeoutMs: this.queueTimeoutMs
+    };
+  }
+
+  getLastQueueFullEvent(): QueueFullEvent | null {
+    return this.lastQueueFullEvent ? { ...this.lastQueueFullEvent } : null;
+  }
+
   async waitForIdle(): Promise<void> {
     if (this.activeJobs.size === 0 && this.queue.length === 0) {
       return;
@@ -158,6 +177,7 @@ export class JobQueue extends EventEmitter {
     while (this.activeJobs.size < this.maxParallelJobs && this.queue.length > 0) {
       const next = this.queue.shift()!;
       this.clearQueueTimeout(next);
+      this.clearQueueFullEventIfRecovered();
       this.startJob(next);
     }
   }
@@ -297,6 +317,7 @@ export class JobQueue extends EventEmitter {
     job.message = `Queue timeout exceeded (${Math.round(this.queueTimeoutMs / 1000)}s)`;
     this.emit('job:finished', this.toSnapshot(job));
     this.recordHistory(job, { level: 'warn' });
+    this.clearQueueFullEventIfRecovered();
     this.notifyIdleIfNeeded();
   }
 
@@ -308,5 +329,11 @@ export class JobQueue extends EventEmitter {
       progress: job.progress.snapshot(),
       metadata: job.metadata
     };
+  }
+
+  private clearQueueFullEventIfRecovered(): void {
+    if (this.lastQueueFullEvent && this.queue.length < this.maxQueueLength) {
+      this.lastQueueFullEvent = null;
+    }
   }
 }

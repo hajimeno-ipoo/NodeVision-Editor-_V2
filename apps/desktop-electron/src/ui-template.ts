@@ -224,6 +224,101 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(255, 255, 255, 0.1);
         font-size: 11px;
       }
+      .queue-alerts {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 8px;
+        background: rgba(255, 183, 77, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+      }
+      .queue-warning {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        border-left: 3px solid rgba(255, 255, 255, 0.2);
+        padding-left: 8px;
+      }
+      .queue-warning strong {
+        font-size: 11px;
+        letter-spacing: 0.05em;
+      }
+      .queue-warning-warn {
+        border-left-color: #ffb347;
+      }
+      .queue-warning-error {
+        border-left-color: #ff5e7a;
+      }
+      .queue-warning-info {
+        border-left-color: #4e9eff;
+      }
+      .history-time {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      #queue-history,
+      #inspect-history {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .history-row {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 6px;
+      }
+      .history-row:last-child {
+        border-bottom: none;
+      }
+      .history-row-main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .history-job {
+        font-weight: 600;
+      }
+      .history-message {
+        margin: 4px 0 0;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+      .log-level-badge {
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+      }
+      .log-info {
+        background: rgba(78, 158, 255, 0.2);
+      }
+      .log-warn {
+        background: rgba(255, 183, 77, 0.2);
+      }
+      .log-error {
+        background: rgba(255, 110, 110, 0.2);
+      }
+      .inspect-row {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 6px;
+      }
+      .inspect-row:last-child {
+        border-bottom: none;
+      }
+      .inspect-row-main,
+      .inspect-row-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .inspect-row-meta {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+      }
       .diagnostics-export {
         display: flex;
         gap: 8px;
@@ -378,6 +473,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
               <button type="button" id="btn-cancel-all">Cancel All</button>
             </div>
           </header>
+          <div id="queue-warnings" class="queue-alerts" aria-live="polite"></div>
           <div class="queue-lists">
             <div class="queue-section">
               <strong>実行中</strong>
@@ -406,7 +502,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           </div>
           <div id="export-status"></div>
           <div class="queue-section">
-            <strong>inspect履歴</strong>
+            <strong>inspect履歴 (20件)</strong>
             <div id="inspect-history"></div>
           </div>
         </div>
@@ -447,6 +543,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         queueRunning: document.getElementById('queue-running'),
         queueQueued: document.getElementById('queue-queued'),
         queueHistory: document.getElementById('queue-history'),
+        queueWarnings: document.getElementById('queue-warnings'),
         crashConsent: document.getElementById('crash-consent'),
         logPassword: document.getElementById('log-password'),
         exportLogs: document.getElementById('btn-export-logs'),
@@ -459,6 +556,12 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
 
       const deepClone = value => JSON.parse(JSON.stringify(value));
 
+      const DEFAULT_QUEUE_LIMITS = {
+        maxParallelJobs: 1,
+        maxQueueLength: 4,
+        queueTimeoutMs: 180_000
+      };
+
       const state = {
         nodes: (BOOTSTRAP.nodes ?? []).map(node => deepClone(node)),
         selection: new Set(),
@@ -470,13 +573,19 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         lastAutosave: null,
         isRunning: false,
         readonly: false,
-        queue: BOOTSTRAP.queue ?? { active: [], queued: [], history: [] },
-        diagnostics: BOOTSTRAP.diagnostics ?? {
-          collectCrashDumps: false,
-          lastTokenPreview: null,
-          lastLogExportPath: null,
-          lastExportSha: null,
-          inspectHistory: []
+        queue: {
+          active: BOOTSTRAP.queue?.active ?? [],
+          queued: BOOTSTRAP.queue?.queued ?? [],
+          history: BOOTSTRAP.queue?.history ?? [],
+          warnings: BOOTSTRAP.queue?.warnings ?? [],
+          limits: BOOTSTRAP.queue?.limits ?? DEFAULT_QUEUE_LIMITS
+        },
+        diagnostics: {
+          collectCrashDumps: BOOTSTRAP.diagnostics?.collectCrashDumps ?? false,
+          lastTokenPreview: BOOTSTRAP.diagnostics?.lastTokenPreview ?? null,
+          lastLogExportPath: BOOTSTRAP.diagnostics?.lastLogExportPath ?? null,
+          lastExportSha: BOOTSTRAP.diagnostics?.lastExportSha ?? null,
+          inspectHistory: BOOTSTRAP.diagnostics?.inspectHistory ?? []
         }
       };
 
@@ -499,6 +608,36 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         }
       };
 
+      const escapeHtml = value =>
+        String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+      const formatTimestamp = milliseconds => {
+        if (typeof milliseconds !== 'number' || Number.isNaN(milliseconds)) {
+          return '—';
+        }
+        const date = new Date(milliseconds);
+        return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString();
+      };
+
+      const formatIsoTime = value => {
+        if (!value) {
+          return '—';
+        }
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString();
+      };
+
+      const logLevelClass = level => {
+        if (level === 'error') return 'log-error';
+        if (level === 'warn') return 'log-warn';
+        return 'log-info';
+      };
+
       const showToast = (message, type = 'info') => {
         if (!elements.toast) return;
         elements.toast.textContent = message;
@@ -518,20 +657,69 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             return;
           }
           container.innerHTML = jobs
-            .map(job => `<div class="queue-row"><span>${job.name}</span><span class="queue-badge">${describeStatus(job.status)}</span></div>`)
+            .map(job => `<div class="queue-row"><span>${escapeHtml(job.name ?? job.jobId ?? 'ジョブ')}</span><span class="queue-badge">${describeStatus(job.status)}</span></div>`)
             .join('');
         };
 
         renderJobs(elements.queueRunning, state.queue.active, '実行中のジョブはありません');
         renderJobs(elements.queueQueued, state.queue.queued, '待機ジョブなし');
+        renderQueueHistory();
+        renderQueueWarnings();
+      };
 
-        if (elements.queueHistory) {
-          const rows = (state.queue.history ?? [])
-            .slice(0, 5)
-            .map(entry => `<div class="queue-row"><span>${entry.name}</span><span class="queue-badge">${describeStatus(entry.status)}</span></div>`)
-            .join('');
-          elements.queueHistory.innerHTML = rows || '<p style="opacity:0.7;">履歴はまだありません</p>';
+      const renderQueueHistory = () => {
+        if (!elements.queueHistory) return;
+        const history = (state.queue.history ?? []).slice(0, 20);
+        if (!history.length) {
+          elements.queueHistory.innerHTML = '<p style="opacity:0.7;">履歴はまだありません</p>';
+          return;
         }
+        elements.queueHistory.innerHTML = history
+          .map(entry => {
+            const level = entry.logLevel ?? 'info';
+            const message = entry.message ? escapeHtml(entry.message) : 'ログなし';
+            const finishedAt = entry.finishedAt ?? entry.startedAt ?? null;
+            return `
+              <div class="history-row">
+                <div class="history-row-main">
+                  <span class="history-job">${escapeHtml(entry.name ?? 'ジョブ')}</span>
+                  <span class="queue-badge">${describeStatus(entry.status)}</span>
+                  <span class="log-level-badge ${logLevelClass(level)}">${level.toUpperCase()}</span>
+                  <span class="history-time">${formatTimestamp(finishedAt)}</span>
+                </div>
+                <p class="history-message">${message}</p>
+              </div>
+            `;
+          })
+          .join('');
+      };
+
+      const renderQueueWarnings = () => {
+        if (!elements.queueWarnings) return;
+        const warnings = state.queue.warnings ?? [];
+        const limits = state.queue.limits ?? DEFAULT_QUEUE_LIMITS;
+        if (!warnings.length) {
+          const timeoutSeconds = Math.round((limits.queueTimeoutMs ?? 0) / 1000);
+          elements.queueWarnings.innerHTML = `
+            <div class="queue-warning queue-warning-info">
+              <strong>Queue Stable</strong>
+              <span>待機 ${state.queue.queued?.length ?? 0}/${limits.maxQueueLength} ・ Timeout ${timeoutSeconds || '0'}秒</span>
+            </div>
+          `;
+          return;
+        }
+        elements.queueWarnings.innerHTML = warnings
+          .map(warning => {
+            const levelClass = warning.level === 'error' ? 'queue-warning-error' : warning.level === 'warn' ? 'queue-warning-warn' : 'queue-warning-info';
+            return `
+              <div class="queue-warning ${levelClass}">
+                <strong>${warning.type}</strong>
+                <span>${escapeHtml(warning.message)}</span>
+                <span class="history-time">${formatIsoTime(warning.occurredAt)}</span>
+              </div>
+            `;
+          })
+          .join('');
       };
 
       const renderDiagnostics = () => {
@@ -547,8 +735,28 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         }
         if (elements.inspectHistory) {
           const rows = (state.diagnostics.inspectHistory ?? [])
-            .slice(0, 5)
-            .map(item => `<div class="queue-row"><span>${item.tokenLabel ?? 'token?'} (${item.statusCode})</span><span class="queue-badge">${item.logLevel}</span></div>`)
+            .slice(0, 20)
+            .map(item => {
+              const level = item.logLevel ?? 'info';
+              const infoParts = [
+                `HTTP ${item.statusCode}`,
+                item.responseCode ?? null,
+                typeof item.clipCount === 'number' ? `${item.clipCount} clips` : null,
+                item.remoteAddress ?? null
+              ].filter(Boolean);
+              return `
+                <div class="inspect-row">
+                  <div class="inspect-row-main">
+                    <span class="log-level-badge ${logLevelClass(level)}">${level.toUpperCase()}</span>
+                    <span class="history-time">${formatIsoTime(item.timestamp)}</span>
+                  </div>
+                  <div class="inspect-row-meta">
+                    <strong>${escapeHtml(item.tokenLabel ?? 'token?')}</strong>
+                    <span>${infoParts.map(part => escapeHtml(part)).join(' · ') || '詳細なし'}</span>
+                  </div>
+                </div>
+              `;
+            })
             .join('');
           elements.inspectHistory.innerHTML = rows || '<p style="opacity:0.7;">履歴はまだありません</p>';
         }
@@ -559,7 +767,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         try {
           const snapshot = await window.nodevision.getQueueSnapshot();
           if (snapshot) {
-            state.queue = snapshot;
+            state.queue = {
+              active: snapshot.active ?? [],
+              queued: snapshot.queued ?? [],
+              history: snapshot.history ?? [],
+              warnings: snapshot.warnings ?? [],
+              limits: snapshot.limits ?? state.queue.limits ?? DEFAULT_QUEUE_LIMITS
+            };
             renderQueue();
           }
         } catch (error) {
@@ -979,7 +1193,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             state.diagnostics = response.diagnostics;
             renderDiagnostics();
           }
-          showToast(`Logs exported to ${response.result?.outputPath ?? 'diagnostics folder'}`);
+          const exportPath = response.result?.outputPath ?? 'diagnostics folder';
+          const sha = response.result?.sha256 ?? state.diagnostics.lastExportSha ?? null;
+          const shaLabel = sha ? ` (SHA256: ${sha})` : '';
+          showToast(`Logs exported to ${exportPath}${shaLabel}`);
         } else {
           showToast(response?.message ?? 'エクスポートに失敗したよ', 'error');
         }

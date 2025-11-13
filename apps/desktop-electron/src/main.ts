@@ -28,7 +28,8 @@ import { createTokenManager, TokenRecord } from '@nodevision/tokens';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 
 import { buildRendererHtml } from './ui-template';
-import type { BootStatus } from './types';
+import { buildQueueWarnings } from './queue-warnings';
+import type { BootStatus, QueueSnapshot } from './types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,11 +42,20 @@ let httpServer: HttpServer | null = null;
 let cachedSettings: NodeVisionSettings | null = null;
 let lastExportSummary: { outputPath: string; sha256: string; generatedAt: string } | null = null;
 
-const getQueueSnapshot = () => ({
-  active: jobQueue.getActiveJobs(),
-  queued: jobQueue.getQueuedJobs(),
-  history: jobQueue.getHistory()
-});
+const getQueueSnapshot = (): QueueSnapshot => {
+  const active = jobQueue.getActiveJobs();
+  const queued = jobQueue.getQueuedJobs();
+  const history = jobQueue.getHistory();
+  const limits = jobQueue.getLimits();
+  const queueFullEvent = jobQueue.getLastQueueFullEvent();
+  return {
+    active,
+    queued,
+    history,
+    limits,
+    warnings: buildQueueWarnings(history, limits, queued.length, queueFullEvent)
+  };
+};
 
 const simulateJobExecution = (ctx: JobRunContext): Promise<JobRunResult> =>
   new Promise((resolve, reject) => {

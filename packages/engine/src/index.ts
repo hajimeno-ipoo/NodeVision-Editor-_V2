@@ -27,6 +27,7 @@ export type {
   JobSnapshot,
   JobState,
   QueueJobOptions,
+  QueueFullEvent,
   InspectRequestLog,
   InspectRequestHistoryStore
 } from './types';

@@ -191,13 +191,17 @@ describe('createInspectHttpServer', () => {
     });
     activeServer = server;
 
-    await postJson(port, { clips: [] });
+    await postJson(port, { clips: [{ path: '/tmp/a.mp4' }, { path: '/tmp/b.mp4' }], options: { include: ['duration'] }, version: '1.0.7' });
     const successLog = record.mock.calls.at(-1)?.[0];
     expect(successLog?.statusCode).toBe(200);
     expect(successLog?.logLevel).toBe('info');
     expect(successLog?.requestBytes).toBeGreaterThan(0);
     expect(successLog?.responseCode).toBe('OK');
     expect(successLog?.tokenLabel).toBe('default');
+    expect(successLog?.clipCount).toBe(2);
+    expect(successLog?.includeOptions).toEqual(['duration']);
+    expect(successLog?.payloadVersion).toBe('1.0.7');
+    expect(successLog?.remoteAddress).toBe('127.0.0.1');
 
     await fetch(`http://127.0.0.1:${port}/api/inspect/concat`, { method: 'POST' });
     const errorLog = record.mock.calls.at(-1)?.[0];
@@ -205,6 +209,8 @@ describe('createInspectHttpServer', () => {
     expect(errorLog?.logLevel).toBe('warn');
     expect(errorLog?.requestBytes).toBe(0);
     expect(errorLog?.responseCode).toBe('E4000');
+    expect(errorLog?.clipCount).toBeNull();
+    expect(errorLog?.includeOptions).toBeNull();
   });
 
   it('accepts repeated token headers', async () => {

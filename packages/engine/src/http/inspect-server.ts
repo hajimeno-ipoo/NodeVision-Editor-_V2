@@ -138,6 +138,16 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
     const requestStartedAt = Date.now();
     let requestBytes = 0;
     let tokenLabel: string | null = null;
+    const remoteAddr = req.socket.remoteAddress;
+    const requestInsights: {
+      clipCount: number | null;
+      includeOptions: string[] | null;
+      payloadVersion: string | null;
+    } = {
+      clipCount: null,
+      includeOptions: null,
+      payloadVersion: null
+    };
 
     const respond = (statusCode: number, body: InspectConcatResponse): void => {
       const logLevel: LogLevel = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
@@ -157,12 +167,14 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
           requestBytes,
           responseCode,
           logLevel,
+          remoteAddress: remoteAddr ?? null,
+          clipCount: requestInsights.clipCount,
+          includeOptions: requestInsights.includeOptions,
+          payloadVersion: requestInsights.payloadVersion,
           meta: body.error?.meta ?? null
         });
       }
     };
-
-    const remoteAddr = req.socket.remoteAddress;
     if (!isLocalAddress(remoteAddr)) {
       respond(403, buildErrorBody('E4004', DEFAULT_VERSION));
       return;
@@ -272,6 +284,11 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
           let parsed: InspectConcatRequest;
           try {
             parsed = parseInspectPayload(body);
+            requestInsights.clipCount = Array.isArray(parsed.clips) ? parsed.clips.length : null;
+            requestInsights.includeOptions = Array.isArray(parsed.options?.include)
+              ? parsed.options!.include!.map(include => String(include))
+              : null;
+            requestInsights.payloadVersion = parsed.version ?? null;
           } catch {
             cleanup();
             respond(400, buildErrorBody('E4150', DEFAULT_VERSION));
