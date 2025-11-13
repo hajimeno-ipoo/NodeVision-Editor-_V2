@@ -35,6 +35,12 @@ export class ResourceLimitError extends Error {
   }
 }
 
+export interface TempRootEntry {
+  path: string;
+  bytes: number;
+  mtimeMs: number;
+}
+
 export interface TempRootStatus {
   tempRoot: string;
   totalBytes: number;
@@ -44,11 +50,14 @@ export interface TempRootStatus {
   maxSingleJobBytes: number;
   overTotalLimit: boolean;
   overSingleJobLimit: boolean;
+  entries: TempRootEntry[];
+  deletedEntries: string[];
 }
 
 export interface TempRootOptions {
   maxTotalBytes?: number;
   maxSingleJobBytes?: number;
+  protectedEntries?: string[];
 }
 
 const isWindowsRuntime = () => process.platform === 'win32' || process.env.NODEVISION_FORCE_WINDOWS === '1';
@@ -139,47 +148,45 @@ export const ensureTempRoot = async (tempRoot: string): Promise<string> => {
 
 export const getDefaultTempRoot = (): string => path.join(os.tmpdir(), 'nodevision-temp');
 
-interface WalkResult {
-  totalBytes: number;
-  largestEntryBytes: number;
-  largestEntryPath: string | null;
-}
-
-const walkDirectory = async (dir: string): Promise<WalkResult> => {
-  let totalBytes = 0;
-  let largestEntryBytes = 0;
-  let largestEntryPath: string | null = null;
-
-  let entries: Dirent[] = [];
+const safeReaddir = async (dir: string): Promise<Dirent[]> => {
   try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
+    return await fs.readdir(dir, { withFileTypes: true });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return { totalBytes: 0, largestEntryBytes: 0, largestEntryPath: null };
+      return [];
     }
     throw error;
   }
+};
+
+const safeStat = async (entryPath: string) => {
+  try {
+    return await fs.stat(entryPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+};
+
+const calculateDirectorySize = async (dir: string): Promise<number> => {
+  let totalBytes = 0;
+  const entries = await safeReaddir(dir);
 
   for (const entry of entries) {
     const entryPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      const child = await walkDirectory(entryPath);
-      totalBytes += child.totalBytes;
-      if (child.largestEntryBytes > largestEntryBytes) {
-        largestEntryBytes = child.largestEntryBytes;
-        largestEntryPath = child.largestEntryPath;
-      }
+      totalBytes += await calculateDirectorySize(entryPath);
     } else if (entry.isFile()) {
-      const stat = await fs.stat(entryPath);
-      totalBytes += stat.size;
-      if (stat.size > largestEntryBytes) {
-        largestEntryBytes = stat.size;
-        largestEntryPath = entryPath;
+      const stat = await safeStat(entryPath);
+      if (stat) {
+        totalBytes += stat.size;
       }
     }
   }
 
-  return { totalBytes, largestEntryBytes, largestEntryPath };
+  return totalBytes;
 };
 
 export async function analyzeTempRoot(
@@ -187,29 +194,98 @@ export async function analyzeTempRoot(
   options: TempRootOptions = {}
 ): Promise<TempRootStatus> {
   await ensureTempRoot(tempRoot);
-  const walk = await walkDirectory(tempRoot);
 
   const maxTotalBytes = options.maxTotalBytes ?? DEFAULT_TOTAL_LIMIT_BYTES;
   const maxSingleJobBytes = options.maxSingleJobBytes ?? DEFAULT_SINGLE_JOB_LIMIT_BYTES;
 
+  const dirEntries = await safeReaddir(tempRoot);
+  const entries: TempRootEntry[] = [];
+  let totalBytes = 0;
+  let largestEntryBytes = 0;
+  let largestEntryPath: string | null = null;
+
+  for (const entry of dirEntries) {
+    const entryPath = path.join(tempRoot, entry.name);
+    const stat = await safeStat(entryPath);
+    if (!stat) {
+      continue;
+    }
+
+    let entryBytes = 0;
+    if (entry.isDirectory()) {
+      entryBytes = await calculateDirectorySize(entryPath);
+    } else if (entry.isFile()) {
+      entryBytes = stat.size;
+    } else {
+      continue;
+    }
+
+    totalBytes += entryBytes;
+    entries.push({ path: entryPath, bytes: entryBytes, mtimeMs: stat.mtimeMs });
+
+    if (entryBytes > largestEntryBytes) {
+      largestEntryBytes = entryBytes;
+      largestEntryPath = entryPath;
+    }
+  }
+
   return {
     tempRoot,
-    totalBytes: walk.totalBytes,
-    largestEntryBytes: walk.largestEntryBytes,
-    largestEntryPath: walk.largestEntryPath,
+    totalBytes,
+    largestEntryBytes,
+    largestEntryPath,
     maxTotalBytes,
     maxSingleJobBytes,
-    overTotalLimit: walk.totalBytes > maxTotalBytes,
-    overSingleJobLimit: walk.largestEntryBytes > maxSingleJobBytes
+    overTotalLimit: totalBytes > maxTotalBytes,
+    overSingleJobLimit: largestEntryBytes > maxSingleJobBytes,
+    entries,
+    deletedEntries: []
   };
 }
+
+const pruneTempRoot = async (
+  tempRoot: string,
+  status: TempRootStatus,
+  options: TempRootOptions
+): Promise<TempRootStatus> => {
+  const protectedSet = new Set((options.protectedEntries ?? []).map(entry => path.resolve(entry)));
+  const deletable = status.entries
+    .filter(entry => !protectedSet.has(path.resolve(entry.path)))
+    .sort((a, b) => a.mtimeMs - b.mtimeMs);
+
+  const removed: string[] = [];
+  let remainingBytes = status.totalBytes;
+
+  for (const entry of deletable) {
+    if (remainingBytes <= status.maxTotalBytes) {
+      break;
+    }
+    await fs.rm(entry.path, { recursive: true, force: true });
+    remainingBytes -= entry.bytes;
+    removed.push(entry.path);
+  }
+
+  const refreshed = await analyzeTempRoot(tempRoot, options);
+  return { ...refreshed, deletedEntries: removed };
+};
 
 export async function enforceTempRoot(
   tempRoot: string,
   options: TempRootOptions = {}
 ): Promise<TempRootStatus> {
-  const status = await analyzeTempRoot(tempRoot, options);
-  if (status.overTotalLimit || status.overSingleJobLimit) {
+  let status = await analyzeTempRoot(tempRoot, options);
+
+  if (status.overSingleJobLimit) {
+    throw new ResourceLimitError(status);
+  }
+
+  if (!status.overTotalLimit) {
+    return status;
+  }
+
+  status = await pruneTempRoot(tempRoot, status, options);
+
+  if (status.overSingleJobLimit || status.overTotalLimit) {
     throw new ResourceLimitError(status);
   }
 
