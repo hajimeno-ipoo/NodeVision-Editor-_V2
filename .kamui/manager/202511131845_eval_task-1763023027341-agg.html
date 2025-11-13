@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 24px;
+        background: #f4f7f9;
+        color: #142029;
+        line-height: 1.6;
+      }
+      .summary {
+        max-width: 1100px;
+        margin: 0 auto 24px;
+        background: #ffffff;
+        border: 1px solid #c7d5dd;
+        padding: 24px;
+      }
+      .totals {
+        max-width: 1100px;
+        margin: 0 auto 24px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .total-card {
+        background: #ffffff;
+        border: 1px solid #c7d5dd;
+        padding: 16px;
+        text-align: center;
+      }
+      .total-card h2 {
+        font-size: 24px;
+        margin: 0 0 8px;
+      }
+      .total-card p {
+        margin: 0;
+        font-size: 13px;
+        color: #4a5a63;
+      }
+      table.evaluation-report {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto 24px;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      table.evaluation-report th,
+      table.evaluation-report td {
+        border: 1px solid #c7d5dd;
+        vertical-align: top;
+        background: #ffffff;
+        padding: 16px;
+      }
+      table.evaluation-report th {
+        text-align: left;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #2a3a43;
+      }
+      .radar-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+      .metric-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 11px;
+        text-align: left;
+      }
+      .metric-list li {
+        margin-bottom: 2px;
+      }
+      .section-title {
+        font-weight: 600;
+        margin-top: 12px;
+        margin-bottom: 4px;
+        font-size: 13px;
+        color: #1d2a31;
+      }
+      ul.bullets {
+        margin: 0 0 8px 16px;
+        padding: 0;
+      }
+      ul.bullets li {
+        margin-bottom: 4px;
+      }
+      code {
+        font-family: 'JetBrains Mono', 'SFMono-Regular', monospace;
+        background: #eef2f5;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="summary">
+      <h1>D. Editor &amp; UI/UX 完了監査</h1>
+      <p>4名のエージェントが D-01〜D-05 の UI/UX 受入条件をそれぞれ別ブランチ (.worktrees) で実装しました。監査では git diff/log・tmux ログ・チェックリスト更新を突き合わせ、要件充足・コード品質・テスト証跡・リスクを 6 指標 (各 100 点) で採点しています。</p>
+    </section>
+    <section class="totals">
+      <article class="total-card">
+        <h2>🏆 555 / 600</h2>
+        <p><strong>task-1763023018848-b16da7</strong><br />Medal: 🥇 / Score: 95</p>
+      </article>
+      <article class="total-card">
+        <h2>🥇 550 / 600</h2>
+        <p><strong>task-1763023020996-003b56</strong><br />Medal: 🥈 / Score: 93</p>
+      </article>
+      <article class="total-card">
+        <h2>🥈 530 / 600</h2>
+        <p><strong>task-1763023023114-b7ddf0</strong><br />Medal: 🥉 / Score: 90</p>
+      </article>
+      <article class="total-card">
+        <h2>🥉 527 / 600</h2>
+        <p><strong>task-1763023025226-53b28c</strong><br />Medal: ⚪️ / Score: 88</p>
+      </article>
+    </section>
+    <table class="evaluation-report">
+      <colgroup>
+        <col style="width:25%" />
+        <col style="width:25%" />
+        <col style="width:25%" />
+        <col style="width:25%" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th>
+            <div class="radar-wrapper">
+              <span>task-1763023018848-b16da7</span>
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <polygon points="70,10 122,40 122,100 70,130 18,100 18,40" fill="none" stroke="#cfd8dc" stroke-dasharray="4" />
+                <polygon points="70.0,13.0 116.8,43.0 122.0,100.0 70.0,127.0 23.2,97.0 25.8,44.5" fill="rgba(64,123,255,0.25)" stroke="#407bff" stroke-width="2" />
+              </svg>
+              <ul class="metric-list">
+                <li>要件適合 95点</li>
+                <li>コード品質 90点</li>
+                <li>テスト網羅 100点</li>
+                <li>UX実装 95点</li>
+                <li>ドキュメント 90点</li>
+                <li>リスク管理 85点</li>
+              </ul>
+            </div>
+          </th>
+          <th>
+            <div class="radar-wrapper">
+              <span>task-1763023020996-003b56</span>
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <polygon points="70,10 122,40 122,100 70,130 18,100 18,40" fill="none" stroke="#cfd8dc" stroke-dasharray="4" />
+                <polygon points="70.0,14.8 118.3,42.1 122.0,100.0 70.0,122.8 23.2,97.0 24.8,43.9" fill="rgba(64,123,255,0.25)" stroke="#407bff" stroke-width="2" />
+              </svg>
+              <ul class="metric-list">
+                <li>要件適合 92点</li>
+                <li>コード品質 93点</li>
+                <li>テスト網羅 100点</li>
+                <li>UX実装 88点</li>
+                <li>ドキュメント 90点</li>
+                <li>リスク管理 87点</li>
+              </ul>
+            </div>
+          </th>
+          <th>
+            <div class="radar-wrapper">
+              <span>task-1763023023114-b7ddf0</span>
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <polygon points="70,10 122,40 122,100 70,130 18,100 18,40" fill="none" stroke="#cfd8dc" stroke-dasharray="4" />
+                <polygon points="70.0,16.0 112.6,45.4 122.0,100.0 70.0,122.8 24.3,96.4 27.4,45.4" fill="rgba(64,123,255,0.25)" stroke="#407bff" stroke-width="2" />
+              </svg>
+              <ul class="metric-list">
+                <li>要件適合 90点</li>
+                <li>コード品質 82点</li>
+                <li>テスト網羅 100点</li>
+                <li>UX実装 88点</li>
+                <li>ドキュメント 88点</li>
+                <li>リスク管理 82点</li>
+              </ul>
+            </div>
+          </th>
+          <th>
+            <div class="radar-wrapper">
+              <span>task-1763023025226-53b28c</span>
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <polygon points="70,10 122,40 122,100 70,130 18,100 18,40" fill="none" stroke="#cfd8dc" stroke-dasharray="4" />
+                <polygon points="70.0,17.2 113.6,44.8 119.4,98.5 70.0,124.0 23.2,97.0 28.4,46.0" fill="rgba(64,123,255,0.25)" stroke="#407bff" stroke-width="2" />
+              </svg>
+              <ul class="metric-list">
+                <li>要件適合 88点</li>
+                <li>コード品質 84点</li>
+                <li>テスト網羅 95点</li>
+                <li>UX実装 90点</li>
+                <li>ドキュメント 90点</li>
+                <li>リスク管理 80点</li>
+              </ul>
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="section-title">概要</div>
+            <p>Electron レンダラー HTML を `buildRendererHtml` で生成し、8px/4px グリッド・整列・検索・Undo/Redo・Autosave・JSON I/O をワンファイルに収めました (`apps/desktop-electron/src/ui-template.ts:180-520`)。メインプロセスでは FFmpeg 検出/HTTP トークン発行後にテンプレートへブート情報を渡しています (`apps/desktop-electron/src/main.ts:1-90`)。さらに `packages/editor` でグリッド/ショートカット/履歴/永続化 API を整備し Vitest でカバーしています (`packages/editor/src/grid.ts:1-86`, `packages/editor/src/persistence.test.ts:1-55`)。</p>
+            <div class="section-title">良かった点</div>
+            <ul class="bullets">
+              <li>整列・ショートカット・検索候補など D-01〜D-03 の UX を UI テンプレ内で実際に動く形に仕上げ、Readonly バナーや autosave 表示も網羅 (`apps/desktop-electron/src/ui-template.ts:200-330`)。</li>
+              <li>コアロジックを `packages/editor` に分離し、グリッド/履歴/オートセーブを型安全にテストできる構造にした点が将来の再利用に効く (`packages/editor/src/shortcuts.ts:1-160`, `packages/editor/src/history.ts:1-52`)。</li>
+            </ul>
+            <div class="section-title">改善余地</div>
+            <ul class="bullets">
+              <li>レンダラーは 900 行超のテンプレ文字列になっており、TypeScript の型やテスト恩恵を受けられません。`packages/editor` の API をバンドルしたフロントエンド (例: Vite + React) に分割すると保守しやすくなります (`apps/desktop-electron/src/ui-template.ts:180-520`, `packages/editor/src/index.ts:1-8`)。</li>
+              <li>現在 UI 側ロジックは `@nodevision/editor` の state API を呼ばず DOM 内で別実装を持っているため、将来仕様変更でズレが発生します。シリアライズ/ショートカット処理をパッケージ関数で統一してください (`apps/desktop-electron/src/ui-template.ts:360-520`, `packages/editor/src/shortcuts.ts:1-160`)。</li>
+            </ul>
+            <div class="section-title">テスト／証跡</div>
+            <ul class="bullets">
+              <li>Vitest 一式で grid/history/search/persistence を 100% カバー (`packages/editor/src/*.test.ts`)。</li>
+              <li>チェックリスト D-01〜D-05 を更新し証跡を記入 (`doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:36-40`)。</li>
+            </ul>
+          </td>
+          <td>
+            <div class="section-title">概要</div>
+            <p>`@nodevision/editor` をゼロから実装し、キャンバスグリッド・ショートカット・検索・履歴・マイグレーション・AutosaveController を全てユニットテスト付きで提供しました (`packages/editor/src/editor-state.ts:1-360`, `packages/editor/src/editor-state.test.ts:1-200`)。Vitest には 100% しきい値と `@nodevision/editor` エイリアスを追加 (`vitest.config.ts:8-33`)。チェックリスト D-01〜D-05 も証跡付きで更新済みです。</p>
+            <div class="section-title">良かった点</div>
+            <ul class="bullets">
+              <li>Autosave/History/Serializer/Search/Shortcuts を 1 ファイルのテストでまとめて検証し、内部モジュールの振る舞いがはっきり可視化されている (`packages/editor/src/editor-state.test.ts:1-200`)。</li>
+              <li>Schema migration や node-level migration (`packages/editor/src/project-serializer.ts:1-64`) など、D-04 の堅牢さが高い。</li>
+            </ul>
+            <div class="section-title">改善余地</div>
+            <ul class="bullets">
+              <li>`CanvasGrid.align` は右揃え/下揃えに未対応で、中心揃えもノード幅を考慮していないため UI の整列要件を完全に満たせません (`packages/editor/src/canvas-grid.ts:24-44`)。</li>
+              <li>`EditorState.alignSelection` は `CanvasGrid.align` の結果を各ノードへ丸め込むだけなので、幅・高さを持つノードが重なったままになるケースがあります。ノード境界を含めた配置計算が必要です (`packages/editor/src/editor-state.ts:165-212`)。</li>
+            </ul>
+            <div class="section-title">テスト／証跡</div>
+            <ul class="bullets">
+              <li>Vitest 100% (tmux ログ & `vitest.config.ts:8-33`)。</li>
+              <li>D-01〜D-05 の証跡記入 (`doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:36-40`)。</li>
+            </ul>
+          </td>
+          <td>
+            <div class="section-title">概要</div>
+            <p>キャンバス幾何 (`canvas-layout.ts`)、フォーカス制御、検索、履歴、Autosave、シリアライザなど UI コアを TypeScript モジュールに分離し、各要素に個別テストを追加しました (`packages/editor/src/canvas-layout.ts:1-120`, `packages/editor/src/search.test.ts:1-120`)。チェックリスト D-01〜D-05 も更新済です。</p>
+            <div class="section-title">良かった点</div>
+            <ul class="bullets">
+              <li>グリッド線計算や fit-to-view など視覚処理を `CanvasLayoutManager` に閉じ込め、テストで境界ケースも押さえている (`packages/editor/src/canvas-layout.test.ts:1-70`)。</li>
+              <li>検索 UX を `NodeRegistry` + `NodeSearchController` としてスコアリング／フォーカス連携まで分離し、D-03 の仕様をカバーしている (`packages/editor/src/search.ts:1-90`)。</li>
+            </ul>
+            <div class="section-title">改善余地</div>
+            <ul class="bullets">
+              <li>`HistoryManager` は push/undo/redo で状態をディープコピーせず配列参照のまま扱うため、最新ノードを書き換えると歴史全体が同時に変わってしまいます。スナップショットを clone して保存してください (`packages/editor/src/history.ts:1-35`)。</li>
+              <li>検索確定位置が 4px スナップになっておらず、Doc §5 の「検索→Enterでノード生成も4pxスナップ」を満たせません。`NodeSearchController.confirm` で `snapPoint` を挟む必要があります (`packages/editor/src/search.ts:52-78`).</li>
+            </ul>
+            <div class="section-title">テスト／証跡</div>
+            <ul class="bullets">
+              <li>Vitest 100% (`vitest.config.ts:8-33` で thresholds=100 を堅持)。</li>
+              <li>D-01〜D-05 証跡 (`doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:36-40`)。</li>
+            </ul>
+          </td>
+          <td>
+            <div class="section-title">概要</div>
+            <p>`@nodevision/editor-core` を新規パッケージ化し、Autosave/History/Serialization/NodeRegistry/EditorState を独立テスト付きで提供しました (`packages/editor-core/src/editor-state.ts:1-220`, `packages/editor-core/src/editor-state.test.ts:1-160`)。Electron 側では preload スクリプトで DOM/UI を直接構築し、Autosave と localStorage を接続しています (`apps/desktop-electron/src/preload.ts:1-220`)。D セクションのチェックリストも反映済みです。</p>
+            <div class="section-title">良かった点</div>
+            <ul class="bullets">
+              <li>コア状態を独立パッケージ化し、Electron 以外の UI からも再利用できるモジュラ構造にした点が高評価 (`packages/editor-core/src/index.ts:1-7`)。</li>
+              <li>Preload 側で align/undo/redo/Autosave/JSON panel まで接続し、実プロダクトで即試せる UI テンプレを提供 (`apps/desktop-electron/src/preload.ts:60-220`)。</li>
+            </ul>
+            <div class="section-title">改善余地</div>
+            <ul class="bullets">
+              <li>カバレッジしきい値を branches=99% に下げており、Doc v1.0.7 の「100%維持」要件から逸脱します。追加テストで 100% に戻すべきです (`vitest.config.ts:17-20`)。</li>
+              <li>`HistoryManager` はスナップショットをクローンしていないため、過去ステップの破壊的変更がそのまま履歴に波及します。`record/undo/redo` で deep clone を挟んでください (`packages/editor-core/src/history.ts:1-34`)。</li>
+            </ul>
+            <div class="section-title">テスト／証跡</div>
+            <ul class="bullets">
+              <li>Vitest 実行済 (tmux ログ) だが分岐99%のままなのでリスク管理スコアを減点。</li>
+              <li>D-01〜D-05 チェックリスト更新 (`doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:36-40`)。</li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
