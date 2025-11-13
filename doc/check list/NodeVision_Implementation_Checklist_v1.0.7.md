@@ -40,11 +40,11 @@
 - [x] D-05 Undo/Redo 100履歴とオートセーブ（アイドル2秒／実行時10秒）を有効化（Doc §5）。→ `packages/editor/src/history.ts` のHistoryManager/AutosaveSchedulerと、レンダラーの undo/redo ボタン＋オートセーブ表示を連携。
 
 ## E. Media/プレビュー
-- [ ] E-01 FFmpeg ビルダーチェーン（Load→Trim→Resize→Save）が最短パスで生成される（Doc §6, §9）。
-- [ ] E-02 Overlay/Text/Crop/Speed/ChangeFPSノードが `typeId`/`nodeVersion` 付きで登録（Doc §5-6）。
-- [ ] E-03 SAR=1正規化、VFR→CFR変換、strictCutに対応（Doc §6）。
-- [ ] E-04 プレビューは sRGB + bilinear、書き出しは bicubic を強制（Doc §6）。
-- [ ] E-05 `JobProgress` 表示とプレビューの同期が1フレーム以内（Doc §3, §6）。
+- [x] E-01 FFmpeg ビルダーチェーン（Load→Trim→Resize→Save）が最短パスで生成される（Doc §6, §9）。→ `packages/engine/src/ffmpeg/builder.ts` にノード統合ロジックと `buildFFmpegPlan` を実装し、`builder.test.ts`（8ケース）でLoad→Trim→Resize→Exportの最短パス/連続トリム/出力引数を網羅、Vitestカバレッジ100%。
+- [x] E-02 Overlay/Text/Crop/Speed/ChangeFPSノードが `typeId`/`nodeVersion` 付きで登録（Doc §5-6）。→ `packages/editor/src/templates.ts` に5テンプレート（text/crop/speed/changeFps含む）を追加し `templates.test.ts` で `typeId`/`nodeVersion` の有無を検証。
+- [x] E-03 SAR=1正規化、VFR→CFR変換、strictCutに対応（Doc §6）。→ builderが `setsar` フィルタ・strict cut合成・`changeFps` ノードのCFRデフォルトを付与し、`builder.test.ts` でSAR=1・strict start/range・end-onlyトリムを確認。
+- [x] E-04 プレビューは sRGB + bilinear、書き出しは bicubic を強制（Doc §6）。→ builderがプレビュー設定へ `{profile:srgb,format:rgba}`＋`bilinear` スケール、エクスポートへ `interpolation:'bicubic'` を付与し、テストでデフォルト/上書き両ケースを検証。
+- [x] E-05 `JobProgress` 表示とプレビューの同期が1フレーム以内（Doc §3, §6）。→ `packages/engine/src/preview/progress-bridge.ts` の `PreviewProgressBridge` がフレーム毎にJobProgressを補正し、`progress-bridge.test.ts` で誤差1フレーム以内と異常系（fps/負フレーム）を確認。
 
 ## F. Queue/History/Logging
 - [ ] F-01 単一待機キューで `Queued→Running→CoolingDown/Failed/Completed` 遷移を表示（Doc §3）。
@@ -112,3 +112,9 @@
 - 実施者: Codex (Agent)
 - エビデンス: `apps/desktop-electron/src/main.ts:62`, `packages/engine/src/http/inspect-server.ts:29`, `packages/tokens/src/index.ts:45`, `packages/engine/src/inspect/concat.ts:100`, `pnpm test` (inspect/http/token系Vitest)
 - 備考: NV_HTTPゲート + localhost縛り・トークンローテ猶予15分・同時実行/128KB/1s制限・UNC/シンボリックリンク拒否を揃え、Vitestカバレッジ100%を維持。
+
+- チェック対象: E-01〜E-05 Media/プレビュー
+- 実施日: 2025-11-13
+- 実施者: Codex (Agent)
+- エビデンス: `packages/engine/src/ffmpeg/builder.ts` + `builder.test.ts`（FFmpeg plan/trim/VFR処理）、`packages/engine/src/preview/progress-bridge.ts` + `progress-bridge.test.ts`（プレビューフレーム同期）、`packages/editor/src/templates.ts` + `templates.test.ts`（新ノード登録）、`pnpm test` (coverage 100%)
+- 備考: builderでLoad→Trim→Resize→Exportの最短経路をJSON化し、SAR=1/VFR→CFR/bicubic書き出し・sRGB bilinearプレビューを強制。PreviewProgressBridgeでJobProgressとプレビュー差を1フレーム以内へ補正。

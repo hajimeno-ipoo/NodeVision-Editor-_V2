@@ -40,6 +40,46 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     height: 170
   },
   {
+    typeId: 'text',
+    nodeVersion: '1.0.0',
+    title: 'Text Overlay',
+    category: 'Compositing',
+    description: 'Render titles or captions with font and color controls',
+    keywords: ['text', 'title', 'caption'],
+    width: 240,
+    height: 150
+  },
+  {
+    typeId: 'crop',
+    nodeVersion: '1.0.0',
+    title: 'Crop',
+    category: 'Transform',
+    description: 'Trim the visible area to a custom frame',
+    keywords: ['crop', 'frame', 'bounds'],
+    width: 220,
+    height: 140
+  },
+  {
+    typeId: 'speed',
+    nodeVersion: '1.0.0',
+    title: 'Speed',
+    category: 'Timing',
+    description: 'Ramp playback speed for slow/fast motion',
+    keywords: ['speed', 'slow', 'fast'],
+    width: 220,
+    height: 140
+  },
+  {
+    typeId: 'changeFps',
+    nodeVersion: '1.0.0',
+    title: 'Change FPS',
+    category: 'Timing',
+    description: 'Convert variable frame rate clips to constant FPS',
+    keywords: ['fps', 'frame rate', 'cfr'],
+    width: 220,
+    height: 140
+  },
+  {
     typeId: 'export',
     nodeVersion: '1.0.0',
     title: 'Export Media',
