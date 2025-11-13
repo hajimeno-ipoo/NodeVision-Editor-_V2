@@ -1,11 +1,13 @@
 import type { EditorNode, NodeTemplate } from '@nodevision/editor';
 
-import type { BootStatus } from './types';
+import type { BootStatus, DiagnosticsSnapshot, QueueSnapshot } from './types';
 
 export interface RendererPayload {
   status: BootStatus;
   templates: NodeTemplate[];
   nodes: EditorNode[];
+  queue: QueueSnapshot;
+  diagnostics: DiagnosticsSnapshot;
 }
 
 const encodePayload = (payload: RendererPayload): string =>
@@ -177,6 +179,84 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(13, 16, 25, 0.9);
         font-size: 13px;
       }
+      .queue-card,
+      .diagnostics-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 16px;
+        background: rgba(13, 16, 25, 0.85);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 12px;
+      }
+      .queue-card header,
+      .diagnostics-card header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .queue-lists {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .queue-section {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 8px;
+      }
+      .queue-section strong {
+        font-size: 11px;
+        letter-spacing: 0.02em;
+      }
+      .queue-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2px 0;
+      }
+      .queue-badge {
+        display: inline-flex;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 11px;
+      }
+      .diagnostics-export {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      #log-password {
+        flex: 1;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(6, 8, 14, 0.6);
+        color: inherit;
+        padding: 6px 12px;
+      }
+      #toast {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        min-width: 200px;
+        max-width: 360px;
+        background: rgba(44, 132, 255, 0.95);
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        display: none;
+      }
+      #toast.error {
+        background: rgba(255, 82, 82, 0.95);
+      }
+      #toast.visible {
+        display: block;
+      }
       .help-card table {
         width: 100%;
         border-collapse: collapse;
@@ -290,6 +370,46 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           <p>・ドラッグでノード移動（4pxスナップ）<br />・Enterで候補を追加<br />・Tabでカードにフォーカスできます。</p>
         </div>
         <div class="readonly-banner" id="readonly-banner">スキーマ差分のため読み取り専用です（編集は無効化）。</div>
+        <div class="queue-card" aria-label="ジョブキュー">
+          <header>
+            <strong>ジョブキュー</strong>
+            <div class="toolbar-group">
+              <button type="button" id="btn-demo-job">デモジョブ追加</button>
+              <button type="button" id="btn-cancel-all">Cancel All</button>
+            </div>
+          </header>
+          <div class="queue-lists">
+            <div class="queue-section">
+              <strong>実行中</strong>
+              <div id="queue-running"></div>
+            </div>
+            <div class="queue-section">
+              <strong>待機中</strong>
+              <div id="queue-queued"></div>
+            </div>
+            <div class="queue-section">
+              <strong>履歴 (20件)</strong>
+              <div id="queue-history"></div>
+            </div>
+          </div>
+        </div>
+        <div class="diagnostics-card" aria-label="ログと診断">
+          <header>
+            <strong>ログ & 診断</strong>
+            <label style="display:flex;gap:6px;align-items:center;">
+              <input type="checkbox" id="crash-consent" /> クラッシュダンプを含める
+            </label>
+          </header>
+          <div class="diagnostics-export">
+            <input type="password" id="log-password" placeholder="Export password" autocomplete="off" />
+            <button type="button" id="btn-export-logs">Export Logs</button>
+          </div>
+          <div id="export-status"></div>
+          <div class="queue-section">
+            <strong>inspect履歴</strong>
+            <div id="inspect-history"></div>
+          </div>
+        </div>
       </section>
       <section class="canvas-wrap">
         <div id="canvas" role="region" aria-label="ノードキャンバス"></div>
@@ -305,6 +425,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         <button type="button" id="btn-load">JSONを読み込み</button>
       </div>
     </section>
+    <div id="toast" role="status" aria-live="assertive"></div>
     <script>
       const BOOTSTRAP = JSON.parse(decodeURIComponent('${encoded}'));
       const GRID = 8;
@@ -322,7 +443,18 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         export: document.getElementById('btn-export'),
         load: document.getElementById('btn-load'),
         runningToggle: document.getElementById('running-toggle'),
-        readonlyBanner: document.getElementById('readonly-banner')
+        readonlyBanner: document.getElementById('readonly-banner'),
+        queueRunning: document.getElementById('queue-running'),
+        queueQueued: document.getElementById('queue-queued'),
+        queueHistory: document.getElementById('queue-history'),
+        crashConsent: document.getElementById('crash-consent'),
+        logPassword: document.getElementById('log-password'),
+        exportLogs: document.getElementById('btn-export-logs'),
+        exportStatus: document.getElementById('export-status'),
+        inspectHistory: document.getElementById('inspect-history'),
+        demoJob: document.getElementById('btn-demo-job'),
+        cancelAll: document.getElementById('btn-cancel-all'),
+        toast: document.getElementById('toast')
       };
 
       const deepClone = value => JSON.parse(JSON.stringify(value));
@@ -337,10 +469,103 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         autosaveTimer: null,
         lastAutosave: null,
         isRunning: false,
-        readonly: false
+        readonly: false,
+        queue: BOOTSTRAP.queue ?? { active: [], queued: [], history: [] },
+        diagnostics: BOOTSTRAP.diagnostics ?? {
+          collectCrashDumps: false,
+          lastTokenPreview: null,
+          lastLogExportPath: null,
+          lastExportSha: null,
+          inspectHistory: []
+        }
       };
 
       const templates = BOOTSTRAP.templates ?? [];
+
+      const describeStatus = status => {
+        switch (status) {
+          case 'running':
+            return '実行中';
+          case 'queued':
+            return '待機中';
+          case 'coolingDown':
+            return 'CoolingDown';
+          case 'failed':
+            return '失敗';
+          case 'canceled':
+            return 'Cancel済み';
+          default:
+            return status;
+        }
+      };
+
+      const showToast = (message, type = 'info') => {
+        if (!elements.toast) return;
+        elements.toast.textContent = message;
+        elements.toast.classList.remove('error');
+        if (type === 'error') {
+          elements.toast.classList.add('error');
+        }
+        elements.toast.classList.add('visible');
+        setTimeout(() => elements.toast.classList.remove('visible'), 3000);
+      };
+
+      const renderQueue = () => {
+        const renderJobs = (container, jobs, emptyMessage) => {
+          if (!container) return;
+          if (!jobs?.length) {
+            container.innerHTML = `<p style="margin:4px 0;opacity:0.7;">${emptyMessage}</p>`;
+            return;
+          }
+          container.innerHTML = jobs
+            .map(job => `<div class="queue-row"><span>${job.name}</span><span class="queue-badge">${describeStatus(job.status)}</span></div>`)
+            .join('');
+        };
+
+        renderJobs(elements.queueRunning, state.queue.active, '実行中のジョブはありません');
+        renderJobs(elements.queueQueued, state.queue.queued, '待機ジョブなし');
+
+        if (elements.queueHistory) {
+          const rows = (state.queue.history ?? [])
+            .slice(0, 5)
+            .map(entry => `<div class="queue-row"><span>${entry.name}</span><span class="queue-badge">${describeStatus(entry.status)}</span></div>`)
+            .join('');
+          elements.queueHistory.innerHTML = rows || '<p style="opacity:0.7;">履歴はまだありません</p>';
+        }
+      };
+
+      const renderDiagnostics = () => {
+        if (elements.crashConsent) {
+          elements.crashConsent.checked = !!state.diagnostics.collectCrashDumps;
+        }
+        if (elements.exportStatus) {
+          if (state.diagnostics.lastLogExportPath) {
+            elements.exportStatus.textContent = `Last export: ${state.diagnostics.lastLogExportPath} (${state.diagnostics.lastExportSha ?? 'sha?'})`;
+          } else {
+            elements.exportStatus.textContent = 'まだエクスポートしていません';
+          }
+        }
+        if (elements.inspectHistory) {
+          const rows = (state.diagnostics.inspectHistory ?? [])
+            .slice(0, 5)
+            .map(item => `<div class="queue-row"><span>${item.tokenLabel ?? 'token?'} (${item.statusCode})</span><span class="queue-badge">${item.logLevel}</span></div>`)
+            .join('');
+          elements.inspectHistory.innerHTML = rows || '<p style="opacity:0.7;">履歴はまだありません</p>';
+        }
+      };
+
+      const refreshQueue = async () => {
+        if (!window.nodevision?.getQueueSnapshot) return;
+        try {
+          const snapshot = await window.nodevision.getQueueSnapshot();
+          if (snapshot) {
+            state.queue = snapshot;
+            renderQueue();
+          }
+        } catch (error) {
+          showToast(`キュー更新に失敗: ${error?.message ?? error}`, 'error');
+        }
+      };
 
       const snap = value => Math.round(value / SNAP) * SNAP;
 
@@ -719,6 +944,59 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         scheduleAutosave();
       });
 
+      const enqueueDemoJob = async () => {
+        if (!window.nodevision?.enqueueDemoJob) {
+          showToast('デモジョブAPIがみつからないよ', 'error');
+          return;
+        }
+        const response = await window.nodevision.enqueueDemoJob({ name: 'FFmpeg 合成' });
+        if (response?.ok) {
+          showToast('デモジョブを追加したよ');
+        } else if (response?.code === 'QUEUE_FULL') {
+          showToast('QUEUE_FULL: 待機キューが満杯だよ', 'error');
+        } else {
+          showToast(response?.error ?? 'ジョブ追加に失敗したよ', 'error');
+        }
+        refreshQueue();
+      };
+
+      const cancelAllJobs = async () => {
+        if (!window.nodevision?.cancelAllJobs) return;
+        await window.nodevision.cancelAllJobs();
+        showToast('全ジョブをキャンセルしたよ');
+        refreshQueue();
+      };
+
+      const exportLogs = async () => {
+        if (!window.nodevision?.exportLogs) {
+          showToast('Export APIが未接続だよ', 'error');
+          return;
+        }
+        const password = elements.logPassword?.value?.trim() || null;
+        const response = await window.nodevision.exportLogs(password);
+        if (response?.ok) {
+          if (response.diagnostics) {
+            state.diagnostics = response.diagnostics;
+            renderDiagnostics();
+          }
+          showToast(`Logs exported to ${response.result?.outputPath ?? 'diagnostics folder'}`);
+        } else {
+          showToast(response?.message ?? 'エクスポートに失敗したよ', 'error');
+        }
+      };
+
+      elements.demoJob?.addEventListener('click', enqueueDemoJob);
+      elements.cancelAll?.addEventListener('click', cancelAllJobs);
+      elements.exportLogs?.addEventListener('click', exportLogs);
+      elements.crashConsent?.addEventListener('change', async event => {
+        if (!window.nodevision?.setCrashDumpConsent) return;
+        const enabled = event.target.checked;
+        const result = await window.nodevision.setCrashDumpConsent(enabled);
+        state.diagnostics.collectCrashDumps = result.collectCrashDumps;
+        renderDiagnostics();
+        showToast(result.collectCrashDumps ? 'クラッシュダンプを含めるよ' : 'クラッシュダンプを除外するよ');
+      });
+
       document.addEventListener('keydown', handleKeydown);
 
       renderStatus();
@@ -726,6 +1004,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       updateSuggestions('');
       pushHistory();
       updateJsonPreview();
+      renderQueue();
+      renderDiagnostics();
+      refreshQueue();
+      setInterval(refreshQueue, 4000);
     </script>
   </body>
 </html>`;

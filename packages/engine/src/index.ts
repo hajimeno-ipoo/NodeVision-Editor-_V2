@@ -1,11 +1,12 @@
 /* c8 ignore file */
 export { JobQueue, JobQueueOptions } from './job-queue';
 export { JobProgressTracker } from './job-progress';
-export { JobCancelledError } from './job-errors';
+export { JobCancelledError, QueueFullError } from './job-errors';
 export { InMemoryHistoryStore } from './job-history';
 export { TempRootManager } from './temp-root-manager';
 export { inspectConcat } from './inspect/concat';
 export { buildFFmpegPlan } from './ffmpeg/builder';
+export { InMemoryInspectRequestHistory } from './http/inspect-history';
 export {
   createInspectHttpServer,
   isLoopbackAddress,
@@ -15,16 +16,21 @@ export {
   shouldSkipEnd,
   parseInspectPayload
 } from './http/inspect-server';
+export { exportDiagnosticsLogs } from './diagnostics/log-exporter';
 export type {
   CancelAllSummary,
   JobHistoryEntry,
+  LogLevel,
   JobPreviewContext,
   JobRunContext,
   JobRunResult,
   JobSnapshot,
   JobState,
-  QueueJobOptions
+  QueueJobOptions,
+  InspectRequestLog,
+  InspectRequestHistoryStore
 } from './types';
+export type { LogExportOptions, LogExportResult } from './diagnostics/log-exporter';
 export type { TempRootManagerOptions } from './temp-root-manager';
 export type {
   InspectClipDetails,

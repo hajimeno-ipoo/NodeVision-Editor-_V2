@@ -7,6 +7,8 @@ export type JobState =
   | 'failed'
   | 'canceled';
 
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
 export interface JobProgressSnapshot {
   ratio: number;
   outputTimeMs: number;
@@ -23,6 +25,8 @@ export interface JobHistoryEntry {
   startedAt: number | null;
   finishedAt: number | null;
   metadata?: Record<string, unknown>;
+  logLevel: LogLevel;
+  message?: string | null;
 }
 
 export interface JobSnapshot {
@@ -69,7 +73,25 @@ export interface HistoryStore {
   entries(): JobHistoryEntry[];
 }
 
+export interface InspectRequestLog {
+  id: string;
+  timestamp: string;
+  durationMs: number;
+  statusCode: number;
+  tokenLabel: string | null;
+  requestBytes: number;
+  responseCode?: string | null;
+  logLevel: LogLevel;
+  meta?: Record<string, unknown> | null;
+}
+
+export interface InspectRequestHistoryStore {
+  record(entry: InspectRequestLog): void;
+  entries(): InspectRequestLog[];
+}
+
 export interface CancelAllSummary {
   runningJobId: string | null;
+  runningJobIds: string[];
   queuedJobIds: string[];
 }

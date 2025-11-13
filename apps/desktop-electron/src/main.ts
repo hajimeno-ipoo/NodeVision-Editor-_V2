@@ -1,7 +1,20 @@
 import type { Server as HttpServer } from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_NODE_TEMPLATES, seedDemoNodes } from '@nodevision/editor';
-import { createInspectHttpServer, inspectConcat, type InspectConcatRequest } from '@nodevision/engine';
+import {
+  createInspectHttpServer,
+  exportDiagnosticsLogs,
+  inspectConcat,
+  InMemoryInspectRequestHistory,
+  JobCancelledError,
+  JobQueue,
+  QueueFullError,
+  type InspectConcatRequest,
+  type JobRunContext,
+  type JobRunResult
+} from '@nodevision/engine';
 import { getSettingsFilePath, loadSettings, NodeVisionSettings, updateSettings } from '@nodevision/settings';
 import {
   BinaryNotFoundError,
@@ -12,13 +25,133 @@ import {
   ResourceLimitError
 } from '@nodevision/system-check';
 import { createTokenManager, TokenRecord } from '@nodevision/tokens';
-import { app, BrowserWindow, dialog, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 
 import { buildRendererHtml } from './ui-template';
 import type { BootStatus } from './types';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const preloadPath = path.join(__dirname, 'preload.js');
+
 const tokenManager = createTokenManager();
+const jobQueue = new JobQueue({ maxQueueLength: 4, queueTimeoutMs: 3 * 60_000 });
+const inspectHistory = new InMemoryInspectRequestHistory(20);
 let httpServer: HttpServer | null = null;
+let cachedSettings: NodeVisionSettings | null = null;
+let lastExportSummary: { outputPath: string; sha256: string; generatedAt: string } | null = null;
+
+const getQueueSnapshot = () => ({
+  active: jobQueue.getActiveJobs(),
+  queued: jobQueue.getQueuedJobs(),
+  history: jobQueue.getHistory()
+});
+
+const simulateJobExecution = (ctx: JobRunContext): Promise<JobRunResult> =>
+  new Promise((resolve, reject) => {
+    const total = 3_000 + Math.floor(Math.random() * 3_000);
+    ctx.progress.setTotalTime(total);
+    let elapsed = 0;
+
+    const step = () => {
+      if (ctx.signal.aborted) {
+        reject(new JobCancelledError('Demo job cancelled'));
+        return;
+      }
+
+      elapsed = Math.min(total, elapsed + 500);
+      ctx.progress.updateOutputTime(elapsed);
+
+      if (elapsed >= total) {
+        resolve({
+          totalTimeMs: total,
+          outputTimeMs: elapsed,
+          outputPath: cachedSettings ? path.join(cachedSettings.tempRoot, `demo-${Date.now()}.mp4`) : null
+        });
+        return;
+      }
+
+      setTimeout(step, 500);
+    };
+
+    step();
+  });
+
+const enqueueDemoJob = (name: string): string =>
+  jobQueue.enqueue({
+    name,
+    metadata: { source: 'demo' },
+    execute: simulateJobExecution
+  });
+
+const diagnosticsSnapshot = () => ({
+  collectCrashDumps: cachedSettings?.diagnostics.collectCrashDumps ?? false,
+  lastTokenPreview: cachedSettings?.diagnostics.lastTokenPreview ?? null,
+  lastLogExportPath: cachedSettings?.diagnostics.lastLogExportPath ?? null,
+  lastExportSha: lastExportSummary?.sha256 ?? null,
+  inspectHistory: inspectHistory.entries()
+});
+
+ipcMain.handle('nodevision:queue:snapshot', () => getQueueSnapshot());
+
+ipcMain.handle('nodevision:queue:enqueue', async (_event, payload) => {
+  try {
+    const label = (payload?.name as string | undefined)?.trim() || `ジョブ ${new Date().toLocaleTimeString()}`;
+    enqueueDemoJob(label);
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof QueueFullError) {
+      return { ok: false, code: 'QUEUE_FULL', max: error.maxQueueLength };
+    }
+    throw error;
+  }
+});
+
+ipcMain.handle('nodevision:queue:cancelAll', () => {
+  jobQueue.cancelAll();
+});
+
+ipcMain.handle('nodevision:diagnostics:setCrashDumpConsent', async (_event, payload) => {
+  const enabled = Boolean(payload?.enabled);
+  cachedSettings = await updateSettings(current => ({
+    diagnostics: {
+      ...current.diagnostics,
+      collectCrashDumps: enabled
+    }
+  }));
+  return { collectCrashDumps: cachedSettings.diagnostics.collectCrashDumps };
+});
+
+ipcMain.handle('nodevision:logs:export', async (_event, payload) => {
+  const password = (payload?.password as string | null) ?? null;
+  try {
+    const outputDirectory = cachedSettings ? path.join(cachedSettings.tempRoot, 'diagnostics') : app.getPath('documents');
+    const includeCrashDumps = cachedSettings?.diagnostics.collectCrashDumps ?? false;
+    const crashDumpDirectory = includeCrashDumps && cachedSettings ? path.join(cachedSettings.tempRoot, 'crash-dumps') : null;
+    const result = await exportDiagnosticsLogs({
+      outputDirectory,
+      jobHistory: jobQueue.getHistory(),
+      inspectRequests: inspectHistory.entries(),
+      password,
+      includeCrashDumps,
+      crashDumpDirectory
+    });
+    lastExportSummary = {
+      outputPath: result.outputPath,
+      sha256: result.sha256,
+      generatedAt: result.manifest.generatedAt
+    };
+    cachedSettings = await updateSettings(current => ({
+      diagnostics: {
+        ...current.diagnostics,
+        lastLogExportPath: result.outputPath
+      }
+    }));
+    return { ok: true, result, diagnostics: diagnosticsSnapshot() };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
 
 async function promptForFFmpegSetup(reason: string): Promise<void> {
   const settingsPath = getSettingsFilePath();
@@ -75,6 +208,7 @@ function maybeStartHttpServer(status: BootStatus): void {
     enabled: true,
     port: status.settings.http.port,
     maxConcurrent: 2,
+     requestHistory: inspectHistory,
     validateToken: tokenValue => tokenManager.validate(tokenValue),
     handleInspect: (payload: InspectConcatRequest) =>
       inspectConcat(payload, {
@@ -116,6 +250,7 @@ async function bootstrapFoundation(): Promise<BootStatus> {
   }));
 
   const token = await ensureHttpToken(refreshedSettings);
+  cachedSettings = refreshedSettings;
   return { settings: refreshedSettings, ffmpeg, token };
 }
 
@@ -123,14 +258,17 @@ function createWindow(status: BootStatus): void {
   const bootPayload = {
     status,
     templates: DEFAULT_NODE_TEMPLATES,
-    nodes: seedDemoNodes()
+    nodes: seedDemoNodes(),
+    queue: getQueueSnapshot(),
+    diagnostics: diagnosticsSnapshot()
   };
   const html = buildRendererHtml(bootPayload);
   const win = new BrowserWindow({
     width: 1280,
     height: 840,
     webPreferences: {
-      contextIsolation: true
+      contextIsolation: true,
+      preload: preloadPath
     }
   });
 

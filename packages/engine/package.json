@@ -9,6 +9,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "archiver": "^6.0.1",
+    "archiver-zip-encrypted": "^2.0.0",
     "@nodevision/system-check": "workspace:*",
     "execa": "^9.3.0"
   },
