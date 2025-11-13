@@ -1,3 +1,4 @@
+import { Dirent, Stats } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -146,6 +147,9 @@ describe('temp root analysis', () => {
     expect(status.totalBytes).toBeGreaterThan(1_000_000);
     expect(status.overTotalLimit).toBe(false);
     expect(status.overSingleJobLimit).toBe(true);
+    expect(status.entries).toHaveLength(1);
+    expect(status.entries[0]?.path).toBe(sampleFile);
+    expect(status.deletedEntries).toEqual([]);
 
     await expect(
       enforceTempRoot(tempRoot, { maxTotalBytes: 500_000, maxSingleJobBytes: 500_000 })
@@ -164,7 +168,7 @@ describe('temp root analysis', () => {
       maxTotalBytes: 5_000_000,
       maxSingleJobBytes: 5_000_000
     });
-    expect(status.largestEntryPath?.endsWith('frame.bin')).toBe(true);
+    expect(status.largestEntryPath?.endsWith('job-1')).toBe(true);
 
     const enforceResult = await enforceTempRoot(tempRoot, {
       maxTotalBytes: 5_000_000,
@@ -195,6 +199,147 @@ describe('temp root analysis', () => {
     expect(status.totalBytes).toBe(0);
 
     spy.mockRestore();
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  it('prunes least recently used directories when total usage exceeds the limit', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'temp-root-prune-'));
+    const jobs = ['job-a', 'job-b', 'job-c'];
+    const sizes = [300, 300, 300];
+    const now = Date.now();
+
+    for (let i = 0; i < jobs.length; i++) {
+      const dir = path.join(tempRoot, jobs[i]!);
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(path.join(dir, 'payload.bin'), Buffer.alloc(sizes[i]!, i + 1));
+      const when = new Date(now - (i + 1) * 10_000);
+      await fs.utimes(dir, when, when);
+    }
+
+    const initialStatus = await analyzeTempRoot(tempRoot, {
+      maxTotalBytes: 600,
+      maxSingleJobBytes: 400
+    });
+    const oldestEntry = [...initialStatus.entries].sort((a, b) => a.mtimeMs - b.mtimeMs)[0];
+
+    const status = await enforceTempRoot(tempRoot, {
+      maxTotalBytes: 600,
+      maxSingleJobBytes: 400
+    });
+
+    expect(status.totalBytes).toBeLessThanOrEqual(600);
+    expect(status.deletedEntries).toHaveLength(1);
+    expect(status.deletedEntries[0]).toBe(oldestEntry?.path);
+
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  it('respects protectedEntries during pruning', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'temp-root-protected-'));
+    const jobSafe = path.join(tempRoot, 'job-safe');
+    const jobOld = path.join(tempRoot, 'job-old');
+    await fs.mkdir(jobSafe, { recursive: true });
+    await fs.mkdir(jobOld, { recursive: true });
+    await fs.writeFile(path.join(jobSafe, 'a.bin'), Buffer.alloc(400, 1));
+    await fs.writeFile(path.join(jobOld, 'b.bin'), Buffer.alloc(400, 1));
+    await fs.utimes(jobOld, new Date(Date.now() - 50_000), new Date(Date.now() - 50_000));
+
+    const status = await enforceTempRoot(tempRoot, {
+      maxTotalBytes: 600,
+      maxSingleJobBytes: 800,
+      protectedEntries: [jobSafe]
+    });
+
+    expect(status.deletedEntries).toHaveLength(1);
+    expect(status.deletedEntries[0]).toBe(jobOld);
+    const remaining = status.entries.map(entry => entry.path);
+    expect(remaining).toContain(jobSafe);
+
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  it('skips entries that vanish between readdir and stat', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'temp-root-vanish-'));
+    const ghost = path.join(tempRoot, 'ghost.bin');
+    await fs.writeFile(ghost, Buffer.alloc(4));
+
+    const originalStat = fs.stat;
+    const err = Object.assign(new Error('missing'), { code: 'ENOENT' });
+    const statSpy = vi.spyOn(fs, 'stat');
+    statSpy.mockRejectedValueOnce(err);
+    statSpy.mockImplementation(originalStat);
+
+    const status = await analyzeTempRoot(tempRoot);
+    expect(status.entries).toHaveLength(0);
+
+    statSpy.mockRestore();
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  it('propagates stat errors other than ENOENT', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'temp-root-stat-error-'));
+    const blocker = path.join(tempRoot, 'blocker.bin');
+    await fs.writeFile(blocker, Buffer.alloc(1));
+    const originalStat = fs.stat;
+    const err = Object.assign(new Error('stat denied'), { code: 'EACCES' });
+    const statSpy = vi.spyOn(fs, 'stat');
+    statSpy.mockRejectedValueOnce(err);
+    statSpy.mockImplementation(originalStat);
+
+    await expect(analyzeTempRoot(tempRoot)).rejects.toThrow('stat denied');
+
+    statSpy.mockRestore();
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  it('ignores entries that are not files nor directories', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'temp-root-special-'));
+    const dirent = {
+      name: 'sock',
+      isDirectory: () => false,
+      isFile: () => false
+    } as unknown as Dirent;
+    const readdirSpy = vi.spyOn(fs, 'readdir').mockResolvedValueOnce([dirent]);
+    const statSpy = vi.spyOn(fs, 'stat').mockResolvedValue({ size: 0, mtimeMs: Date.now() } as Stats);
+
+    const status = await analyzeTempRoot(tempRoot);
+    expect(status.entries).toHaveLength(0);
+
+    readdirSpy.mockRestore();
+    statSpy.mockRestore();
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  it('recursively sums nested directories', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'temp-root-nested-dir-'));
+    const parent = path.join(tempRoot, 'job-nested');
+    const child = path.join(parent, 'frames');
+    await fs.mkdir(child, { recursive: true });
+    await fs.writeFile(path.join(child, 'frame.bin'), Buffer.alloc(64, 1));
+
+    const status = await analyzeTempRoot(tempRoot);
+    expect(status.totalBytes).toBe(64);
+
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  it('throws when prune cannot reduce usage because all entries are protected', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'temp-root-locked-'));
+    const jobSafe = path.join(tempRoot, 'job-safe');
+    const jobLocked = path.join(tempRoot, 'job-locked');
+    await fs.mkdir(jobSafe, { recursive: true });
+    await fs.mkdir(jobLocked, { recursive: true });
+    await fs.writeFile(path.join(jobSafe, 'a.bin'), Buffer.alloc(400, 1));
+    await fs.writeFile(path.join(jobLocked, 'b.bin'), Buffer.alloc(400, 1));
+
+    await expect(
+      enforceTempRoot(tempRoot, {
+        maxTotalBytes: 300,
+        maxSingleJobBytes: 800,
+        protectedEntries: [jobSafe, jobLocked]
+      })
+    ).rejects.toBeInstanceOf(ResourceLimitError);
+
     await fs.rm(tempRoot, { recursive: true, force: true });
   });
 });

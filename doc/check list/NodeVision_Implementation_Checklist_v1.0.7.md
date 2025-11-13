@@ -19,11 +19,11 @@
 - [x] A-05 自動生成のサンプルメディア（720p/1080p 10s）が scripts ディレクトリから再生成可能（Doc §9, `scripts/generate-sample-media.ts`）。
 
 ## B. 実行エンジン & リソース
-- [ ] B-01 実行並列度は1で固定され、プレビュー生成はジョブ完了後の直列フロー（Doc §3）。
-- [ ] B-02 `JobProgress.ratio = outputTime / totalTime` を厳密に更新し、不明時は推定後に補正（Doc §3）。
-- [ ] B-03 `tempRoot` 合計 1GB 超過時に LRU 削除、単一ジョブ中間500MB超で `E3001 ResourceExceeded`（Doc §3, §7）。
-- [ ] B-04 `Cancel All` が Running > Queued 優先で `Cancelling` 表示を2秒以内に出し、履歴へ記録（Doc §3）。
-- [ ] B-05 P1向け `maxParallelJobs=2`/キュー4件ロードマップが設計ノート化されている（Doc §3）。
+- [x] B-01 実行並列度は1で固定され、プレビュー生成はジョブ完了後の直列フロー（Doc §3）。→ `packages/engine/src/job-queue.ts` の `JobQueue` が単一ワーカー＋ preview await を保証。
+- [x] B-02 `JobProgress.ratio = outputTime / totalTime` を厳密に更新し、不明時は推定後に補正（Doc §3）。→ `JobProgressTracker` + `job-progress.test.ts` で実装。
+- [x] B-03 `tempRoot` 合計 1GB 超過時に LRU 削除、単一ジョブ中間500MB超で `E3001 ResourceExceeded`（Doc §3, §7）。→ `system-check` の LRU/prune + Electronログ出力。
+- [x] B-04 `Cancel All` が Running > Queued 優先で `Cancelling` 表示を2秒以内に出し、履歴へ記録（Doc §3）。→ `JobQueue.cancelAll()` + `job-queue.test.ts` で検証。
+- [x] B-05 P1向け `maxParallelJobs=2`/キュー4件ロードマップが設計ノート化されている（Doc §3）。→ `doc/design/NodeVision_parallel_queue_plan_v1.0.0.md` に記載。
 
 ## C. HTTP/IPC セキュリティ
 - [ ] C-01 `NV_HTTP=1` でのみHTTPサーバー起動し localhost 限定、CORS無効（Doc §4, AC-HTTP-001）。
@@ -94,3 +94,15 @@
 - 実施者: Codex (Agent)
 - エビデンス: apps/desktop-electron/src/main.ts#L24-L138 で BinaryNotFoundError を捕捉し設定ファイル誘導ダイアログを追加
 - 備考: FFmpeg/ffprobe 未検出時に `dialog.showMessageBox` で設定パスを提示し、その後 `shell.showItemInFolder` で `settings.json` へ遷移可
+
+- チェック対象: B-01〜B-04 実行エンジン & リソース
+- 実施日: 2025-11-12
+- 実施者: Codex (Agent)
+- エビデンス: `packages/engine/src/job-queue.ts`, `job-progress.ts`, `temp-root-manager.ts` + `packages/system-check/src/index.ts`、各Vitest (`job-queue.test.ts`, `job-progress.test.ts`, `temp-root-manager.test.ts`, `index.test.ts`)
+- 備考: JobQueue が単一並列+Cancel All 優先制御/履歴記録、tempRoot LRU/500MBガードが `enforceTempRoot` で自動化。Electron bootstrap で削除ログを出力。
+
+- チェック対象: B-05 P1 maxParallelJobs=2 ロードマップ
+- 実施日: 2025-11-12
+- 実施者: Codex (Agent)
+- エビデンス: `doc/design/NodeVision_parallel_queue_plan_v1.0.0.md`
+- 備考: 並列2ジョブ/待機4件/3分タイムアウト/QueueFull/TempRootManager連携/Cancel All 要件の設計メモを作成。

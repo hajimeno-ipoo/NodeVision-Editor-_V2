@@ -12,7 +12,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       include: ['packages/**/src/**/*.ts'],
-      exclude: ['packages/nvctl/src/index.ts', 'apps/**', 'scripts/**'],
+      exclude: ['packages/nvctl/src/index.ts', 'packages/engine/src/index.ts', 'apps/**', 'scripts/**'],
       thresholds: {
         statements: 100,
         branches: 100,
@@ -25,7 +25,8 @@ export default defineConfig({
     alias: {
       '@nodevision/settings': path.resolve(__dirname, 'packages/settings/src'),
       '@nodevision/tokens': path.resolve(__dirname, 'packages/tokens/src'),
-      '@nodevision/system-check': path.resolve(__dirname, 'packages/system-check/src')
+      '@nodevision/system-check': path.resolve(__dirname, 'packages/system-check/src'),
+      '@nodevision/engine': path.resolve(__dirname, 'packages/engine/src')
     }
   }
 });

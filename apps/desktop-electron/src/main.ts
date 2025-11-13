@@ -58,14 +58,18 @@ async function ensureHttpToken(settings: NodeVisionSettings): Promise<TokenRecor
 async function bootstrapFoundation(): Promise<BootStatus> {
   const settings = await loadSettings();
   await ensureTempRoot(settings.tempRoot);
-  await enforceTempRoot(settings.tempRoot).catch(error => {
+  const tempStatus = await enforceTempRoot(settings.tempRoot).catch(error => {
     if (error instanceof ResourceLimitError) {
       throw new Error(
-        `tempRoot limit exceeded: total=${error.status.totalBytes} bytes, largest=${error.status.largestEntryBytes} bytes`
+        `tempRoot limit exceeded: total=${error.status.totalBytes} bytes (limit ${error.status.maxTotalBytes}), largest=${error.status.largestEntryBytes} bytes at ${error.status.largestEntryPath}`
       );
     }
     throw error;
   });
+
+  if (tempStatus.deletedEntries.length > 0) {
+    console.warn('[NodeVision] tempRoot LRU cleanup', tempStatus.deletedEntries);
+  }
 
   const ffmpeg = await detectFFmpeg({
     ffmpegPath: settings.ffmpegPath ?? undefined,
