@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang='ja'>
+  <head>
+    <meta charset='utf-8'/>
+    <title>評価レポート</title>
+    <style>
+      body {
+        font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 24px;
+        background: #0f1419;
+        color: #f4f7fb;
+        line-height: 1.6;
+      }
+      .header {
+        margin-bottom: 24px;
+      }
+      .header h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+      .header p {
+        margin: 4px 0;
+        color: #c8d3de;
+        font-size: 14px;
+      }
+      .score-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin: 24px 0;
+      }
+      .score-card {
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 16px;
+        background: rgba(255,255,255,0.03);
+      }
+      .score-id {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+      .score-medal {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      th, td {
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 16px;
+        vertical-align: top;
+      }
+      th {
+        width: 180px;
+        background: rgba(255,255,255,0.06);
+        text-align: left;
+        font-size: 13px;
+        letter-spacing: 0.05em;
+      }
+      .hex-chart {
+        width: 160px;
+        height: 160px;
+      }
+      .hex-chart svg {
+        width: 160px;
+        height: 160px;
+      }
+      .hex-base {
+        fill: none;
+        stroke: rgba(255,255,255,0.2);
+        stroke-width: 1;
+      }
+      .hex-fill {
+        fill: rgba(78,158,255,0.35);
+        stroke: rgba(78,158,255,0.8);
+        stroke-width: 1.5;
+      }
+      .hex-label {
+        font-size: 9px;
+        fill: #dbe8ff;
+        text-anchor: middle;
+      }
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class='header'>
+      <h1>監視対象F. Queue/History/Logging 評価レポート</h1>
+      <p>対象タスク: task-1763038363102-cdf78d, task-1763038365283-87796c, task-1763038367418-17326c</p>
+      <p>目的: チェックリストF (Queue/History/Logging) の実装・テスト・UX整合性を確認。</p>
+    </section>
+    <div class='score-cards'>
+      <div class='score-card'><div class='score-id'>task-1763038363102-cdf78d</div><div class='score-medal'>❌ 290 / 600</div><p>ログ書き出しがUI未連携のため❌</p></div><div class='score-card'><div class='score-id'>task-1763038365283-87796c</div><div class='score-medal'>❌ 245 / 600</div><p>Queue/Log機能が実働せず❌</p></div><div class='score-card'><div class='score-id'>task-1763038367418-17326c</div><div class='score-medal'>🥇 480 / 600</div><p>Queue/Logs/UIを統合して🥇</p></div>
+    </div>
+    <table>
+      <tr>
+        <th>項目</th>
+        <th>task-1763038363102-cdf78d</th><th>task-1763038365283-87796c</th><th>task-1763038367418-17326c</th>
+      </tr>
+      <tr><th>六角チャート</th><td><div class='hex-chart'><svg viewBox='0 0 120 120'><polygon points='60.0,10.0 103.3,35.0 103.3,85.0 60.0,110.0 16.7,85.0 16.7,35.0' class='hex-base'/><polygon points='60.0,42.5 88.1,43.8 96.8,81.2 60.0,70.0 42.7,70.0 40.5,48.8' class='hex-fill'/><text x='60.0' y='2.0' class='hex-label'>要件カバー 35点</text><text x='110.2' y='31.0' class='hex-label'>コード品質 65点</text><text x='110.2' y='89.0' class='hex-label'>テスト証跡 85点</text><text x='60.0' y='118.0' class='hex-label'>UX/接続 20点</text><text x='9.8' y='89.0' class='hex-label'>ドキュメント 40点</text><text x='9.8' y='31.0' class='hex-label'>リスク管理 45点</text></svg></div></td><td><div class='hex-chart'><svg viewBox='0 0 120 120'><polygon points='60.0,10.0 103.3,35.0 103.3,85.0 60.0,110.0 16.7,85.0 16.7,35.0' class='hex-base'/><polygon points='60.0,45.0 86.0,45.0 90.3,77.5 60.0,67.5 44.8,68.8 44.8,51.3' class='hex-fill'/><text x='60.0' y='2.0' class='hex-label'>要件カバー 30点</text><text x='110.2' y='31.0' class='hex-label'>コード品質 60点</text><text x='110.2' y='89.0' class='hex-label'>テスト証跡 70点</text><text x='60.0' y='118.0' class='hex-label'>UX/接続 15点</text><text x='9.8' y='89.0' class='hex-label'>ドキュメント 35点</text><text x='9.8' y='31.0' class='hex-label'>リスク管理 35点</text></svg></div></td><td><div class='hex-chart'><svg viewBox='0 0 120 120'><polygon points='60.0,10.0 103.3,35.0 103.3,85.0 60.0,110.0 16.7,85.0 16.7,35.0' class='hex-base'/><polygon points='60.0,17.5 99.0,37.5 94.6,80.0 60.0,97.5 29.7,77.5 25.4,40.0' class='hex-fill'/><text x='60.0' y='2.0' class='hex-label'>要件カバー 85点</text><text x='110.2' y='31.0' class='hex-label'>コード品質 90点</text><text x='110.2' y='89.0' class='hex-label'>テスト証跡 80点</text><text x='60.0' y='118.0' class='hex-label'>UX/接続 75点</text><text x='9.8' y='89.0' class='hex-label'>ドキュメント 70点</text><text x='9.8' y='31.0' class='hex-label'>リスク管理 80点</text></svg></div></td></tr><tr><th>サマリ</th><td><p>エンジン側ではキューのタイムアウトやAES暗号化ログ出力を実装したものの、UI/IPCへ接続しておらずFセクションの要件を完了できていません。</p></td><td><p>UIレイヤーにQueue視覚化とログ書き出しボタンを追加しましたが、実際のJobQueueやジョブログに一切接続されておらずF要件を満たしていません。</p></td><td><p>JobQueue・Inspector履歴・AESログ輸出をElectron UIまで一気通貫で配線し、F要件に一番近い仕上がりです。</p></td></tr><tr><th>良かった点</th><td><ul><li>JobQueueにQUEUE_TIMEOUTと履歴蓄積を追加し、Vitestでキュー満杯／タイムアウトを再現しています (packages/engine/src/job-queue.ts:34-210, packages/engine/src/job-queue.test.ts:170-250).</li><li>AES-256 Zip書き出しとミニダンプ収集をzip.jsベースで実装し、暗号化テストも網羅しています (packages/engine/src/log-exporter.ts:1-120, packages/engine/src/log-exporter.test.ts:1-80).</li></ul></td><td><ul><li>レンダラーにログエクスポートUIとpreload Bridgeを追加し、ボタン操作からIPCを叩く骨格を整えています (apps/desktop-electron/src/ui-template.ts:360-520, 760-880).</li><li>`exportEncryptedLogs` はJSZip + AES-GCMで暗号化し、パスワード未設定時のエラーやクラッシュダンプ同梱スキップなどテストで確認済みです (packages/engine/src/log-exporter.ts:1-140, packages/engine/src/log-exporter.test.ts:1-120).</li></ul></td><td><ul><li>JobQueueがCancelAll・並列枠・3分タイムアウトを実装し、rendererはIPC経由で定期的にスナップショットを取得して可視化しています (packages/engine/src/job-queue.ts:1-310, apps/desktop-electron/src/main.ts:1-210, apps/desktop-electron/src/ui-template.ts:320-520, 760-1010).</li><li>`exportDiagnosticsLogs` がarchiver-zip-encryptedでAES-256 Zipを生成し、UI側はパスワード入力/クラッシュ同意/トースト表示を備えています (packages/engine/src/diagnostics/log-exporter.ts:1-130, apps/desktop-electron/src/ui-template.ts:380-460 & 840-900).</li><li>HTTPサーバーへ `requestHistory` を渡し、各リクエストのstatus/token/bytesを記録できるようになりました (packages/engine/src/http/inspect-history.ts:1-28, packages/engine/src/http/inspect-server.ts:117-299).</li></ul></td></tr><tr><th>改善ポイント</th><td><ul><li>`performLogExport` が定義されているだけで main/renderer から一度も呼び出されないため、ユーザーはログを書き出せません (apps/desktop-electron/src/diagnostics.ts:4-24, apps/desktop-electron/src/main.ts:14-120).</li><li>JobQueueのログ連携が存在せず `JobLogStore`／`QueueDiagnostics` がどこでも初期化されていないため、アーカイブに肝心のジョブログが入らないままです (packages/engine/src/job-logs.ts:25-132).</li><li>既定の `maxQueueLength` が無限大のままで `QUEUE_FULL` 警告が一度も発火しないのに、チェックリストではF-02を完了扱いにしています (packages/engine/src/job-queue.ts:34-76, doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:49-55).</li></ul></td><td><ul><li>DiagnosticsControllerが常に `jobHistory: []` を渡しているため、エクスポートzipに実行履歴が含まれません (apps/desktop-electron/src/logging.ts:36-57).</li><li>Queue UIはBOOTSTRAPの静的スナップショットしか描画しておらず、IPC/JobQueue連携が存在しないので状態が一切更新されません (apps/desktop-electron/src/main.ts:118-170, apps/desktop-electron/src/ui-template.ts:438-495).</li><li>HTTPサーバーへ `historyStore` を渡していないため、無効トークン/サイズ超過/429など失敗系のInspect履歴が記録されず要件F-04の証跡が欠落しています (apps/desktop-electron/src/main.ts:118-126).</li></ul></td><td><ul><li>キュータイムアウト時に `QUEUE_FULL` 警告コードを発火していないため、F-02で求められる滞留3分警告をUIへ届けられません (packages/engine/src/job-queue.ts:267-300).</li><li>Queueの警告やログレベルをrendererへPush配信せず4秒ポーリング頼みなので、リアルタイム通知が不足しています (apps/desktop-electron/src/ui-template.ts:520-620).</li></ul></td></tr>
+    </table>
+  </body>
+</html>
