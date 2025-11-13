@@ -330,4 +330,35 @@ describe('JobQueue', () => {
     release?.();
     await queue.waitForIdle();
   });
+
+  it('exposes queue limits for diagnostics consumers', () => {
+    const queue = new JobQueue({ maxParallelJobs: 2, maxQueueLength: 6, queueTimeoutMs: 45_000 });
+    expect(queue.getLimits()).toEqual({ maxParallelJobs: 2, maxQueueLength: 6, queueTimeoutMs: 45_000 });
+  });
+
+  it('records QueueFullError events until the queue recovers', async () => {
+    const queue = new JobQueue({ maxQueueLength: 1 });
+    expect(queue.getLastQueueFullEvent()).toBeNull();
+    let release: (() => void) | null = null;
+    queue.enqueue({
+      name: 'blocking',
+      execute: () =>
+        new Promise(resolve => {
+          release = () => resolve({ totalTimeMs: 50, outputTimeMs: 50 });
+        })
+    });
+
+    queue.enqueue({ name: 'queued', execute: async () => ({ totalTimeMs: 10, outputTimeMs: 10 }) });
+    expect(() =>
+      queue.enqueue({ name: 'overflow', execute: async () => ({ totalTimeMs: 5, outputTimeMs: 5 }) })
+    ).toThrow(QueueFullError);
+
+    const event = queue.getLastQueueFullEvent();
+    expect(event).not.toBeNull();
+    expect(event?.queuedJobs).toBe(1);
+
+    release?.();
+    await queue.waitForIdle();
+    expect(queue.getLastQueueFullEvent()).toBeNull();
+  });
 });

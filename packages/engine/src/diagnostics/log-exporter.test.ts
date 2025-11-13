@@ -34,6 +34,10 @@ const sampleInspectHistory = [
     requestBytes: 512,
     responseCode: 'OK',
     logLevel: 'info' as const,
+    remoteAddress: '127.0.0.1',
+    clipCount: 1,
+    includeOptions: ['duration'],
+    payloadVersion: '1.0.7',
     meta: null
   }
 ];
