@@ -33,11 +33,11 @@
 - [x] C-05 `clips[].path` 正規化＋シンボリックリンク実体確認でローカル外を拒否（AC-PATHSAFE-001）。→ `packages/engine/src/inspect/concat.ts:100-164` の `normalizeClipPath` が UNC/シンボリックリンク/非ファイル/権限不足を E1002/E1003 として拒否し、`inspect/concat.test.ts:120-220` で再現テスト済み。
 
 ## D. Editor & UI/UX
-- [ ] D-01 キャンバスに8pxグリッド、4pxスナップ、整列ボタン（Doc §5）。
-- [ ] D-02 ショートカット `Ctrl/Cmd+D`,`Ctrl/C/V`,`1`,`Shift+1` を実装し、ヘルプに記載（Doc §5）。
-- [ ] D-03 検索→Enterでノード生成、フォーカスサイクルでキーボード完結（Doc §5, §10）。
-- [ ] D-04 保存/読み込みJSONは `schemaVersion`/`nodeVersion` を含み、マイグレーション失敗時は読み取り専用（Doc §2, 付録A, AC-MIGRATE-001）。
-- [ ] D-05 Undo/Redo 100履歴とオートセーブ（アイドル2秒／実行時10秒）を有効化（Doc §5）。
+- [x] D-01 キャンバスに8pxグリッド、4pxスナップ、整列ボタン（Doc §5）。→ `apps/desktop-electron/src/ui-template.ts` でCSSグリッド/4pxスナップを生成し、`data-align`ボタンで左/上/中央整列を提供。
+- [x] D-02 ショートカット `Ctrl/Cmd+D`,`Ctrl/C/V`,`1`,`Shift+1` を実装し、ヘルプに記載（Doc §5）。→ 同上スクリプトで`keydown`監視＋.sidebarのhelp-cardに記載。
+- [x] D-03 検索→Enterでノード生成、フォーカスサイクルでキーボード完結（Doc §5, §10）。→ 検索ボックスと`<ul role="listbox">`候補を用意し、Enter/Clickでノード生成&Tab移動をサポート。
+- [x] D-04 保存/読み込みJSONは `schemaVersion`/`nodeVersion` を含み、マイグレーション失敗時は読み取り専用（Doc §2, 付録A, AC-MIGRATE-001）。→ `packages/editor/src/persistence.ts` + レンダラーのJSONパネルでschemaVersion=1.0.7を書き出し、異なるバージョンは `.readonly` バナーで読取専用化。
+- [x] D-05 Undo/Redo 100履歴とオートセーブ（アイドル2秒／実行時10秒）を有効化（Doc §5）。→ `packages/editor/src/history.ts` のHistoryManager/AutosaveSchedulerと、レンダラーの undo/redo ボタン＋オートセーブ表示を連携。
 
 ## E. Media/プレビュー
 - [ ] E-01 FFmpeg ビルダーチェーン（Load→Trim→Resize→Save）が最短パスで生成される（Doc §6, §9）。

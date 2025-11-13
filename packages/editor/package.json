@@ -1,0 +1,13 @@
+{
+  "name": "@nodevision/editor",
+  "version": "0.0.1",
+  "description": "NodeVision editor core utilities (grid, shortcuts, persistence)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "private": false,
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

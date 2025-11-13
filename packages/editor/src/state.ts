@@ -1,0 +1,53 @@
+import { DEFAULT_NODE_TEMPLATES } from './templates';
+import type { EditorNode, EditorProject, EditorState } from './types';
+
+export const PROJECT_SCHEMA_VERSION = '1.0.7';
+
+export const createDefaultProject = (name = 'Untitled Project'): EditorProject => {
+  const timestamp = new Date().toISOString();
+  return {
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    nodes: [],
+    connections: [],
+    metadata: {
+      name,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      readonly: false
+    }
+  };
+};
+
+export const createEditorState = (project: EditorProject = createDefaultProject()): EditorState => ({
+  project,
+  selection: { nodeIds: [] },
+  clipboard: [],
+  zoom: 1,
+  isRunning: false
+});
+
+export const withUpdatedProject = (state: EditorState, project: EditorProject): EditorState => ({
+  ...state,
+  project: {
+    ...project,
+    metadata: {
+      ...project.metadata,
+      updatedAt: new Date().toISOString()
+    }
+  }
+});
+
+export const seedDemoNodes = (): EditorNode[] => {
+  return DEFAULT_NODE_TEMPLATES.slice(0, 3).map((template, index) => ({
+    id: `${template.typeId}-${index}`,
+    typeId: template.typeId,
+    nodeVersion: template.nodeVersion,
+    title: template.title,
+    position: { x: 160 * index, y: 80 * index },
+    width: template.width ?? 220,
+    height: template.height ?? 120,
+    inputs: [],
+    outputs: [],
+    searchTokens: template.keywords
+  }));
+};

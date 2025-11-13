@@ -1,5 +1,6 @@
 import type { Server as HttpServer } from 'node:http';
 
+import { DEFAULT_NODE_TEMPLATES, seedDemoNodes } from '@nodevision/editor';
 import { createInspectHttpServer, inspectConcat, type InspectConcatRequest } from '@nodevision/engine';
 import { getSettingsFilePath, loadSettings, NodeVisionSettings, updateSettings } from '@nodevision/settings';
 import {
@@ -13,17 +14,11 @@ import {
 import { createTokenManager, TokenRecord } from '@nodevision/tokens';
 import { app, BrowserWindow, dialog, shell } from 'electron';
 
+import { buildRendererHtml } from './ui-template';
+import type { BootStatus } from './types';
+
 const tokenManager = createTokenManager();
 let httpServer: HttpServer | null = null;
-
-interface BootStatus {
-  settings: NodeVisionSettings;
-  ffmpeg: FFmpegDetectionResult;
-  token: TokenRecord;
-}
-
-const escapeHtml = (value: string): string =>
-  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 async function promptForFFmpegSetup(reason: string): Promise<void> {
   const settingsPath = getSettingsFilePath();
@@ -124,44 +119,22 @@ async function bootstrapFoundation(): Promise<BootStatus> {
   return { settings: refreshedSettings, ffmpeg, token };
 }
 
-function buildHtml(status: BootStatus): string {
-  const rows = [
-    `<li>FFmpeg: <strong>${escapeHtml(status.ffmpeg.ffmpeg.path)}</strong> (${escapeHtml(
-      status.ffmpeg.ffmpeg.version ?? 'unknown version'
-    )})</li>`,
-    `<li>FFprobe: <strong>${escapeHtml(status.ffmpeg.ffprobe.path)}</strong></li>`,
-    `<li>tempRoot: <strong>${escapeHtml(status.settings.tempRoot)}</strong></li>`,
-    `<li>HTTP token label: <strong>${escapeHtml(status.settings.http.tokenLabel)}</strong></li>`
-  ].join('');
-
-  return `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>NodeVision Foundation</title>
-    <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; }
-      ul { line-height: 1.6; }
-    </style>
-  </head>
-  <body>
-    <h1>NodeVision Foundation Ready</h1>
-    <p>FFmpeg/HTTP 基盤を初期化しました。</p>
-    <ul>${rows}</ul>
-  </body>
-</html>`;
-}
-
 function createWindow(status: BootStatus): void {
+  const bootPayload = {
+    status,
+    templates: DEFAULT_NODE_TEMPLATES,
+    nodes: seedDemoNodes()
+  };
+  const html = buildRendererHtml(bootPayload);
   const win = new BrowserWindow({
-    width: 900,
-    height: 600,
+    width: 1280,
+    height: 840,
     webPreferences: {
       contextIsolation: true
     }
   });
 
-  win.loadURL(`data:text/html,${encodeURIComponent(buildHtml(status))}`);
+  win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 }
 
 function reportFatal(error: unknown, options: { silent?: boolean } = {}): void {
