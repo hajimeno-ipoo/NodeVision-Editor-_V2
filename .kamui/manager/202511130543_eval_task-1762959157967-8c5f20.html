@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート — B. 実行エンジン & リソース</title>
+    <style>
+      :root {
+        --base: #d8e6e9;
+        --base-dark: #a8babf;
+        --base-text: #1f2a30;
+      }
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 24px;
+        background: #eef3f4;
+        color: var(--base-text);
+      }
+      .eval-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #fff;
+        border: 1px solid var(--base-dark);
+      }
+      .eval-header h1 {
+        font-size: 28px;
+        margin: 0 0 8px;
+      }
+      .eval-header p {
+        margin: 0 0 16px;
+        color: #3a4b53;
+      }
+      .task-summary {
+        background: var(--base);
+        padding: 16px;
+        margin-bottom: 24px;
+        line-height: 1.6;
+      }
+      .scorecard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .score-item {
+        border: 1px solid var(--base-dark);
+        padding: 16px;
+        background: #fff;
+      }
+      .score-label {
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        color: #506068;
+      }
+      .score-value {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 8px 0;
+      }
+      .score-note {
+        margin: 0;
+        color: #3a4b53;
+        font-size: 13px;
+      }
+      table.eval-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      table.eval-table colgroup col:first-child {
+        width: 180px;
+      }
+      table.eval-table th,
+      table.eval-table td {
+        border: 1px solid var(--base-dark);
+        padding: 16px;
+        vertical-align: top;
+        background: #fff;
+      }
+      table.eval-table th {
+        background: var(--base);
+        letter-spacing: 0.08em;
+        font-size: 13px;
+      }
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .radar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .radar svg {
+        flex: 0 0 140px;
+        height: 140px;
+      }
+      .metric-list {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .metric-list strong {
+        display: inline-block;
+        min-width: 120px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border: 1px solid var(--base-dark);
+        background: var(--base);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+      }
+      .issues li {
+        margin-bottom: 6px;
+      }
+      code {
+        font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        background: #f4f7f8;
+        padding: 1px 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="eval-wrapper">
+      <header class="eval-header">
+        <h1>評価レポート — B. 実行エンジン & リソース</h1>
+        <p>対象タスク: task-1762959153732-5a126b / task-1762959155857-07cc67。B章の実行エンジンとtempRoot制御を実装し、チェックリストB-01〜B-05を満たしたかを比較評価します。</p>
+      </header>
+      <section class="task-summary">
+        <strong>タスク内容:</strong> NodeVision Editorの実行エンジン/リソース制御を整備し、JobQueueやProgress比率、tempRoot LRU、Cancel All挙動、そしてP1並列ロードマップをドキュメント化すること。
+        2つのワークツリーはいずれもB章完了を宣言しており、本レポートは tmux監視ログと `git diff` / `git status` の結果をもとにコード／文書／テストを精査したフィードバックです。
+      </section>
+      <section class="scorecard">
+        <div class="score-item">
+          <div class="score-label">Agent task-1762959153732-5a126b</div>
+          <div class="score-value">570 / 600 🏆</div>
+          <p class="score-note">JobQueue＋tempRoot強化を実装し、Electron起動ログとdoc設計を含めて完成度高。</p>
+        </div>
+        <div class="score-item">
+          <div class="score-label">Agent task-1762959155857-07cc67</div>
+          <div class="score-value">543 / 600 🥇</div>
+          <p class="score-note">ExecutionEngine/TempRootManagerを整理しテスト100%だが、Electron統合とQueue制限の実装は未着手。</p>
+        </div>
+      </section>
+      <table class="eval-table">
+        <colgroup>
+          <col />
+          <col />
+          <col />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>切り口</th>
+            <th>task-1762959153732-5a126b</th>
+            <th>task-1762959155857-07cc67</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>スコアチャート</td>
+            <td>
+              <div class="radar">
+                <svg viewBox="0 0 140 140" role="img" aria-label="Radar chart">
+                  <polygon points="60,10 103.3,35 103.3,85 60,110 16.7,85 16.7,35" fill="none" stroke="#c0ced2" stroke-width="1" />
+                  <polygon points="60,11 99.8,37 103.3,85 60,107.5 21,82.5 19.3,36.5" fill="#8fb3be" fill-opacity="0.35" stroke="#4f6c75" stroke-width="1" />
+                  <text x="60" y="6" text-anchor="middle" font-size="9">要件 98</text>
+                  <text x="110" y="37" font-size="9">品質 92</text>
+                  <text x="110" y="90" font-size="9">テスト 100</text>
+                  <text x="60" y="126" text-anchor="middle" font-size="9">ドキュ 95</text>
+                  <text x="12" y="90" font-size="9">運用 90</text>
+                  <text x="12" y="37" font-size="9">拡張 94</text>
+                </svg>
+                <div class="metric-list">
+                  <div><strong>要件充足</strong>98 — JobQueue/CancelAll/設計ノートでB-01〜B-05を網羅。</div>
+                  <div><strong>コード品質</strong>92 — 例外経路やLRU保護を丁寧に実装。</div>
+                  <div><strong>テスト網羅</strong>100 — 新規VitestでLRU・保護・エラーを再現。</div>
+                  <div><strong>ドキ更新</strong>95 — checklist & design文書完備。</div>
+                  <div><strong>運用/UX</strong>90 — Electron起動でLRU結果をログ出力。</div>
+                  <div><strong>拡張性</strong>94 — P1 parallel planに向けた構造説明が明確。</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="radar">
+                <svg viewBox="0 0 140 140" role="img" aria-label="Radar chart">
+                  <polygon points="60,10 103.3,35 103.3,85 60,110 16.7,85 16.7,35" fill="none" stroke="#c0ced2" stroke-width="1" />
+                  <polygon points="60,15 98.1,38 102.4,84.5 60,106 23.2,81.25 21,37.5" fill="#a4c3ca" fill-opacity="0.4" stroke="#4f6c75" stroke-width="1" />
+                  <text x="60" y="6" text-anchor="middle" font-size="9">要件 90</text>
+                  <text x="110" y="37" font-size="9">品質 88</text>
+                  <text x="110" y="90" font-size="9">テスト 98</text>
+                  <text x="60" y="126" text-anchor="middle" font-size="9">ドキュ 92</text>
+                  <text x="12" y="90" font-size="9">運用 85</text>
+                  <text x="12" y="37" font-size="9">拡張 90</text>
+                </svg>
+                <div class="metric-list">
+                  <div><strong>要件充足</strong>90 — Engine/TempRootManagerでB要件を概ねカバー。</div>
+                  <div><strong>コード品質</strong>88 — Queue実装は簡潔だが並列/タイムアウト拡張の余地あり。</div>
+                  <div><strong>テスト網羅</strong>98 — 進捗/履歴/tempRootテストが揃うもCancelAll遅延検証は未実装。</div>
+                  <div><strong>ドキ更新</strong>92 — checklist + roadmapノートを書面化。</div>
+                  <div><strong>運用/UX</strong>85 — Electron/IPC統合がまだ無く、ログ観測も未着手。</div>
+                  <div><strong>拡張性</strong>90 — P1 roadmapでmaxParallelJobs設計を記述済み。</div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>実装概要</td>
+            <td>
+              <ul>
+                <li>`packages/system-check/src/index.ts:38` に `TempRootEntry`/LRU削除を追加し、`protectedEntries` と削除ログを実装。</li>
+                <li>`packages/engine/src/job-queue.ts:1` で単一ワーカーQueue＋CancelAll＋preview待ちを構築。</li>
+                <li>`apps/desktop-electron/src/main.ts:58` が `enforceTempRoot` の削除結果を警告ログとして表示。</li>
+                <li>`doc/design/NodeVision_parallel_queue_plan_v1.0.0.md:1` でP1並列計画を詳細化。</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>`packages/engine/src/execution-engine.ts:1` がキュー制御とprogress共有を担う ExecutionEngine を新設。</li>
+                <li>`packages/engine/src/temp-root-manager.ts:1` で job専用ディレクトリをLRU削除しつつ `ResourceLimitError` を再送。</li>
+                <li>`doc/notes/engine_parallel_roadmap.md:1` でP1ロードマップを文章化。</li>
+                <li>`doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:19` に証跡リンクを付記。</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>強み</td>
+            <td>
+              <ul>
+                <li>tempRoot走査を `safeReaddir/safeStat` で堅牢化し、揮発ファイルにも耐性（`packages/system-check/src/index.ts:95`）。</li>
+                <li>CancelAllがRunning/Queuedを差し込む実ジョブ配列を明示し、履歴20件に自動記録。</li>
+                <li>ElectronログでLRU削除痕跡をコンソール出力し、サポート調査しやすい。</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>Engine APIが `status/progress/history` イベントを提供し、Renderer統合の土台がある。</li>
+                <li>TempRootManagerがジョブごとディレクトリを管理し、`measureDirectory` でネスト合計を保証。</li>
+                <li>ドキュメントが簡潔で、P1段階のQueue制限要件を把握しやすい。</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>改善点</td>
+            <td class="issues">
+              <ul>
+                <li>JobQueueはまだ`maxParallelJobs`未対応。P1計画の一部を実装フェーズへ進める必要あり。</li>
+                <li>tempRoot prune結果をTelemetryへ送るhookが無いので、長期運用の観測性が不足。</li>
+              </ul>
+            </td>
+            <td class="issues">
+              <ul>
+                <li>ExecutionEngineが単一実行に固定されたままなので、B-05ロードマップを実コードへ一切反映できていない。</li>
+                <li>Electron/HTTP層 (`apps/desktop-electron/src/main.ts:58`) と未結線のため、UIから新エンジンを使えずテレメトリも得られない。</li>
+                <li>`QueueFull`/3分タイムアウトなどの要件がテストに存在せず、B-05実装証跡としては弱い。</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>テスト / 証跡</td>
+            <td>
+              <ul>
+                <li>`packages/system-check/src/index.test.ts:147` 以降でLRU・保護・例外を網羅し、pnpm testでカバレッジ100%報告。</li>
+                <li>`packages/engine/src/*.test.ts` にJobQueue/TempRootManager/JobHistoryの単体テストが含まれる（要git add）。</li>
+                <li>チェックリストB-01〜B-05は証跡リンク付きで[x]化。</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>`packages/engine/src/job-history.test.ts:1` など各モジュールテストを追加し、`pnpm test` 54件/100%を達成。</li>
+                <li>チェックリストに証跡を追記し、P1ロードマップノートも添付済み。</li>
+                <li>ただしElectron連携のE2E証跡は皆無。</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>コミット / 差分</td>
+            <td>
+              <ul>
+                <li>現在はワーキングツリーベースで、`git status` に未追跡 `packages/engine/` / `doc/design/` が存在。早期にコミット整理が必要。</li>
+                <li>diff対象: apps/desktop-electron, packages/system-check, vitest.config, doc/design, packages/engine。</li>
+              </ul>
+            </td>
+            <td>
+              <ul>
+                <li>同様に未コミット状態で `packages/engine/` と `doc/notes/` が追加済み。</li>
+                <li>差分はchecklistとvitest.configに限定されており、Electronやsystem-check側の変更が欠落。</li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>

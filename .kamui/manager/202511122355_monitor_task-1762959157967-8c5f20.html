@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>監査レポート</title>
+    <style>
+      :root {
+        --base-color: #d8e6e9;
+        --base-dark: #a9bbc1;
+        --base-darker: #6f848c;
+        --base-light: #e6eff1;
+        --text-color: #243036;
+      }
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: var(--base-light);
+        color: var(--text-color);
+      }
+      .monitor-wrapper {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #fff;
+        border: 1px solid var(--base-dark);
+      }
+      .monitor-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .monitor-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--text-color);
+      }
+      .monitor-description {
+        font-size: 14px;
+        color: var(--base-darker);
+      }
+      table.monitor-report {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: #fff;
+        border: 1px solid var(--base-dark);
+      }
+      col.timestamp-column {
+        width: 180px;
+      }
+      col.agent-column {
+        width: calc((100% - 180px) / 5);
+      }
+      th,
+      td {
+        border: 1px solid var(--base-dark);
+        padding: 16px;
+        vertical-align: top;
+        background-color: #fff;
+      }
+      th {
+        background: var(--base-color);
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-color);
+      }
+      tbody tr:nth-child(even) td {
+        background-color: var(--base-light);
+      }
+      details {
+        display: block;
+        margin: 0;
+      }
+      details summary {
+        list-style: none;
+      }
+      details[open] summary {
+        margin-bottom: 12px;
+      }
+      .details-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--text-color);
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+      .details-toggle::before {
+        content: "▶";
+        font-size: 10px;
+        transition: transform 160ms ease;
+        display: inline-block;
+      }
+      details[open] .details-toggle::before {
+        transform: rotate(90deg);
+      }
+      .timestamp {
+        font-weight: 600;
+        color: var(--text-color);
+        overflow-wrap: anywhere;
+      }
+      .snapshot-summary {
+        margin-bottom: 12px;
+        font-weight: 500;
+        color: var(--text-color);
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--text-color);
+        background: var(--base-light);
+        border: 1px solid var(--base-dark);
+        padding: 16px;
+      }
+      .status-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 1px 6px;
+        background: var(--base-color);
+        border: 1px solid var(--base-dark);
+        color: var(--text-color);
+        white-space: nowrap;
+        line-height: 1.3;
+        vertical-align: top;
+      }
+      .status-badge--investigating {
+        background: var(--base-light);
+      }
+      .status-badge--in-progress {
+        background: var(--base-color);
+      }
+      .status-badge--pending {
+        background: #eef4f5;
+      }
+      .status-badge--completed {
+        background: #c7d8dd;
+      }
+      .agent-meta {
+        display: block;
+        margin-bottom: 8px;
+        line-height: 1.5;
+      }
+      .agent-meta .status-badge {
+        margin-right: 6px;
+      }
+      .agent-meta .agent-label {
+        display: inline;
+        font-size: 13px;
+        color: var(--text-color);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="monitor-wrapper">
+      <header class="monitor-header">
+        <h1 class="monitor-title">監査レポート</h1>
+        <p class="monitor-description">tmuxセッションを巡回し、出力の要約と詳細を1分ごとに蓄積します。ステータスごとのラベルで進捗を把握できます。</p>
+      </header>
+      <table class="monitor-report">
+        <colgroup>
+          <col class="timestamp-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+          <col class="agent-column" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Agent task-1762959153732-5a126b</th>
+            <th>Agent task-1762959155857-07cc67</th>
+            <th>Agent reserve-CCC</th>
+            <th>Agent reserve-DDD</th>
+            <th>Agent reserve-EEE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="timestamp">2025-11-12 23:55</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--investigating">調査中</span>
+                <span class="agent-label">Serenaメモリを読み出しつつFFmpeg誘導実装の影響を再確認している段階。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>• Called serena.read_memory({"memory_file_name":"activation_20251112"})
+• Called serena.read_memory({"memory_file_name":"a_foundation_fixlog_20251112"})
+→ FFmpeg未検出時のUX改善とlint修正の経緯を再確認し、次の作業方針を模索中。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--investigating">調査中</span>
+                <span class="agent-label">別ワークツリーでSerenaを再有効化し監査メモを確認、状況整理フェーズ。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>• Called serena.activate_project(...task-1762959155857-07cc67)
+• Called serena.read_memory({"memory_file_name":"monitoring_20251112"})
+→ 直近巡回結果を参照しており、まだ新規アクション報告は無し。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+          </tr>
+        
+          <tr>
+            <td class="timestamp">2025-11-12 23:57</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--in-progress">実装進行</span>
+                <span class="agent-label">要件書とsystem-checkをrgで洗い直し、JobProgressとリソース制限の整合確認中。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>rg -n "Job" → NodeVision要件書/ system-check のResourceExceeded条件を再確認。
+ls doc/NodeVision-skeleton-v1.0.4_secure → engine骨組みを参照し実装方針を検討。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--in-progress">実装進行</span>
+                <span class="agent-label">チェックリストB章とノードエンジン骨組みを読み込み、実行エンジン実装の準備。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>NodeVision_Implementation_Checklist_v1.0.7.md を参照しB章要件を抽出。
+main.ts / system-check/index.ts / NodeGraph.schema を読み込みエンジン設計を比較検討。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+          </tr>
+
+        
+          <tr>
+            <td class="timestamp">2025-11-12 23:59</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--in-progress">実装進行</span>
+                <span class="agent-label">engine/probe/ffprobe.tsを精読し、Bチェックリスト用エンジン構成を整理中。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>sed -n 1,200p doc/NodeVision-skeleton-v1.0.4_secure/packages/engine/src/probe/ffprobe.ts
+→ 既存probeユーティリティの構造とtest hooksを確認し、必要なJob queue/キャンセル要件をメモ化。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--in-progress">実装進行</span>
+                <span class="agent-label">engine/history.tsなどを調査しながらB章の進捗算出・履歴要件を定義中。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>rg -n "renderer" (engine/src) → 未定義セクションを洗い出し。
+find / read history.ts / index.ts でjob管理ストアの下書きを確認し、差分の必要性を検討。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+          </tr>
+
+        
+          <tr>
+            <td class="timestamp">2025-11-13 05:38</td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">完了</span>
+                <span class="agent-label">engine/temp-root-managerとdesktop-electron連携を仕上げ、Bチェックリストとドキュメントを更新完了。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>temp-root-manager.tsにLRU+500MB制御を実装、main.tsで起動時pruneログを追加。
+チェックリストB-01〜B-05とdesignノートを更新し、pnpm testでカバレッジ100%を確認済み。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--completed">完了</span>
+                <span class="agent-label">B章のExecutionEngine一式を作り、チェックリスト/証跡更新とテスト100%を報告。</span>
+              </div>
+              <details class="snapshot-details">
+                <summary class="details-toggle">ログ詳細</summary>
+                <pre>doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:20 を [x] にし証跡追記。
+`pnpm test` で全54テスト/100%カバレッジ、Electron連携と設定追加案も次ステップに記載。</pre>
+              </details>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+            <td>
+              <div class="agent-meta">
+                <span class="status-badge status-badge--pending">未割当</span>
+                <span class="agent-label">追加エージェント未接続。</span>
+              </div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
