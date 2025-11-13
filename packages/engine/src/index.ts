@@ -5,6 +5,7 @@ export { JobCancelledError } from './job-errors';
 export { InMemoryHistoryStore } from './job-history';
 export { TempRootManager } from './temp-root-manager';
 export { inspectConcat } from './inspect/concat';
+export { buildFFmpegPlan } from './ffmpeg/builder';
 export {
   createInspectHttpServer,
   isLoopbackAddress,
@@ -38,3 +39,23 @@ export type {
 } from './inspect/types';
 export { isNetworkPath, buildConcatFailure, ratioToNumber, parseRatio } from './inspect/concat';
 export type { InspectHttpServerOptions, TokenValidationSummary } from './http/inspect-server';
+export type {
+  MediaNode,
+  MediaChain,
+  FFmpegPlan,
+  MediaNodeType,
+  BuildFFmpegPlanOptions,
+  BuilderStage,
+  PreviewFilter,
+  LoadMediaNode,
+  TrimNode,
+  ResizeNode,
+  OverlayNode,
+  TextNode,
+  CropNode,
+  SpeedNode,
+  ChangeFpsNode,
+  ExportNode
+} from './ffmpeg/builder';
+export { PreviewProgressBridge } from './preview/progress-bridge';
+export type { PreviewProgressOptions } from './preview/progress-bridge';
