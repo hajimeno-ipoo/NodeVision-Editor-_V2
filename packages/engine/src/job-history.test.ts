@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { InMemoryHistoryStore } from './job-history';
+import type { JobHistoryEntry } from './types';
 
 const createEntry = (jobId: string, status: 'queued' | 'running' | 'completed' | 'canceled') => ({
   jobId,
@@ -9,7 +10,9 @@ const createEntry = (jobId: string, status: 'queued' | 'running' | 'completed' |
   outputPath: null,
   errorMessage: null,
   startedAt: null,
-  finishedAt: null
+  finishedAt: null,
+  logLevel: 'info' as const,
+  message: null
 });
 
 describe('InMemoryHistoryStore', () => {
@@ -37,5 +40,14 @@ describe('InMemoryHistoryStore', () => {
 
     const freshSnapshot = store.entries();
     expect(freshSnapshot[0]?.jobId).toBe('job-1');
+  });
+
+  it('fills missing logLevel values with info', () => {
+    const store = new InMemoryHistoryStore();
+    const entry = createEntry('job-42', 'queued');
+    // @ts-expect-error testing fallback path
+    delete entry.logLevel;
+    store.record(entry as JobHistoryEntry);
+    expect(store.entries()[0]?.logLevel).toBe('info');
   });
 });

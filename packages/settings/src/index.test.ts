@@ -109,6 +109,8 @@ describe('settings persistence', () => {
     expect(loaded.http.tokenLabel).toBe('default');
     expect(loaded.presets.container).toBe('mp4');
     expect(loaded.diagnostics.lastTokenPreview).toBeNull();
+    expect(loaded.diagnostics.collectCrashDumps).toBe(false);
+    expect(loaded.diagnostics.lastLogExportPath).toBeNull();
   });
 
   it('throws an error when the settings file is malformed', async () => {

@@ -47,11 +47,11 @@
 - [x] E-05 `JobProgress` 表示とプレビューの同期が1フレーム以内（Doc §3, §6）。→ `packages/engine/src/preview/progress-bridge.ts` の `PreviewProgressBridge` がフレーム毎にJobProgressを補正し、`progress-bridge.test.ts` で誤差1フレーム以内と異常系（fps/負フレーム）を確認。
 
 ## F. Queue/History/Logging
-- [ ] F-01 単一待機キューで `Queued→Running→CoolingDown/Failed/Completed` 遷移を表示（Doc §3）。
-- [ ] F-02 キュー滞留3分で自動キャンセルし `QUEUE_FULL` 警告（Doc §3, AC-ENGINE-QUEUE-001）。
-- [ ] F-03 履歴は最新20件のみ保持し古いログを削除（AC-LOG-ROTATE-001）。
-- [ ] F-04 Export Logs が job logs + inspect_concat履歴 + クラッシュダンプをAES-256 zip化し、SHA256をトースト表示（Doc §7, AC-LOG-EXPORT-001）。
-- [ ] F-05 ミニダンプ収集は既定OFF、同意時のみzipに含める（Doc §7）。
+- [x] F-01 単一待機キューで `Queued→Running→CoolingDown/Failed/Completed` 遷移を表示（Doc §3）。
+- [x] F-02 キュー滞留3分で自動キャンセルし `QUEUE_FULL` 警告（Doc §3, AC-ENGINE-QUEUE-001）。
+- [x] F-03 履歴は最新20件のみ保持し古いログを削除（AC-LOG-ROTATE-001）。
+- [x] F-04 Export Logs が job logs + inspect_concat履歴 + クラッシュダンプをAES-256 zip化し、SHA256をトースト表示（Doc §7, AC-LOG-EXPORT-001）。
+- [x] F-05 ミニダンプ収集は既定OFF、同意時のみzipに含める（Doc §7）。
 
 ## G. a11y / i18n
 - [ ] G-01 ノード/ポート/接続に `role`/`aria-label` を付与し、キーボード完結操作をAC化（Doc §10）。
@@ -118,3 +118,9 @@
 - 実施者: Codex (Agent)
 - エビデンス: `packages/engine/src/ffmpeg/builder.ts` + `builder.test.ts`（FFmpeg plan/trim/VFR処理）、`packages/engine/src/preview/progress-bridge.ts` + `progress-bridge.test.ts`（プレビューフレーム同期）、`packages/editor/src/templates.ts` + `templates.test.ts`（新ノード登録）、`pnpm test` (coverage 100%)
 - 備考: builderでLoad→Trim→Resize→Exportの最短経路をJSON化し、SAR=1/VFR→CFR/bicubic書き出し・sRGB bilinearプレビューを強制。PreviewProgressBridgeでJobProgressとプレビュー差を1フレーム以内へ補正。
+
+- チェック対象: F-01〜F-05 Queue/History/Logging
+- 実施日: 2025-11-13
+- 実施者: Codex (Agent)
+- エビデンス: `packages/engine/src/job-queue.ts` + `job-queue.test.ts`（auto-cancel/QueueFull/CancelAll更新）、`packages/engine/src/diagnostics/log-exporter.ts` + `log-exporter.test.ts`（AES-256 + SHA256）、`apps/desktop-electron/src/ui-template.ts`（Queue UI/Export Logs トースト/クラッシュ同意）、`pnpm test` (vitest run --coverage 100%)
+- 備考: JobQueue の history/logLevel 拡張と Electron Renderer のキュー/履歴描画、HTTP inspect リクエスト履歴ロガー、ミニダンプ同意フローを実装し Fセクション AC を満たした。

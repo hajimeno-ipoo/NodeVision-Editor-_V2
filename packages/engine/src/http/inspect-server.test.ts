@@ -165,6 +165,48 @@ describe('createInspectHttpServer', () => {
     expect(json.error?.code).toBe('E4040');
   });
 
+  it('invokes the onRequest hook for every request', async () => {
+    const onRequest = vi.fn();
+    const { server, port } = await startServer({ onRequest });
+    activeServer = server;
+    await postJson(port, { clips: [] });
+    expect(onRequest).toHaveBeenCalled();
+  });
+
+  it('returns 500 when the inspect handler throws', async () => {
+    const handleInspect = vi.fn().mockRejectedValue(new Error('boom'));
+    const { server, port } = await startServer({ handleInspect });
+    activeServer = server;
+    const response = await postJson(port, { clips: [] });
+    expect(response.status).toBe(500);
+  });
+
+  it('records request metadata when history storage is provided', async () => {
+    const record = vi.fn();
+    const { server, port } = await startServer({
+      requestHistory: {
+        record,
+        entries: () => []
+      }
+    });
+    activeServer = server;
+
+    await postJson(port, { clips: [] });
+    const successLog = record.mock.calls.at(-1)?.[0];
+    expect(successLog?.statusCode).toBe(200);
+    expect(successLog?.logLevel).toBe('info');
+    expect(successLog?.requestBytes).toBeGreaterThan(0);
+    expect(successLog?.responseCode).toBe('OK');
+    expect(successLog?.tokenLabel).toBe('default');
+
+    await fetch(`http://127.0.0.1:${port}/api/inspect/concat`, { method: 'POST' });
+    const errorLog = record.mock.calls.at(-1)?.[0];
+    expect(errorLog?.statusCode).toBe(401);
+    expect(errorLog?.logLevel).toBe('warn');
+    expect(errorLog?.requestBytes).toBe(0);
+    expect(errorLog?.responseCode).toBe('E4000');
+  });
+
   it('accepts repeated token headers', async () => {
     const { server, port } = await startServer();
     activeServer = server;

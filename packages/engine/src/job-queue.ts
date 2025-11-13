@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 
-import { JobCancelledError, isJobCancelledError } from './job-errors';
+import { JobCancelledError, QueueFullError, isJobCancelledError } from './job-errors';
 import { InMemoryHistoryStore } from './job-history';
 import { JobProgressTracker } from './job-progress';
 import {
   CancelAllSummary,
   HistoryStore,
   JobHistoryEntry,
+  LogLevel,
   JobPreviewContext,
   JobRunContext,
   JobRunResult,
@@ -21,6 +22,7 @@ interface InternalJob<TResult = unknown> {
   name: string;
   status: JobState;
   createdAt: number;
+  queuedAt: number;
   startedAt: number | null;
   finishedAt: number | null;
   metadata?: Record<string, unknown>;
@@ -28,65 +30,94 @@ interface InternalJob<TResult = unknown> {
   options: QueueJobOptions<TResult>;
   controller: AbortController;
   errorMessage?: string | null;
+  message?: string | null;
+  queueTimer: NodeJS.Timeout | null;
 }
 
 const DEFAULT_HISTORY_LIMIT = 20;
+const DEFAULT_MAX_PARALLEL_JOBS = 1;
+const DEFAULT_MAX_QUEUE_LENGTH = 4;
+const DEFAULT_QUEUE_TIMEOUT_MS = 3 * 60_000;
 
 export interface JobQueueOptions {
   historyStore?: HistoryStore;
   historyLimit?: number;
+  maxParallelJobs?: number;
+  maxQueueLength?: number;
+  queueTimeoutMs?: number;
 }
 
 export class JobQueue extends EventEmitter {
   private readonly queue: InternalJob[] = [];
-  private current: InternalJob | null = null;
+  private readonly activeJobs = new Set<InternalJob>();
   private readonly history: HistoryStore;
   private readonly idleWaiters: Array<() => void> = [];
+  private readonly maxParallelJobs: number;
+  private readonly maxQueueLength: number;
+  private readonly queueTimeoutMs: number;
 
   constructor(options: JobQueueOptions = {}) {
     super();
     this.history =
       options.historyStore ?? new InMemoryHistoryStore(options.historyLimit ?? DEFAULT_HISTORY_LIMIT);
+    this.maxParallelJobs = Math.max(1, options.maxParallelJobs ?? DEFAULT_MAX_PARALLEL_JOBS);
+    this.maxQueueLength = Math.max(1, options.maxQueueLength ?? DEFAULT_MAX_QUEUE_LENGTH);
+    this.queueTimeoutMs = options.queueTimeoutMs ?? DEFAULT_QUEUE_TIMEOUT_MS;
   }
 
   enqueue<TResult>(options: QueueJobOptions<TResult>): string {
+    if (this.queue.length >= this.maxQueueLength) {
+      throw new QueueFullError(this.maxQueueLength);
+    }
+
     const job: InternalJob<TResult> = {
       id: randomUUID(),
       name: options.name,
       status: 'queued',
       createdAt: Date.now(),
+      queuedAt: Date.now(),
       startedAt: null,
       finishedAt: null,
       metadata: options.metadata,
       progress: new JobProgressTracker(options.estimatedTotalTimeMs ?? null),
       options,
-      controller: new AbortController()
+      controller: new AbortController(),
+      queueTimer: null
     };
 
     this.queue.push(job);
     this.emit('job:queued', this.toSnapshot(job));
+    this.scheduleQueueTimeout(job);
     this.processQueue();
     return job.id;
   }
 
   cancelAll(): CancelAllSummary {
-    const summary: CancelAllSummary = { runningJobId: null, queuedJobIds: [] };
+    const summary: CancelAllSummary = { runningJobId: null, runningJobIds: [], queuedJobIds: [] };
 
-    if (this.current && this.current.status !== 'cancelling' && this.current.status !== 'canceled') {
-      this.current.status = 'cancelling';
-      this.emit('job:status', this.toSnapshot(this.current));
-      summary.runningJobId = this.current.id;
-      this.current.controller.abort(new JobCancelledError('Cancel All'));
+    for (const job of this.activeJobs) {
+      if (job.status === 'cancelling' || job.status === 'canceled') {
+        continue;
+      }
+      job.status = 'cancelling';
+      this.emit('job:status', this.toSnapshot(job));
+      summary.runningJobIds.push(job.id);
+      if (!summary.runningJobId) {
+        summary.runningJobId = job.id;
+      }
+      job.controller.abort(new JobCancelledError('Cancel All'));
     }
 
     while (this.queue.length > 0) {
       const job = this.queue.shift()!;
+      this.clearQueueTimeout(job);
       job.status = 'canceled';
       job.finishedAt = Date.now();
       job.errorMessage = null;
+      job.message = 'Canceled via Cancel All';
       summary.queuedJobIds.push(job.id);
       this.emit('job:finished', this.toSnapshot(job));
-      this.recordHistory(job);
+      this.recordHistory(job, { level: 'warn' });
     }
 
     this.notifyIdleIfNeeded();
@@ -94,7 +125,15 @@ export class JobQueue extends EventEmitter {
   }
 
   getActiveJob(): JobSnapshot | null {
-    return this.current ? this.toSnapshot(this.current) : null;
+    const iterator = this.activeJobs.values().next();
+    if (iterator.done || !iterator.value) {
+      return null;
+    }
+    return this.toSnapshot(iterator.value);
+  }
+
+  getActiveJobs(): JobSnapshot[] {
+    return Array.from(this.activeJobs).map(job => this.toSnapshot(job));
   }
 
   getQueuedJobs(): JobSnapshot[] {
@@ -106,7 +145,7 @@ export class JobQueue extends EventEmitter {
   }
 
   async waitForIdle(): Promise<void> {
-    if (!this.current && this.queue.length === 0) {
+    if (this.activeJobs.size === 0 && this.queue.length === 0) {
       return;
     }
 
@@ -116,16 +155,19 @@ export class JobQueue extends EventEmitter {
   }
 
   private processQueue(): void {
-    if (this.current || this.queue.length === 0) {
-      return;
+    while (this.activeJobs.size < this.maxParallelJobs && this.queue.length > 0) {
+      const next = this.queue.shift()!;
+      this.clearQueueTimeout(next);
+      this.startJob(next);
     }
+  }
 
-    const next = this.queue.shift()!;
-    this.current = next;
-    next.status = 'running';
-    next.startedAt = Date.now();
-    this.emit('job:started', this.toSnapshot(next));
-    void this.runJob(next);
+  private startJob(job: InternalJob): void {
+    this.activeJobs.add(job);
+    job.status = 'running';
+    job.startedAt = Date.now();
+    this.emit('job:started', this.toSnapshot(job));
+    void this.runJob(job);
   }
 
   private async runJob(job: InternalJob): Promise<void> {
@@ -167,7 +209,7 @@ export class JobQueue extends EventEmitter {
         this.finishJob(job, 'failed', undefined, message);
       }
     } finally {
-      this.current = null;
+      this.activeJobs.delete(job);
       this.processQueue();
       this.notifyIdleIfNeeded();
     }
@@ -178,25 +220,41 @@ export class JobQueue extends EventEmitter {
     job.finishedAt = Date.now();
     job.errorMessage = errorMessage ?? null;
     this.emit('job:finished', this.toSnapshot(job));
-    this.recordHistory(job, result);
+    this.recordHistory(job, { result });
   }
 
-  private recordHistory(job: InternalJob, result?: JobRunResult): void {
+  private recordHistory(
+    job: InternalJob,
+    options: { result?: JobRunResult; level?: LogLevel; message?: string } = {}
+  ): void {
     const entry: JobHistoryEntry = {
       jobId: job.id,
       name: job.name,
       status: job.status,
-      outputPath: result?.outputPath ?? null,
+      outputPath: options.result?.outputPath ?? null,
       errorMessage: job.errorMessage ?? null,
       startedAt: job.startedAt,
       finishedAt: job.finishedAt,
-      metadata: job.metadata
+      metadata: job.metadata,
+      logLevel: options.level ?? this.resolveLogLevel(job.status),
+      message: options.message ?? job.message ?? null
     };
     this.history.record(entry);
+    job.message = null;
+  }
+
+  private resolveLogLevel(status: JobState): LogLevel {
+    if (status === 'failed') {
+      return 'error';
+    }
+    if (status === 'canceled' || status === 'cancelling') {
+      return 'warn';
+    }
+    return 'info';
   }
 
   private notifyIdleIfNeeded(): void {
-    if (this.current || this.queue.length > 0) {
+    if (this.activeJobs.size > 0 || this.queue.length > 0) {
       return;
     }
 
@@ -204,6 +262,42 @@ export class JobQueue extends EventEmitter {
       const resolve = this.idleWaiters.shift();
       resolve?.();
     }
+  }
+
+  private scheduleQueueTimeout(job: InternalJob): void {
+    if (!this.queueTimeoutMs || this.queueTimeoutMs <= 0) {
+      return;
+    }
+    this.clearQueueTimeout(job);
+    job.queueTimer = setTimeout(() => {
+      this.expireQueuedJob(job);
+    }, this.queueTimeoutMs);
+    if (typeof job.queueTimer.unref === 'function') {
+      job.queueTimer.unref();
+    }
+  }
+
+  private clearQueueTimeout(job: InternalJob): void {
+    if (job.queueTimer) {
+      clearTimeout(job.queueTimer);
+      job.queueTimer = null;
+    }
+  }
+
+  private expireQueuedJob(job: InternalJob): void {
+    const index = this.queue.findIndex(entry => entry.id === job.id);
+    if (index === -1) {
+      return;
+    }
+
+    this.queue.splice(index, 1);
+    job.status = 'canceled';
+    job.finishedAt = Date.now();
+    job.errorMessage = null;
+    job.message = `Queue timeout exceeded (${Math.round(this.queueTimeoutMs / 1000)}s)`;
+    this.emit('job:finished', this.toSnapshot(job));
+    this.recordHistory(job, { level: 'warn' });
+    this.notifyIdleIfNeeded();
   }
 
   private toSnapshot(job: InternalJob): JobSnapshot {

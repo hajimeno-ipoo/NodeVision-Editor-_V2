@@ -22,6 +22,8 @@ export interface NodeVisionSettings {
   };
   diagnostics: {
     lastTokenPreview: string | null;
+    collectCrashDumps: boolean;
+    lastLogExportPath: string | null;
   };
   createdAt: string;
   updatedAt: string;
@@ -50,7 +52,9 @@ const defaultSettings = (): NodeVisionSettings => {
       container: 'mp4'
     },
     diagnostics: {
-      lastTokenPreview: null
+      lastTokenPreview: null,
+      collectCrashDumps: false,
+      lastLogExportPath: null
     },
     createdAt: now,
     updatedAt: now

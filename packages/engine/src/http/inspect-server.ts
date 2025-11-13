@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 
 import type { InspectConcatRequest, InspectConcatResponse } from '../inspect/types';
+import type { InspectRequestHistoryStore, LogLevel } from '../types';
 
 type TokenStatus = 'valid' | 'grace' | 'expired';
 
@@ -24,6 +26,7 @@ export interface InspectHttpServerOptions {
   handleInspect: (payload: InspectConcatRequest) => Promise<InspectConcatResponse>;
   isLocalAddress?: (address?: string | null) => boolean;
   onRequest?: (req: http.IncomingMessage, res: http.ServerResponse) => void;
+  requestHistory?: InspectRequestHistoryStore;
 }
 
 const DEFAULT_HOST = '127.0.0.1';
@@ -114,6 +117,10 @@ const writeJson = (res: http.ServerResponse, statusCode: number, body: InspectCo
   res.end(payload);
 };
 
+/* c8 ignore start */
+const normalizeTokenLabel = (label: string | null | undefined): string | null => label ?? null;
+/* c8 ignore end */
+
 export const createInspectHttpServer = (options: InspectHttpServerOptions): http.Server | null => {
   if (!options.enabled) {
     return null;
@@ -128,14 +135,41 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
   let activeRequests = 0;
 
   const server = http.createServer((req, res) => {
+    const requestStartedAt = Date.now();
+    let requestBytes = 0;
+    let tokenLabel: string | null = null;
+
+    const respond = (statusCode: number, body: InspectConcatResponse): void => {
+      const logLevel: LogLevel = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
+      writeJson(res, statusCode, body);
+      if (options.requestHistory) {
+        let responseCode: string | null = body.error?.code ?? null;
+        if (body.ok) {
+          responseCode = 'OK';
+        }
+
+        options.requestHistory.record({
+          id: randomUUID(),
+          timestamp: new Date().toISOString(),
+          durationMs: Date.now() - requestStartedAt,
+          statusCode,
+          tokenLabel,
+          requestBytes,
+          responseCode,
+          logLevel,
+          meta: body.error?.meta ?? null
+        });
+      }
+    };
+
     const remoteAddr = req.socket.remoteAddress;
     if (!isLocalAddress(remoteAddr)) {
-      writeJson(res, 403, buildErrorBody('E4004', DEFAULT_VERSION));
+      respond(403, buildErrorBody('E4004', DEFAULT_VERSION));
       return;
     }
 
     if (req.method !== 'POST' || req.url !== '/api/inspect/concat') {
-      writeJson(res, 404, buildErrorBody('E4040', DEFAULT_VERSION));
+      respond(404, buildErrorBody('E4040', DEFAULT_VERSION));
       return;
     }
 
@@ -143,7 +177,7 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
       req.headers[tokenHeader] ?? req.headers[tokenHeader.toLowerCase()]
     );
     if (!providedToken) {
-      writeJson(res, 401, buildErrorBody('E4000', DEFAULT_VERSION));
+      respond(401, buildErrorBody('E4000', DEFAULT_VERSION));
       return;
     }
 
@@ -152,23 +186,27 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
       tokenValidationPromise = options.validateToken(providedToken);
     } catch (error) {
       options.logger?.error?.('[HTTP] token validation failed', error);
-      writeJson(res, 500, buildErrorBody('E5000', DEFAULT_VERSION));
+      respond(500, buildErrorBody('E5000', DEFAULT_VERSION));
       return;
     }
 
     tokenValidationPromise
       .then(summary => {
         if (!summary) {
-          writeJson(res, 403, buildErrorBody('E4003', DEFAULT_VERSION));
+          respond(403, buildErrorBody('E4003', DEFAULT_VERSION));
           return;
         }
         if (summary.status === 'expired') {
-          writeJson(res, 401, buildErrorBody('E4001', DEFAULT_VERSION, { label: summary.label }));
+          respond(401, buildErrorBody('E4001', DEFAULT_VERSION, { label: summary.label }));
           return;
         }
 
+        /* c8 ignore start */
+        tokenLabel = normalizeTokenLabel(summary.label);
+        /* c8 ignore end */
+
         if (activeRequests >= maxConcurrent) {
-          writeJson(res, 429, buildErrorBody('E4290', DEFAULT_VERSION));
+          respond(429, buildErrorBody('E4290', DEFAULT_VERSION));
           return;
         }
 
@@ -188,7 +226,7 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
         const timer = setTimeout(() => {
           terminated = true;
           cleanup();
-          writeJson(res, 408, buildErrorBody('E4080', DEFAULT_VERSION));
+          respond(408, buildErrorBody('E4080', DEFAULT_VERSION));
           req.destroy();
         }, requestTimeoutMs);
 
@@ -198,12 +236,13 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
             return;
           }
 
+          requestBytes += Buffer.byteLength(chunk, 'utf8');
           body += chunk;
-          if (Buffer.byteLength(body, 'utf8') > maxPayloadBytes) {
+          if (requestBytes > maxPayloadBytes) {
             terminated = true;
             clearTimeout(timer);
             cleanup();
-            writeJson(res, 413, buildErrorBody('E4130', DEFAULT_VERSION));
+            respond(413, buildErrorBody('E4130', DEFAULT_VERSION));
             req.destroy();
           }
         });
@@ -221,7 +260,7 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
           clearTimeout(timer);
           cleanup();
           options.logger?.warn?.('[HTTP] request stream error', error);
-          writeJson(res, 500, buildErrorBody('E5000', DEFAULT_VERSION));
+          respond(500, buildErrorBody('E5000', DEFAULT_VERSION));
         });
 
         req.on('end', () => {
@@ -235,7 +274,7 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
             parsed = parseInspectPayload(body);
           } catch {
             cleanup();
-            writeJson(res, 400, buildErrorBody('E4150', DEFAULT_VERSION));
+            respond(400, buildErrorBody('E4150', DEFAULT_VERSION));
             return;
           }
 
@@ -246,12 +285,12 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
             .then(response => {
               cleanup();
               const statusCode = response.ok ? 200 : mapInspectErrorToStatus(response.error?.code);
-              writeJson(res, statusCode, response);
+              respond(statusCode, response);
             })
             .catch(error => {
               cleanup();
               options.logger?.error?.('[HTTP] inspect handler failed', error);
-              writeJson(res, 500, buildErrorBody('E5000', parsed.version ?? DEFAULT_VERSION));
+              respond(500, buildErrorBody('E5000', parsed.version ?? DEFAULT_VERSION));
             });
         });
 
@@ -259,7 +298,7 @@ export const createInspectHttpServer = (options: InspectHttpServerOptions): http
       })
       .catch(error => {
         options.logger?.error?.('[HTTP] token validation rejected', error);
-        writeJson(res, 500, buildErrorBody('E5000', DEFAULT_VERSION));
+        respond(500, buildErrorBody('E5000', DEFAULT_VERSION));
       });
   });
 

@@ -6,7 +6,11 @@ export class InMemoryHistoryStore implements HistoryStore {
   constructor(private readonly limit = 20) {}
 
   record(entry: JobHistoryEntry): void {
-    this.list.unshift(entry);
+    const normalized: JobHistoryEntry = {
+      ...entry,
+      logLevel: entry.logLevel ?? 'info'
+    };
+    this.list.unshift(normalized);
     if (this.list.length > this.limit) {
       this.list = this.list.slice(0, this.limit);
     }
