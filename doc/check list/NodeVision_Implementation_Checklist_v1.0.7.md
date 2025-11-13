@@ -26,11 +26,11 @@
 - [x] B-05 P1向け `maxParallelJobs=2`/キュー4件ロードマップが設計ノート化されている（Doc §3）。→ `doc/design/NodeVision_parallel_queue_plan_v1.0.0.md` に記載。
 
 ## C. HTTP/IPC セキュリティ
-- [ ] C-01 `NV_HTTP=1` でのみHTTPサーバー起動し localhost 限定、CORS無効（Doc §4, AC-HTTP-001）。
-- [ ] C-02 `X-NodeVision-Token` 未設定/不一致時は401/403、rotate後15分経過で旧トークン `401 E4001`（AC-HTTP-TOKEN-001/002）。
-- [ ] C-03 `/api/inspect/concat` 同時2本制限、3本目は即時429（AC-HTTP-RATE-001）。
-- [ ] C-04 JSONペイロードは128KB上限、1sタイムアウトで `E1004 MediaProbeFailed`（Doc §4）。
-- [ ] C-05 `clips[].path` 正規化＋シンボリックリンク実体確認でローカル外を拒否（AC-PATHSAFE-001）。
+- [x] C-01 `NV_HTTP=1` でのみHTTPサーバー起動し localhost 限定、CORS無効（Doc §4, AC-HTTP-001）。→ `apps/desktop-electron/src/main.ts:62-95` で環境変数と設定の両方を満たした時のみ `createInspectHttpServer` を起動し、サーバー側は `packages/engine/src/http/inspect-server.ts:29-140` でループバック以外を拒否。
+- [x] C-02 `X-NodeVision-Token` 未設定/不一致時は401/403、rotate後15分経過で旧トークン `401 E4001`（AC-HTTP-TOKEN-001/002）。→ トークンライフサイクルは `packages/tokens/src/index.ts:45-205` の `TokenManager` と `validate()` で実装し、HTTPサーバーは `packages/engine/src/http/inspect-server.ts:142-170` で 401/403 を払い出す。
+- [x] C-03 `/api/inspect/concat` 同時2本制限、3本目は即時429（AC-HTTP-RATE-001）。→ `packages/engine/src/http/inspect-server.ts:170-183` の `activeRequests` ガードと `maxConcurrent` デフォルト=2。ユニットテスト `packages/engine/src/http/inspect-server.test.ts:210-260` で 429/E4290 を確認。
+- [x] C-04 JSONペイロードは128KB上限、1sタイムアウトで `E1004 MediaProbeFailed`（Doc §4）。→ `packages/engine/src/http/inspect-server.ts:184-225` でボディ長と1sタイマーを監視し、E4130/E4080 を返す。Vitest `inspect-server.test.ts:260-330` で検証済み。
+- [x] C-05 `clips[].path` 正規化＋シンボリックリンク実体確認でローカル外を拒否（AC-PATHSAFE-001）。→ `packages/engine/src/inspect/concat.ts:100-164` の `normalizeClipPath` が UNC/シンボリックリンク/非ファイル/権限不足を E1002/E1003 として拒否し、`inspect/concat.test.ts:120-220` で再現テスト済み。
 
 ## D. Editor & UI/UX
 - [ ] D-01 キャンバスに8pxグリッド、4pxスナップ、整列ボタン（Doc §5）。
@@ -106,3 +106,9 @@
 - 実施者: Codex (Agent)
 - エビデンス: `doc/design/NodeVision_parallel_queue_plan_v1.0.0.md`
 - 備考: 並列2ジョブ/待機4件/3分タイムアウト/QueueFull/TempRootManager連携/Cancel All 要件の設計メモを作成。
+
+- チェック対象: C-01〜C-05 HTTP/IPC セキュリティ
+- 実施日: 2025-11-13
+- 実施者: Codex (Agent)
+- エビデンス: `apps/desktop-electron/src/main.ts:62`, `packages/engine/src/http/inspect-server.ts:29`, `packages/tokens/src/index.ts:45`, `packages/engine/src/inspect/concat.ts:100`, `pnpm test` (inspect/http/token系Vitest)
+- 備考: NV_HTTPゲート + localhost縛り・トークンローテ猶予15分・同時実行/128KB/1s制限・UNC/シンボリックリンク拒否を揃え、Vitestカバレッジ100%を維持。
