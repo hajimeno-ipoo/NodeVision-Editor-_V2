@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>評価レポート</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: #eef3f4;
+        color: #1f2a30;
+      }
+      .report-wrapper {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      .report-header {
+        margin-bottom: 24px;
+      }
+      .report-header h1 {
+        font-size: 28px;
+        margin: 0 0 8px;
+      }
+      .scoreboard {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .score-card {
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        background: #f7fafb;
+        text-align: center;
+      }
+      .score-card .agent-label {
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        color: #3a4b53;
+      }
+      .score-card .score-value {
+        font-size: 28px;
+        font-weight: 700;
+        margin-top: 8px;
+      }
+      .score-card .score-note {
+        font-size: 12px;
+        color: #5a6c73;
+        margin-top: 4px;
+      }
+      table.evaluation-report {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        border: 1px solid #c4d3d7;
+      }
+      table.evaluation-report col {
+        width: calc(100% / 3);
+      }
+      table.evaluation-report th {
+        background: #d8e6e9;
+        padding: 12px;
+        font-size: 14px;
+        text-align: left;
+        border: 1px solid #c4d3d7;
+      }
+      table.evaluation-report td {
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        vertical-align: top;
+        background: #ffffff;
+      }
+      table.evaluation-report tbody tr:nth-child(even) td {
+        background: #f7fafb;
+      }
+      ul {
+        margin: 8px 0 0 18px;
+        padding: 0;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      .chart-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      svg.radar {
+        width: 220px;
+        height: 220px;
+      }
+      .radar .grid {
+        fill: none;
+        stroke: #d0dde1;
+      }
+      .radar .data {
+        fill: rgba(60, 141, 188, 0.25);
+        stroke: #2c7da0;
+        stroke-width: 2;
+      }
+      .radar .data--two {
+        fill: rgba(255, 170, 0, 0.2);
+        stroke: #ff9900;
+      }
+      .radar .data--three {
+        fill: rgba(129, 199, 132, 0.25);
+        stroke: #2e7d32;
+      }
+      .radar text {
+        font-size: 10px;
+        fill: #1f2a30;
+      }
+      .metric-list {
+        font-size: 12px;
+        color: #3a4b53;
+      }
+      .section-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .commit-ref {
+        font-size: 12px;
+        color: #5a6c73;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="report-wrapper">
+      <header class="report-header">
+        <h1>評価レポート — E. Media/プレビュー 完了監査</h1>
+        <p>タスク内容: 3名のAIエージェントが Media/プレビュー要件 (E-01〜E-05) を実装し、FFmpegビルダー／プレビュー同期／ノードテンプレ更新を進めたブランチを比較しました。</p>
+        <p>比較対象: task-1763033864748-1f8543 / task-1763033866883-243972 / task-1763033869006-ae9b93 （全て commit d1016de5eb4f86a2fb08b0d19677c9f11249be5d 時点の差分）。</p>
+      </header>
+      <section class="scoreboard">
+        <div class="score-card">
+          <div class="agent-label">task-1763033864748-1f8543</div>
+          <div class="score-value">🏆 508 / 600</div>
+          <div class="score-note">要件網羅とテスト粒度が最も安定。微細トリム挙動のみ要修正。</div>
+        </div>
+        <div class="score-card">
+          <div class="agent-label">task-1763033866883-243972</div>
+          <div class="score-value">🥉 465 / 600</div>
+          <div class="score-note">filter_complex生成は充実。ただしpreview色空間とUI typeIdに不整合。</div>
+        </div>
+        <div class="score-card">
+          <div class="agent-label">task-1763033869006-ae9b93</div>
+          <div class="score-value">🥈 472 / 600</div>
+          <div class="score-note">JobQueue連携まで拡張。MediaGraphの前提が厳しく実用性に課題。</div>
+        </div>
+      </section>
+      <table class="evaluation-report">
+        <colgroup>
+          <col />
+          <col />
+          <col />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Agent task-1763033864748-1f8543</th>
+            <th>Agent task-1763033866883-243972</th>
+            <th>Agent task-1763033869006-ae9b93</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="chart-wrapper">
+                <svg class="radar" viewBox="0 0 220 220">
+                  <polygon class="grid" points="100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60" />
+                  <polygon class="data" points="100,32 161,64.8 165.8,138 100,164 43.2,132.8 46,68.8" />
+                  <text x="100" y="12" text-anchor="middle">要件適合 85点</text>
+                  <text x="190" y="58" text-anchor="start">コード品質 88点</text>
+                  <text x="190" y="150" text-anchor="start">テスト網羅 95点</text>
+                  <text x="100" y="198" text-anchor="middle">ドキュメント 80点</text>
+                  <text x="10" y="150" text-anchor="start">設計整合 82点</text>
+                  <text x="10" y="58" text-anchor="start">将来リスク 78点</text>
+                </svg>
+              </div>
+            </td>
+            <td>
+              <div class="chart-wrapper">
+                <svg class="radar" viewBox="0 0 220 220">
+                  <polygon class="grid" points="100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60" />
+                  <polygon class="data data--two" points="100,40 155,68 162.3,136 100,162.4 51.4,128 50.1,71.2" />
+                  <text x="100" y="12" text-anchor="middle">要件適合 75点</text>
+                  <text x="190" y="58" text-anchor="start">コード品質 80点</text>
+                  <text x="190" y="150" text-anchor="start">テスト網羅 90点</text>
+                  <text x="100" y="198" text-anchor="middle">ドキュメント 78点</text>
+                  <text x="10" y="150" text-anchor="start">設計整合 70点</text>
+                  <text x="10" y="58" text-anchor="start">将来リスク 72点</text>
+                </svg>
+              </div>
+            </td>
+            <td>
+              <div class="chart-wrapper">
+                <svg class="radar" viewBox="0 0 220 220">
+                  <polygon class="grid" points="100,20 169.3,60 169.3,140 100,180 30.7,140 30.7,60" />
+                  <polygon class="data data--three" points="100,34.4 157.5,66.8 160.9,135.2 100,156 48,130 48.7,70.4" />
+                  <text x="100" y="12" text-anchor="middle">要件適合 82点</text>
+                  <text x="190" y="58" text-anchor="start">コード品質 83点</text>
+                  <text x="190" y="150" text-anchor="start">テスト網羅 88点</text>
+                  <text x="100" y="198" text-anchor="middle">ドキュメント 70点</text>
+                  <text x="10" y="150" text-anchor="start">設計整合 75点</text>
+                  <text x="10" y="58" text-anchor="start">将来リスク 74点</text>
+                </svg>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="section-title">実装概要</div>
+              <ul>
+                <li>FFmpegノードチェーンを `packages/engine/src/ffmpeg/builder.ts:3-460` で定義し、Load→Trim→Resize→ExportにOverlay/Text/Crop/Speed/FPSを組み込む設計を実装。</li>
+                <li>ノードテンプレ追加とバリデーションを `packages/editor/src/templates.ts:3-90` / `templates.test.ts:1-14` に追加しUI要件を充足。</li>
+                <li>プレビュー進捗同期を `packages/engine/src/preview/progress-bridge.ts:1-65` と `progress-bridge.test.ts:1-40` で提供。</li>
+                <li>Vitest強化 (`packages/engine/src/ffmpeg/builder.test.ts:5-340`) で8ケース以上を網羅し、docチェック `doc/check list/...:42-47` を更新。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">実装概要</div>
+              <ul>
+                <li>`packages/engine/src/media/pipeline.ts:1-320` で filter_complex ベースの `buildFFmpegCommand` を実装し、trim/crop/overlay/text/speed/fps をまとめて引き回す構成に。</li>
+                <li>プレビュー同期モジュール `packages/engine/src/media/preview-sync.ts:1-48` とそのテスト `preview-sync.test.ts:1-46` を追加。</li>
+                <li>UIテンプレとテストを `packages/editor/src/templates.ts:3-90` / `templates.test.ts:1-34` に追加、docチェックを `doc/check list/...:42-47` に追記。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">実装概要</div>
+              <ul>
+                <li>`packages/engine/src/media/graph.ts:1-53` / `graph.test.ts:1-52` でMediaGraph最短経路を探索し、`media/pipeline.ts:72-181` でFFmpegパイプラインを構築。</li>
+                <li>`packages/engine/src/job-queue.ts:1-206` に previewSync ハンドルを統合し、`job-queue.test.ts:1-220` でシーケンス/キャンセル/同期を検証。</li>
+                <li>テンプレ更新 `packages/editor/src/templates.ts:1-120` 、型追加 `packages/engine/src/types.ts:1-66`、docチェック更新 `doc/check list/...:42-47` を実施。</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="section-title">良かった点</div>
+              <ul>
+                <li>ノード定義とbuilderが一体化し、StrictCut/SAR/VFR→CFRを `builder.ts:255-460` で明示的に扱っている。</li>
+                <li>テストが `builder.test.ts:5-340` で多系統のノード組み合わせ・strictケースを再現、E-01〜E-05の証跡が明瞭。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">良かった点</div>
+              <ul>
+                <li>filter graph生成が `pipeline.ts:254-275` で overlay/text スタックをmovie/drawtextで実現し、テスト `pipeline.test.ts:1-210` がVFR→CFRやstrictCutを網羅。</li>
+                <li>preview同期クラスが fps/総時間を `preview-sync.ts:1-48` で柔軟に補正し、JobProgressTracker連携テストも充実。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">良かった点</div>
+              <ul>
+                <li>JobQueueに previewSync を組み込んだことで、`job-queue.ts:132-206` でCoolingDown処理と同期ハンドル受け渡しが成立。</li>
+                <li>MediaGraph抽象化 (`media/graph.ts:1-53`) により複数Load→Exportのうち最短経路を自動選択し、strictCutフラグも `pipeline.ts:122-180` でFFmpeg argsに落とし込んでいる。</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="section-title">改善が必要な点</div>
+              <ul>
+                <li>非strictトリムで `endMs` のみ指定した場合に `buildInputArgs` / `buildOutputArgs` がどちらも何も出さず、実際には短くならない（`builder.ts:255-279`）。`-t` だけでも適用する処理が必要。</li>
+                <li>`calculateTrim` が「どれか一つ strictCut なら常にstrict」と扱うため、最新トリムが通常モードでも強制strictになる（`builder.ts:192-205`）。最後のトリムノードのstrict設定だけを見るべき。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">改善が必要な点</div>
+              <ul>
+                <li>previewターゲットでも `format=yuv420p` を末尾で強制しており（`pipeline.ts:254-299`）、`-pix_fmt rgb24` 出力と不整合。sRGBプレビューが壊れる。</li>
+                <li>テンプレtypeIdを `textOverlay` に変えたが、パイプライン側は `kind: 'text'` を前提（`templates.ts:33-50` / `pipeline.ts:35-43`）。UIで作ったTextノードがビルダーに拾われなくなる。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">改善が必要な点</div>
+              <ul>
+                <li>Overlayノード定義が `media/types.ts:38-47` で矩形＋色のみになり、ソース映像パスを扱えない。Docが要求する「別ソースをブレンド」が実現できない。</li>
+                <li>`buildMediaPipeline` が trim/resizeが無いグラフを即エラーとし（`pipeline.ts:72-94`）、実際のキャンバスで単純なLoad→Exportを試すと失敗する。柔軟な最短パスに合わせる必要がある。</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="section-title">参照コミット / 差分</div>
+              <ul>
+                <li>ベースコミット: d1016de5eb4f86a2fb08b0d19677c9f11249be5d</li>
+                <li>差分ファイル: `packages/engine/src/ffmpeg/builder.ts`, `packages/engine/src/preview/progress-bridge.ts`, `packages/editor/src/templates.ts`, `doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md` ほか。</li>
+                <li>`git diff --stat` で 3ファイル72行変更 + 新規4ファイル (ffmpeg/preview配下) を確認。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">参照コミット / 差分</div>
+              <ul>
+                <li>ベースコミット: d1016de5eb4f86a2fb08b0d19677c9f11249be5d</li>
+                <li>差分ファイル: `packages/engine/src/media/pipeline.ts`, `preview-sync.ts`, `packages/editor/src/templates.ts`, `doc/check list/...` ほか。</li>
+                <li>`git diff --stat` で 3ファイル64行変更 + `packages/engine/src/media/*` 新規4ファイルを確認。</li>
+              </ul>
+            </td>
+            <td>
+              <div class="section-title">参照コミット / 差分</div>
+              <ul>
+                <li>ベースコミット: d1016de5eb4f86a2fb08b0d19677c9f11249be5d</li>
+                <li>差分ファイル: `packages/engine/src/media/*`, `job-queue.ts`, `job-queue.test.ts`, `packages/engine/src/types.ts`, `packages/editor/src/templates.ts` ほか。</li>
+                <li>`git diff --stat` で 6ファイル202行変更 + `packages/engine/src/media/*` 新規7ファイルを確認。</li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="commit-ref">レポート生成日時: 2025-11-13 21:21 JST</p>
+    </div>
+  </body>
+</html>
