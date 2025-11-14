@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang='ja'>
+  <head>
+    <meta charset='utf-8' />
+    <title>評価レポート — H節監査</title>
+    <style>body { font-family: 'Hiragino Sans','Noto Sans JP',system-ui,-apple-system,BlinkMacSystemFont,sans-serif; margin:24px; background:#f4f6f8; color:#1f2a30;} .eval-wrapper{max-width:1280px;margin:0 auto;padding:32px;background:#fff;border:1px solid #d7e0e4;} .scoreboard{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px;} .score-card{flex:1 1 220px;border:1px solid #c4d3d7;padding:16px;background:#f7fbfc;} .score-card h2{margin:0 0 8px;font-size:16px;color:#304350;} .score-card .total{font-size:24px;font-weight:700;} .agent-grid{display:flex;flex-direction:column;gap:32px;} .agent-card{border:1px solid #c4d3d7;padding:24px;background:#fff;} .agent-card h3{margin:0 0 4px;font-size:20px;} .agent-card p.summary{margin:0 0 16px;line-height:1.7;} .radar-box{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px;} .radar-box svg{flex:0 0 220px;background:#fefefe;border:1px solid #e2e8ea;} .metric-list{flex:1 1 320px;margin:0;padding-left:18px;} .metric-list li{margin-bottom:6px;line-height:1.6;} .section-title{font-size:16px;margin:16px 0 8px;color:#1f2a30;} ul.bullet{margin:0;padding-left:18px;} ul.bullet li{margin-bottom:6px;line-height:1.6;} .radar-bg{fill:none;stroke:#dbe5ea;stroke-width:1;} .radar-grid{fill:none;stroke:#e8edef;stroke-dasharray:4 4;} .radar-shape{fill:rgba(47,128,237,0.25);stroke:#2f80ed;stroke-width:2;} .metric-label{font-size:11px;font-weight:600;} a{color:#1a73e8;text-decoration:none;} a:hover{text-decoration:underline;}</style>
+  </head>
+  <body>
+    <div class='eval-wrapper'>
+      <header style='margin-bottom:24px;'>
+        <h1 style='margin:0 0 12px;font-size:26px;'>H節 実装監査 — 評価レポート</h1>
+        <p style='margin:0;color:#51626c;'>2025-11-14時点。各AIの合計スコア(600点満点)と改善ポイントを整理。</p>
+      </header>
+      <section class='scoreboard'>
+        <div class='score-card'>
+          <h2>Agent A (task-1763094869016-738e8c)</h2>
+          <div class='total'>🏆 567 / 600</div>
+        </div>
+        <div class='score-card'>
+          <h2>Agent C (task-1763094873295-668606)</h2>
+          <div class='total'>🥈 547 / 600</div>
+        </div>
+        <div class='score-card'>
+          <h2>Agent B (task-1763094871172-2b7492)</h2>
+          <div class='total'>🥉 511 / 600</div>
+        </div>
+      </section>
+      <section class='agent-grid'>
+        <article class='agent-card'>
+          <h3>Agent A — task-1763094869016-738e8c</h3>
+          <p class='summary'>FFmpeg検出ロジックにライセンス推定を加え、Boot payload→Aboutカード→ドキュメントまで一気通貫でH節を構築。Ajv契約テストと署名/リリースレポートも揃っており、仕様トレーサビリティが明確。</p>
+          <div class='radar-box'>
+            <svg viewBox='0 0 220 220' role='img' aria-label='スコアチャート'>
+              <polygon class='radar-bg' points='180.0,100.0 140.0,30.7 60.0,30.7 20.0,100.0 60.0,169.3 140.0,169.3' />
+              <polygon class='radar-grid' points='160.0,100.0 130.0,48.0 70.0,48.0 40.0,100.0 70.0,152.0 130.0,152.0' />
+              <polygon class='radar-grid' points='140.0,100.0 120.0,65.4 80.0,65.4 60.0,100.0 80.0,134.6 120.0,134.6' />
+              <polygon class='radar-shape' points='175.2,100.0 138.4,33.5 62.0,34.2 25.6,100.0 62.0,165.8 137.6,165.1' />
+              <text class='metric-label' x='198.0' y='100.0' text-anchor='start'>コード品質 94点</text>
+              <text class='metric-label' x='149.0' y='15.1' text-anchor='middle'>要件適合 96点</text>
+              <text class='metric-label' x='51.0' y='15.1' text-anchor='middle'>テスト充実度 95点</text>
+              <text class='metric-label' x='2.0' y='100.0' text-anchor='end'>ドキュメント 93点</text>
+              <text class='metric-label' x='51.0' y='184.9' text-anchor='middle'>UX/a11y 95点</text>
+              <text class='metric-label' x='149.0' y='184.9' text-anchor='middle'>リリース準備 94点</text>
+            </svg>
+            <ul class='metric-list'>
+              <li><strong>コード品質 94点:</strong> `packages/system-check/src/index.ts:11-170` でFFmpegの`--enable-gpl/--enable-nonfree`フラグを解析し、`apps/desktop-electron/src/main.ts:39-138` に配布判定ヘルパーを実装したため高スコア。</li>
+              <li><strong>要件適合 96点:</strong> `doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md:63-170` でH-01〜H-05を✅し、要件毎にエビデンスパスを紐付け。</li>
+              <li><strong>テスト充実度 95点:</strong> `packages/system-check/src/index.test.ts:16-150` と `apps/desktop-electron/src/ui-template.test.ts:20-170` で新機能を検証し、`packages/engine/src/inspect/concat.test.ts:2-590` にAjv契約テストを組み込んでいる。</li>
+              <li><strong>ドキュメント 93点:</strong> `doc/reports/H_distribution_signing_20251114.md:1-80` や `.../H_release_notes_20251114.md:1-40` など3本の証跡を作成し、署名/リリース/バックログを明文化。</li>
+              <li><strong>UX/a11y 95点:</strong> `apps/desktop-electron/src/ui-template.ts:860-950` のAboutカードに`aria-label`/`role`/`aria-live`を付与し、`ui-template.a11y.test.ts:20-90`で検証済み。</li>
+              <li><strong>リリース準備 94点:</strong> `.serena/memories/h_release_status_20251114.md:1-12` でH節の証跡を共有し、`doc/check list/...:140-190` に実施記録を残している。</li>
+            </ul>
+          </div>
+          <h4 class='section-title'>良かった点</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094869016-738e8c/packages/system-check/src/index.ts'>packages/system-check/src/index.ts:11-170 で `--enable-gpl/--enable-nonfree` を解析し、配布形態を判定できるようにした。</a></li>
+            <li><a href='../../task-1763094869016-738e8c/apps/desktop-electron/src/ui-template.ts'>apps/desktop-electron/src/ui-template.ts:860-950 のAboutカードは `aria-label`/リンク/二言語テキストを備え、JSDOMテストも追加済み。</a></li>
+            <li><a href='../../task-1763094869016-738e8c/packages/engine/src/inspect/concat.test.ts'>packages/engine/src/inspect/concat.test.ts へAjv契約テストを追加し、request/response schemaを実データで検証。</a></li>
+          </ul>
+          <h4 class='section-title'>改善してほしい点</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094869016-738e8c/apps/desktop-electron/src/types.ts'>BootStatus.distribution は ffmpeg のみを対象にしており、ffprobe のライセンス状況を伝えられない。`apps/desktop-electron/src/types.ts:1-22` を拡張して両方の配布状態を提示すると、H-01要件をより確実に満たせる。</a></li>
+            <li><a href='../../task-1763094869016-738e8c/doc/reports/H_release_notes_20251114.md'>`doc/reports/H_release_notes_20251114.md:1-40` がja-JP中心で、Doc §11の『en-US/ja-JP両言語記載』を完全には示していない。英語版要約も追記すると他チームへの共有がしやすい。</a></li>
+          </ul>
+          <h4 class='section-title'>参照リンク</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094869016-738e8c/apps/desktop-electron/src/main.ts'>apps/desktop-electron/src/main.ts:39-138</a></li>
+            <li><a href='../../task-1763094869016-738e8c/doc/reports/H_distribution_signing_20251114.md'>doc/reports/H_distribution_signing_20251114.md</a></li>
+            <li><a href='../../task-1763094869016-738e8c/.serena/memories/h_release_status_20251114.md'>.serena/memories/h_release_status_20251114.md</a></li>
+          </ul>
+        </article>
+        <article class='agent-card'>
+          <h3>Agent C — task-1763094873295-668606</h3>
+          <p class='summary'>UIまわりの仕上げとドキュメントの層が厚く、配布状況/issue tracker/署名プレイブックを揃えた構成。とはいえFFmpegライセンス解析やschema更新は未着手で、技術的根拠が静的なまま。</p>
+          <div class='radar-box'>
+            <svg viewBox='0 0 220 220' role='img' aria-label='スコアチャート'>
+              <polygon class='radar-bg' points='180.0,100.0 140.0,30.7 60.0,30.7 20.0,100.0 60.0,169.3 140.0,169.3' />
+              <polygon class='radar-grid' points='160.0,100.0 130.0,48.0 70.0,48.0 40.0,100.0 70.0,152.0 130.0,152.0' />
+              <polygon class='radar-grid' points='140.0,100.0 120.0,65.4 80.0,65.4 60.0,100.0 80.0,134.6 120.0,134.6' />
+              <polygon class='radar-shape' points='170.4,100.0 136.0,37.6 64.0,37.6 24.0,100.0 63.2,163.7 136.8,163.7' />
+              <text class='metric-label' x='198.0' y='100.0' text-anchor='start'>コード品質 88点</text>
+              <text class='metric-label' x='149.0' y='15.1' text-anchor='middle'>要件適合 90点</text>
+              <text class='metric-label' x='51.0' y='15.1' text-anchor='middle'>テスト充実度 90点</text>
+              <text class='metric-label' x='2.0' y='100.0' text-anchor='end'>ドキュメント 95点</text>
+              <text class='metric-label' x='51.0' y='184.9' text-anchor='middle'>UX/a11y 92点</text>
+              <text class='metric-label' x='149.0' y='184.9' text-anchor='middle'>リリース準備 92点</text>
+            </svg>
+            <ul class='metric-list'>
+              <li><strong>コード品質 88点:</strong> `apps/desktop-electron/src/main.ts:29-118` に配布判定ヘルパーを追加したが、system-check側にライセンス解析を入れておらず実ライセンスまでは追跡できない。</li>
+              <li><strong>要件適合 90点:</strong> `doc/reports/H_release_distribution_status_20251114.md:1-60` などでH節全体を横断的にまとめた点は良いが、ライセンス実測やschema更新が未完。</li>
+              <li><strong>テスト充実度 90点:</strong> `apps/desktop-electron/src/ui-template.test.ts:23-200` でAboutカードをJSDOMで検証し、`packages/engine/src/inspect/inspect-contract.test.ts:1-120` でschema整合性も確認しているが、`bitrate_bps` や `pix_fmt` をテスト対象にしていない。</li>
+              <li><strong>ドキュメント 95点:</strong> `doc/reports/H_release_signing_playbook_20251114.md:1-80`・`H_release_issue_tracker_20251114.md:1-90`・`H_release_distribution_status_20251114.md:1-90` の3層で手順/状況/ロードマップを整理しておりカバレッジが高い。</li>
+              <li><strong>UX/a11y 92点:</strong> `apps/desktop-electron/src/ui-template.ts:860-925` で bilingual テキストと`aria-live`を加え、`ui-template.test.ts:162-200` でbundled/externalの表示切替を保証している。</li>
+              <li><strong>リリース準備 92点:</strong> `doc/reports/H_release_distribution_status_20251114.md:1-60` で次アクションも列挙し、`.serena/memories/h_distribution_status_20251114.md:1-6` へ共有。</li>
+            </ul>
+          </div>
+          <h4 class='section-title'>良かった点</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094873295-668606/apps/desktop-electron/src/ui-template.ts'>apps/desktop-electron/src/ui-template.ts:850-930 のAboutカードが`Project site`リンクと`aria-live`付きで、JSDOMテストでもbundled/external切替を確認済み。</a></li>
+            <li><a href='../../task-1763094873295-668606/apps/desktop-electron/src/ui-template.test.ts'>apps/desktop-electron/src/ui-template.test.ts:23-200 でAboutカード表示を2ケース検証し、`pnpm test`で100%カバレッジを維持。</a></li>
+            <li><a href='../../task-1763094873295-668606/doc/reports/H_release_distribution_status_20251114.md'>doc/reports/H_release_signing_playbook_20251114.md / H_release_issue_tracker_20251114.md / H_release_distribution_status_20251114.md で署名手順・P1ロードマップ・総括を整理。</a></li>
+          </ul>
+          <h4 class='section-title'>改善してほしい点</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094873295-668606/apps/desktop-electron/src/main.ts'>FFmpegライセンスの実測は行っておらず、`packages/system-check/src/index.ts` が未変更のためAboutカードの情報は依然ハードコード。system-checkにライセンス解析を実装し、`apps/desktop-electron/src/main.ts:29-118` で得られた値を掲載すべき。</a></li>
+            <li><a href='../../task-1763094873295-668606/doc/inspect_concat_API_v1/inspect_concat.response.schema.json'>`doc/inspect_concat_API_v1/inspect_concat.response.schema.json:100-138` に `bitrate_bps` や `pix_fmt` の定義が無く、Ajv契約テストがフィールド追加の退行を検出できない。</a></li>
+            <li><a href='../../task-1763094873295-668606/packages/engine/src/inspect/types.ts'>`packages/engine/src/inspect/types.ts:1-32` の `InspectInclude` が `&#x27;pix_fmt&#x27;` を含まず、クライアントが明示的に要求できない状態のまま。schemaと型の両方を更新する必要がある。</a></li>
+          </ul>
+          <h4 class='section-title'>参照リンク</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094873295-668606/doc/reports/H_release_signing_playbook_20251114.md'>doc/reports/H_release_signing_playbook_20251114.md</a></li>
+            <li><a href='../../task-1763094873295-668606/doc/reports/H_release_issue_tracker_20251114.md'>doc/reports/H_release_issue_tracker_20251114.md</a></li>
+            <li><a href='../../task-1763094873295-668606/packages/engine/src/inspect/inspect-contract.test.ts'>packages/engine/src/inspect/inspect-contract.test.ts</a></li>
+          </ul>
+        </article>
+        <article class='agent-card'>
+          <h3>Agent B — task-1763094871172-2b7492</h3>
+          <p class='summary'>簡潔なAboutカードとリリース系ドキュメントをまとめ、schema契約テストも追加。ただしFFmpegライセンスの実測はなく、UIテストも欠けておりH-01の証跡としては情報量が不足。</p>
+          <div class='radar-box'>
+            <svg viewBox='0 0 220 220' role='img' aria-label='スコアチャート'>
+              <polygon class='radar-bg' points='180.0,100.0 140.0,30.7 60.0,30.7 20.0,100.0 60.0,169.3 140.0,169.3' />
+              <polygon class='radar-grid' points='160.0,100.0 130.0,48.0 70.0,48.0 40.0,100.0 70.0,152.0 130.0,152.0' />
+              <polygon class='radar-grid' points='140.0,100.0 120.0,65.4 80.0,65.4 60.0,100.0 80.0,134.6 120.0,134.6' />
+              <polygon class='radar-shape' points='165.6,100.0 134.0,41.1 68.0,44.6 28.0,100.0 64.8,161.0 134.4,159.6' />
+              <text class='metric-label' x='198.0' y='100.0' text-anchor='start'>コード品質 82点</text>
+              <text class='metric-label' x='149.0' y='15.1' text-anchor='middle'>要件適合 85点</text>
+              <text class='metric-label' x='51.0' y='15.1' text-anchor='middle'>テスト充実度 80点</text>
+              <text class='metric-label' x='2.0' y='100.0' text-anchor='end'>ドキュメント 90点</text>
+              <text class='metric-label' x='51.0' y='184.9' text-anchor='middle'>UX/a11y 88点</text>
+              <text class='metric-label' x='149.0' y='184.9' text-anchor='middle'>リリース準備 86点</text>
+            </svg>
+            <ul class='metric-list'>
+              <li><strong>コード品質 82点:</strong> `apps/desktop-electron/src/main.ts:41-128` で配布情報を構築しているが、実際のFFmpegライセンス検出ロジックが追加されておらず文字列固定のまま。</li>
+              <li><strong>要件適合 85点:</strong> Aboutカード (`apps/desktop-electron/src/ui-template.ts:870-940`) とリリース系ドキュメントは揃えたものの、ライセンス種別表示は固定文言のままでH-01の『外部検出時はライセンス種別を表示』にギリギリ。</li>
+              <li><strong>テスト充実度 80点:</strong> `packages/engine/src/inspect/inspect-contract.test.ts:1-120` は追加されたが、Aboutカードや翻訳へのテスト追加が無くUI変更はカバーされていない。</li>
+              <li><strong>ドキュメント 90点:</strong> `doc/reports/H_distribution_signing_20251114.md:1-80` と `H_release_notes_20251114.md:1-80` が英日併記でまとまっている。</li>
+              <li><strong>UX/a11y 88点:</strong> `apps/desktop-electron/src/ui-template.ts:880-930` のAboutカードはシンプルで、`aria-label`は付いたが `role=&#x27;region&#x27;` やライブ領域が無く、UIテストも無い。</li>
+              <li><strong>リリース準備 86点:</strong> チェックリストと `.serena/memories/h_distribution_release_20251114.md:1-15` は更新済みだが、`pnpm test` エラー後の再実行ログが残っておらず信頼度がわずかに下がる。</li>
+            </ul>
+          </div>
+          <h4 class='section-title'>良かった点</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094871172-2b7492/apps/desktop-electron/src/ui-template.ts'>apps/desktop-electron/src/ui-template.ts:870-950 にAboutカードを追加し、リリースKPIを周知するテキストを入れた。</a></li>
+            <li><a href='../../task-1763094871172-2b7492/doc/reports/H_release_notes_20251114.md'>doc/reports/H_distribution_signing_20251114.md と H_release_notes_20251114.md で署名・HTTPトークン・a11y KPIを英日で整理。</a></li>
+            <li><a href='../../task-1763094871172-2b7492/packages/engine/src/inspect/inspect-contract.test.ts'>packages/engine/src/inspect/inspect-contract.test.ts でAjv 2020を用いたcontractテストを独立ファイルにまとめた。</a></li>
+          </ul>
+          <h4 class='section-title'>改善してほしい点</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094871172-2b7492/apps/desktop-electron/src/types.ts'>`DistributionInfo` (`apps/desktop-electron/src/types.ts:3-24`) のライセンス文字列が固定で、実際の`ffmpeg -version`結果を反映していない。`packages/system-check` 側にライセンス検出を追加し、Cardへ本当の種別を流す必要がある。</a></li>
+            <li><a href='../../task-1763094871172-2b7492/apps/desktop-electron/src/ui-template.test.ts'>AboutカードのUI変更に対するテストが追加されていない (`apps/desktop-electron/src/ui-template.test.ts` 未更新)。JSDOMやaxeテストでDOM/I18nの期待値を固定しないと退行に気づけない。</a></li>
+          </ul>
+          <h4 class='section-title'>参照リンク</h4>
+          <ul class='bullet'>
+            <li><a href='../../task-1763094871172-2b7492/doc/reports/H_p1_backlog_20251114.md'>doc/reports/H_p1_backlog_20251114.md</a></li>
+            <li><a href='../../task-1763094871172-2b7492/apps/desktop-electron/src/main.ts'>apps/desktop-electron/src/main.ts:41-128</a></li>
+            <li><a href='../../task-1763094871172-2b7492/packages/engine/src/inspect/types.ts'>packages/engine/src/inspect/types.ts:1-32</a></li>
+          </ul>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>
