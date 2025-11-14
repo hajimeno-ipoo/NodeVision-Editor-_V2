@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gセクション再評価レポート</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: #eef3f4;
+        color: #1f2a30;
+      }
+      .eval-wrapper {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      .eval-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .eval-header h1 {
+        font-size: 28px;
+        margin: 0;
+        letter-spacing: 0.04em;
+      }
+      .eval-desc {
+        font-size: 15px;
+        color: #394b53;
+        margin: 0;
+      }
+      .scoreboard {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .score-card {
+        flex: 1 1 220px;
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        background: #f6fafb;
+      }
+      .score-card__label { font-size: 13px; color: #2f3c42; margin-bottom: 6px; }
+      .score-card__value { font-size: 20px; font-weight: 700; }
+      table.eval-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #c4d3d7;
+        table-layout: fixed;
+      }
+      table.eval-table th,
+      table.eval-table td {
+        border: 1px solid #c4d3d7;
+        padding: 18px;
+        vertical-align: top;
+      }
+      table.eval-table th {
+        background: #d8e6e9;
+        font-size: 13px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .agent-block { display: flex; flex-direction: column; gap: 18px; }
+      .section-title { font-weight: 700; font-size: 13px; margin: 0 0 6px; }
+      ul { margin: 0 0 12px 18px; padding: 0; }
+      ul li { margin-bottom: 6px; font-size: 13px; }
+      a { color: #226c8c; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .metric-chart { position: relative; width: 160px; height: 160px; }
+      .metric-chart svg { width: 160px; height: 160px; }
+      .metric-chart .grid { fill: none; stroke: #c4d3d7; stroke-width: 1; }
+      .metric-chart .score { fill: rgba(62,132,168,0.15); stroke: #3e84a8; stroke-width: 1.5; }
+      .metric-label {
+        position: absolute;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #d0dde2;
+        padding: 2px 6px;
+        white-space: nowrap;
+      }
+      .metric-label.metric-1 { top: -18px; left: 50%; transform: translateX(-50%); }
+      .metric-label.metric-2 { top: 12px; right: -12px; }
+      .metric-label.metric-3 { bottom: 18px; right: -10px; }
+      .metric-label.metric-4 { bottom: -32px; left: 50%; transform: translateX(-50%); }
+      .metric-label.metric-5 { bottom: 18px; left: -10px; }
+      .metric-label.metric-6 { top: 12px; left: -12px; }
+    </style>
+  </head>
+  <body>
+    <div class="eval-wrapper">
+      <header class="eval-header">
+        <h1>Gセクション a11y/i18n 再評価</h1>
+        <p class="eval-desc">tmux完了後の最新ソースで実装内容を再精査。合計点は600点満点・トロフィーは総合トップに付与。</p>
+        <div class="scoreboard">
+          <div class="score-card">
+            <div class="score-card__label">🥉 task-1763060070007-f92add</div>
+            <div class="score-card__value">528 / 600</div>
+          </div>
+          <div class="score-card">
+            <div class="score-card__label">🥈 task-1763060072184-8eb8d5</div>
+            <div class="score-card__value">568 / 600</div>
+          </div>
+          <div class="score-card">
+            <div class="score-card__label">🏆 task-1763060074317-37df04</div>
+            <div class="score-card__value">574 / 600</div>
+          </div>
+        </div>
+      </header>
+      <table class="eval-table">
+        <thead>
+          <tr>
+            <th>task-1763060070007-f92add</th>
+            <th>task-1763060072184-8eb8d5</th>
+            <th>task-1763060074317-37df04</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="agent-block">
+                <div class="metric-chart">
+                  <svg viewBox="0 0 160 160" role="img" aria-label="六角チャート">
+                    <polygon class="grid" points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" />
+                    <polygon class="score" points="80.0,27.2 122.6,55.4 124.2,105.5 80.0,134.0 32.2,107.6 43.6,59.0" />
+                  </svg>
+                  <div class="metric-label metric-1">要件適合 88点</div>
+                  <div class="metric-label metric-2">コード品質 82点</div>
+                  <div class="metric-label metric-3">テスト網羅 85点</div>
+                  <div class="metric-label metric-4">a11y有効性 90点</div>
+                  <div class="metric-label metric-5">i18n網羅 92点</div>
+                  <div class="metric-label metric-6">ドキュメント 70点</div>
+                </div>
+                <div>
+                  <p class="section-title">良かった点</p>
+                  <ul>
+                    <li>renderer payload に locale/connection を渡し、翻訳辞書でUIテキストを一括生成（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts:1-120</a>）。</li>
+                    <li>接続カードを `nodevision:connection-*` イベントで更新し、JSON出力にも含めるよう修正（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">同:940-1008, 1520-1533</a>）。</li>
+                    <li>axeテスト後に `globalThis` を確実に復元し、副作用を解消（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts:32-69</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">課題</p>
+                  <ul>
+                    <li>初期stateに `connections` を持たせておらず、payloadのデモ接続が読み込まれない（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">同:565-589</a>）。</li>
+                    <li>Undo/Redo履歴がノードのみを保存しているため、接続操作を元に戻せない（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">同:817-825</a>）。</li>
+                    <li>`pnpm test` では `apps/**` が依然除外されており、renderer a11y の回帰検知がCIで出来ない（<a href="../../../task-1763060070007-f92add/vitest.config.ts">vitest.config.ts:8-16</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">成果/証跡</p>
+                  <ul>
+                    <li><a href="../../../task-1763060070007-f92add/packages/i18n/src/index.ts">packages/i18n/src/index.ts</a></li>
+                    <li><a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+                    <li><a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts</a></li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="agent-block">
+                <div class="metric-chart">
+                  <svg viewBox="0 0 160 160" role="img" aria-label="六角チャート">
+                    <polygon class="grid" points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" />
+                    <polygon class="score" points="80.0,22.4 126.8,53.0 128.8,108.2 80.0,137.0 30.6,108.5 34.3,53.6" />
+                  </svg>
+                  <div class="metric-label metric-1">要件適合 96点</div>
+                  <div class="metric-label metric-2">コード品質 90点</div>
+                  <div class="metric-label metric-3">テスト網羅 94点</div>
+                  <div class="metric-label metric-4">a11y有効性 95点</div>
+                  <div class="metric-label metric-5">i18n網羅 95点</div>
+                  <div class="metric-label metric-6">ドキュメント 88点</div>
+                </div>
+                <div>
+                  <p class="section-title">良かった点</p>
+                  <ul>
+                    <li>settings に `locale` を追加し CLI/renderer 両方でロケールを保持（<a href="../../../task-1763060072184-8eb8d5/packages/settings/src/index.ts">packages/settings/src/index.ts:1-120</a>）。</li>
+                    <li>ネイティブレビューとテスト結果を `doc/reports/G_a11y_i18n_status_20251114.md` へ整理し、チェックリストG-04の証跡を補完。</li>
+                    <li>`vitest.config.ts` が `apps/**` を対象に含め、`pnpm test` でrendererテストも回せる構成へ（<a href="../../../task-1763060072184-8eb8d5/vitest.config.ts">vitest.config.ts:8-16</a>）。</li>
+                    <li>`apps/desktop-electron/src/a11y.test.ts` が en-US / ja-JP の2ランと `withDomGlobals` での復元を実装（<a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts:1-105</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">課題</p>
+                  <ul>
+                    <li>connection一覧は初期描画のみで、ノード接続イベントにフックしていないため実行中の変更がUIへ届かない（ファイル内に `nodevision:connection-` リスナーが存在せず、<a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a> でも `renderConnections()` を起動していない）。</li>
+                    <li>翻訳辞書は renderer 内のみに閉じており、CLIやsettingsと共有されないため将来のキー重複管理が難しい。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">成果/証跡</p>
+                  <ul>
+                    <li><a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/i18n.ts">apps/desktop-electron/src/i18n.ts</a></li>
+                    <li><a href="../../../task-1763060072184-8eb8d5/doc/reports/G_a11y_i18n_status_20251114.md">doc/reports/G_a11y_i18n_status_20251114.md</a></li>
+                    <li><a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="agent-block">
+                <div class="metric-chart">
+                  <svg viewBox="0 0 160 160" role="img" aria-label="六角チャート">
+                    <polygon class="grid" points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" />
+                    <polygon class="score" points="80.0,21.2 129.4,51.5 129.4,108.5 80.0,138.2 29.6,109.1 32.2,52.4" />
+                  </svg>
+                  <div class="metric-label metric-1">要件適合 98点</div>
+                  <div class="metric-label metric-2">コード品質 95点</div>
+                  <div class="metric-label metric-3">テスト網羅 95点</div>
+                  <div class="metric-label metric-4">a11y有効性 97点</div>
+                  <div class="metric-label metric-5">i18n網羅 97点</div>
+                  <div class="metric-label metric-6">ドキュメント 92点</div>
+                </div>
+                <div>
+                  <p class="section-title">良かった点</p>
+                  <ul>
+                    <li>`data-i18n-*` 属性による翻訳置換でHTML構造と文字列を分離（<a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts:690-820</a>）。</li>
+                    <li>`vitest.config.ts` が apps/** をカバーし、`pnpm test` と `pnpm test:a11y` の両方でrendererを検証（<a href="../../../task-1763060074317-37df04/vitest.config.ts">vitest.config.ts:8-16</a>）。</li>
+                    <li>axeテストで `globalThis` を try/finally で復元し、jsdomリークを解消（<a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.a11y.test.ts">apps/desktop-electron/src/ui-template.a11y.test.ts:55-82</a>）。</li>
+                    <li>テンプレート側で export ノードに delivery 出力を追加し、接続ARIAと整合（<a href="../../../task-1763060074317-37df04/packages/editor/src/templates.ts">packages/editor/src/templates.ts:80-132</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">課題</p>
+                  <ul>
+                    <li>UI翻訳辞書が renderer 内に固定されており、他プロセス（settings/nvctl）と共有できない。長期的には `@nodevision/i18n` のようなパッケージ化が必要。</li>
+                    <li>Queue/diagnosticsまわりの文字列は翻訳済みだが、`packages/editor` へ渡すノードメタの多言語データはまだテンプレート英語のみ。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">成果/証跡</p>
+                  <ul>
+                    <li><a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+                    <li><a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.a11y.test.ts">apps/desktop-electron/src/ui-template.a11y.test.ts</a></li>
+                    <li><a href="../../../task-1763060074317-37df04/doc/reports/G_a11y_i18n_status_20251113.md">doc/reports/G_a11y_i18n_status_20251113.md</a></li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
