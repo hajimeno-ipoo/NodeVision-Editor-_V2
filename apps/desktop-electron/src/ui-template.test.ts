@@ -20,8 +20,8 @@ const bootStatus: BootStatus = {
     updatedAt: now
   },
   ffmpeg: {
-    ffmpeg: { path: '/usr/bin/ffmpeg', version: '6.1' },
-    ffprobe: { path: '/usr/bin/ffprobe', version: '6.1' }
+    ffmpeg: { path: '/usr/bin/ffmpeg', version: '6.1', license: 'lgpl' },
+    ffprobe: { path: '/usr/bin/ffprobe', version: '6.1', license: 'lgpl' }
   },
   token: {
     label: 'default',
@@ -29,6 +29,14 @@ const bootStatus: BootStatus = {
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     createdAt: now,
     updatedAt: now
+  },
+  distribution: {
+    ffmpeg: {
+      origin: 'external',
+      license: 'lgpl',
+      licenseUrl: 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html',
+      sourceUrl: 'https://ffmpeg.org/download.html#sources'
+    }
   }
 };
 
@@ -149,6 +157,42 @@ describe('ui-template accessibility helpers', () => {
     expect(node?.getAttribute('role')).toBe('group');
     const port = dom.window.document.querySelector('.port');
     expect(port?.getAttribute('aria-label')).toContain('port');
+    dom.window.close();
+  });
+});
+
+describe('ui-template about card', () => {
+  it('renders external FFmpeg details and notice', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const distribution = dom.window.document.getElementById('about-distribution');
+    expect(distribution?.textContent).toContain('External');
+    const notice = dom.window.document.getElementById('about-notice');
+    expect(notice?.textContent).toContain('LGPL');
+    dom.window.close();
+  });
+
+  it('respects bundled metadata links', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      status: {
+        ...basePayload.status,
+        distribution: {
+          ffmpeg: {
+            origin: 'bundled',
+            license: 'lgpl',
+            licenseUrl: 'https://example.com/license',
+            sourceUrl: 'https://example.com/source'
+          }
+        }
+      }
+    });
+
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const licenseLink = dom.window.document.getElementById('about-license-link');
+    expect(licenseLink?.getAttribute('href')).toBe('https://example.com/license');
+    const sourceLink = dom.window.document.getElementById('about-source-link');
+    expect(sourceLink?.getAttribute('href')).toBe('https://example.com/source');
     dom.window.close();
   });
 });

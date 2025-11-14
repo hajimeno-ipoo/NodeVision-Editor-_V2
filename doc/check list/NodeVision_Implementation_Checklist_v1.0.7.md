@@ -60,11 +60,11 @@
 - [x] G-04 リソースフリーズ48時間前にネイティブレビューの証跡を残す（Doc §10）。
 
 ## H. 配布/ライセンス/リリース
-- [ ] H-01 FFmpeg同梱時はLGPL準拠バンドルとライセンス文言をAboutに掲示、外部検出時はバージョン/ライセンス種別を表示（Doc §8）。
-- [ ] H-02 Windowsコード署名、macOS notarization 手順書をDoc/reportsに追加（Doc §8）。
-- [ ] H-03 リリースノートにHTTPトークン/ログエクスポート/a11y KPIの達成状況を掲載（Doc §11）。
-- [ ] H-04 契約テスト (`inspect_concat.request/response.schema.json`) をCIへ組み込み、毎releaseタグで実行（Doc §9）。
-- [ ] H-05 P1拡張（zh-CN言語、maxParallelJobs=2）に向けたバックログアイテムを issue tracker へ登録（Doc §3, §10）。
+- [x] H-01 FFmpeg同梱時はLGPL準拠バンドルとライセンス文言をAboutに掲示、外部検出時はバージョン/ライセンス種別を表示（Doc §8）。
+- [x] H-02 Windowsコード署名、macOS notarization 手順書をDoc/reportsに追加（Doc §8）。
+- [x] H-03 リリースノートにHTTPトークン/ログエクスポート/a11y KPIの達成状況を掲載（Doc §11）。
+- [x] H-04 契約テスト (`inspect_concat.request/response.schema.json`) をCIへ組み込み、毎releaseタグで実行（Doc §9）。
+- [x] H-05 P1拡張（zh-CN言語、maxParallelJobs=2）に向けたバックログアイテムを issue tracker へ登録（Doc §3, §10）。
 
 ---
 
@@ -136,3 +136,32 @@
 - 実施者: Codex (Agent)
 - エビデンス: `doc/reports/G_a11y_i18n_status_20251113.md`（ja-JPレビュー記録 + 48h前確認）、`apps/desktop-electron/src/ui-template.ts:9-214`（翻訳辞書更新）
 - 備考: ja-JPネイティブ視点で接続/診断/トースト文言を校正し、リソースフリーズ48h前に反映済み。
+- チェック対象: H-01 FFmpegライセンス About 表示
+- 実施日: 2025-11-14
+- 実施者: Codex (Agent)
+- エビデンス: `apps/desktop-electron/src/main.ts:40-220` (FFmpeg配布情報生成) + `apps/desktop-electron/src/ui-template.ts:700-2070` (Aboutカード/翻訳/ARIA) + `apps/desktop-electron/src/ui-template.test.ts:90-158`
+- 備考: bunded/externalの自動判定、LGPL/GPL/Nonfreeを英日両言語で表示し `pnpm test` でDOM/翻訳挙動を検証。
+
+- チェック対象: H-02 コード署名 / notarization 手順
+- 実施日: 2025-11-14
+- 実施者: Codex (Agent)
+- エビデンス: `doc/reports/H_distribution_signing_20251114.md`
+- 備考: Windows signtool, AzureSignTool、macOS notarytool/stapler/検証コマンドを手順化し、ログ保管ポリシーも追記。
+
+- チェック対象: H-03 リリースノート更新
+- 実施日: 2025-11-14
+- 実施者: Codex (Agent)
+- エビデンス: `doc/reports/H_release_notes_20251114.md`
+- 備考: HTTPトークンサイクル、Export Logs AES-256、a11y KPI の達成状況をテーブル化し、次リリースのフォローアップを紐付け。
+
+- チェック対象: H-04 inspect_concat 契約テスト
+- 実施日: 2025-11-14
+- 実施者: Codex (Agent)
+- エビデンス: `packages/engine/src/inspect/concat.test.ts:1-420` + `packages/engine/src/inspect/types.ts:1-80`
+- 備考: Ajv で request/response schema を検証、`pnpm test` (Vitest coverage 100%) の一部としてCIに統合。
+
+- チェック対象: H-05 P1 backlog 登録
+- 実施日: 2025-11-14
+- 実施者: Codex (Agent)
+- エビデンス: `doc/reports/H_p1_backlog_20251114.md`
+- 備考: zh-CN ローカライズ＆maxParallelJobs=2 のIssue ID/依存関係/Exit条件を一覧化。

@@ -22,18 +22,26 @@ import {
   ensureTempRoot,
   enforceTempRoot,
   FFmpegDetectionResult,
-  ResourceLimitError
+  ResourceLimitError,
+  type BinaryLicense
 } from '@nodevision/system-check';
 import { createTokenManager, TokenRecord } from '@nodevision/tokens';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 
 import { buildRendererHtml } from './ui-template';
 import { buildQueueWarnings } from './queue-warnings';
-import type { BootStatus, QueueSnapshot } from './types';
+import type { BootStatus, FFmpegDistributionMetadata, QueueSnapshot } from './types';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const preloadPath = path.join(__dirname, 'preload.js');
+const FFMPEG_SOURCE_URL = 'https://ffmpeg.org/download.html#sources';
+const FFMPEG_LICENSE_URLS: Record<BinaryLicense, string> = {
+  lgpl: 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html',
+  gpl: 'https://www.gnu.org/licenses/gpl-3.0.en.html',
+  nonfree: 'https://ffmpeg.org/legal.html',
+  unknown: 'https://ffmpeg.org/legal.html'
+};
 
 const tokenManager = createTokenManager();
 const jobQueue = new JobQueue({ maxQueueLength: 4, queueTimeoutMs: 3 * 60_000 });
@@ -41,6 +49,84 @@ const inspectHistory = new InMemoryInspectRequestHistory(20);
 let httpServer: HttpServer | null = null;
 let cachedSettings: NodeVisionSettings | null = null;
 let lastExportSummary: { outputPath: string; sha256: string; generatedAt: string } | null = null;
+
+const normalizePath = (target: string | null | undefined): string | null => {
+  if (!target) {
+    return null;
+  }
+  const resolved = path.resolve(target);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+};
+
+const isWithin = (candidate: string | null, target: string): boolean => {
+  if (!candidate) {
+    return false;
+  }
+  const normalizedCandidate = normalizePath(candidate);
+  if (!normalizedCandidate) {
+    return false;
+  }
+  const normalizedTarget = normalizePath(target);
+  if (!normalizedTarget) {
+    return false;
+  }
+  if (normalizedTarget === normalizedCandidate) {
+    return true;
+  }
+  const prefix = normalizedTarget.endsWith(path.sep) ? normalizedTarget : `${normalizedTarget}${path.sep}`;
+  return normalizedCandidate.startsWith(prefix);
+};
+
+const gatherBundleHints = (): string[] => {
+  const hints = new Set<string>();
+  const addHint = (value: string | null | undefined) => {
+    if (value) {
+      hints.add(path.resolve(value));
+    }
+  };
+
+  addHint(process.env.NODEVISION_FFMPEG_BUNDLE_ROOT ?? null);
+  const envHints = (process.env.NODEVISION_FFMPEG_BUNDLE_HINTS ?? '')
+    .split(path.delimiter)
+    .map(entry => entry.trim())
+    .filter(Boolean);
+  envHints.forEach(addHint);
+
+  const resourcesRoot = process.resourcesPath;
+  addHint(resourcesRoot);
+  addHint(resourcesRoot ? path.join(resourcesRoot, 'ffmpeg') : null);
+  addHint(resourcesRoot ? path.join(resourcesRoot, 'bin') : null);
+
+  const appPath = app.getAppPath();
+  addHint(path.join(appPath, 'ffmpeg'));
+  addHint(path.join(appPath, 'resources', 'ffmpeg'));
+  addHint(path.join(__dirname, '..', '..', 'vendor', 'ffmpeg'));
+
+  return Array.from(hints);
+};
+
+const determineFfmpegOrigin = (ffmpegPath: string): 'bundled' | 'external' => {
+  if (process.env.NODEVISION_FFMPEG_BUNDLED === '1') {
+    return 'bundled';
+  }
+  const candidates = gatherBundleHints();
+  for (const hint of candidates) {
+    if (isWithin(ffmpegPath, hint)) {
+      return 'bundled';
+    }
+  }
+  return 'external';
+};
+
+const describeFfmpegDistribution = (ffmpeg: FFmpegDetectionResult['ffmpeg']): FFmpegDistributionMetadata => {
+  const origin = determineFfmpegOrigin(ffmpeg.path);
+  return {
+    origin,
+    license: ffmpeg.license,
+    licenseUrl: FFMPEG_LICENSE_URLS[ffmpeg.license] ?? FFMPEG_LICENSE_URLS.unknown,
+    sourceUrl: FFMPEG_SOURCE_URL
+  } satisfies FFmpegDistributionMetadata;
+};
 
 const getQueueSnapshot = (): QueueSnapshot => {
   const active = jobQueue.getActiveJobs();
@@ -253,6 +339,7 @@ async function bootstrapFoundation(): Promise<BootStatus> {
     ffmpegPath: settings.ffmpegPath ?? undefined,
     ffprobePath: settings.ffprobePath ?? undefined
   });
+  const ffmpegDistribution = describeFfmpegDistribution(ffmpeg.ffmpeg);
 
   const refreshedSettings = await updateSettings(() => ({
     ffmpegPath: ffmpeg.ffmpeg.path,
@@ -261,7 +348,14 @@ async function bootstrapFoundation(): Promise<BootStatus> {
 
   const token = await ensureHttpToken(refreshedSettings);
   cachedSettings = refreshedSettings;
-  return { settings: refreshedSettings, ffmpeg, token };
+  return {
+    settings: refreshedSettings,
+    ffmpeg,
+    token,
+    distribution: {
+      ffmpeg: ffmpegDistribution
+    }
+  };
 }
 
 function createWindow(status: BootStatus): void {

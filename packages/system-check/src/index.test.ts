@@ -16,12 +16,23 @@ import {
 
 const runtimeIsWindows = () => process.platform === 'win32' || process.env.NODEVISION_FORCE_WINDOWS === '1';
 
-const createFakeBinary = async (dir: string, name: string, version: string): Promise<string> => {
+const createFakeBinary = async (
+  dir: string,
+  name: string,
+  version: string,
+  options: { flags?: string[] } = {}
+): Promise<string> => {
   const ext = runtimeIsWindows() ? '.cmd' : '';
   const filePath = path.join(dir, `${name}${ext}`);
-  const content = runtimeIsWindows()
-    ? `@echo off\necho ${version}\n`
-    : `#!/usr/bin/env bash\necho "${version}"\n`;
+  const lines = [version];
+  if (options.flags && options.flags.length) {
+    lines.push(`configuration: ${options.flags.join(' ')}`);
+  }
+  const scripts = runtimeIsWindows() ? ['@echo off'] : ['#!/usr/bin/env bash'];
+  for (const line of lines) {
+    scripts.push(runtimeIsWindows() ? `echo ${line}` : `echo "${line}"`);
+  }
+  const content = `${scripts.join('\n')}\n`;
   await fs.writeFile(filePath, content, { mode: 0o755 });
   if (!runtimeIsWindows()) {
     await fs.chmod(filePath, 0o755);
@@ -40,6 +51,8 @@ describe('detectFFmpeg', () => {
     expect(result.ffmpeg.path).toBe(ffmpegPath);
     expect(result.ffmpeg.version === null || result.ffmpeg.version.includes('7.0')).toBe(true);
     expect(result.ffprobe.version).toContain('4.4');
+    expect(result.ffmpeg.license).toBe('unknown');
+    expect(result.ffprobe.license).toBe('unknown');
 
     await fs.rm(tempDir, { recursive: true, force: true });
   });
@@ -107,6 +120,7 @@ describe('detectFFmpeg', () => {
     }
     const result = await detectFFmpeg({ ffmpegPath, ffprobePath });
     expect(result.ffmpeg.version).toBeNull();
+    expect(result.ffmpeg.license).toBe('unknown');
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
@@ -123,6 +137,36 @@ describe('detectFFmpeg', () => {
       process.env.PATH = originalPath;
       await fs.rm(tempDir, { recursive: true, force: true });
     }
+  });
+
+  it('reads configuration flags to determine license type', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ffmpeg-license-'));
+    const ffmpegPath = await createFakeBinary(tempDir, 'ffmpeg', 'ffmpeg version 5.0', {
+      flags: ['--enable-gpl']
+    });
+    const ffprobePath = await createFakeBinary(tempDir, 'ffprobe', 'ffprobe version 5.0', {
+      flags: ['--enable-nonfree']
+    });
+
+    const result = await detectFFmpeg({ ffmpegPath, ffprobePath });
+
+    expect(result.ffmpeg.license).toBe('gpl');
+    expect(result.ffprobe.license).toBe('nonfree');
+
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('treats builds without gpl/nonfree flags as LGPL', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ffmpeg-lgpl-'));
+    const ffmpegPath = await createFakeBinary(tempDir, 'ffmpeg', 'ffmpeg version 6.0', {
+      flags: ['--enable-version3', '--disable-doc']
+    });
+    const ffprobePath = await createFakeBinary(tempDir, 'ffprobe', 'ffprobe version 6.0', {
+      flags: ['--enable-version3']
+    });
+    const result = await detectFFmpeg({ ffmpegPath, ffprobePath });
+    expect(result.ffmpeg.license).toBe('lgpl');
+    await fs.rm(tempDir, { recursive: true, force: true });
   });
 });
 

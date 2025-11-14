@@ -242,7 +242,7 @@ const runFfprobe = async (
     w: stream.width,
     h: stream.height,
     fps,
-    pix_fmt: stream.pix_fmt ?? null
+    pix_fmt: typeof stream.pix_fmt === 'string' && stream.pix_fmt.length ? stream.pix_fmt : 'unknown'
   };
 
   if (include.has('fps_rational') && rawRatio) {
@@ -301,7 +301,7 @@ const calculateEquality = (
   }
   /* c8 ignore start */
   if (!pixFmtEqual) {
-    mismatch.pix_fmt = details.map(detail => detail.pix_fmt ?? 'unknown');
+    mismatch.pix_fmt = details.map(detail => detail.pix_fmt);
   }
   /* c8 ignore stop */
 

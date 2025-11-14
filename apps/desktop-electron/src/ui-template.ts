@@ -101,6 +101,23 @@ const UI_TRANSLATIONS = {
     'toast.crashOff': 'Crash dumps will be excluded',
     'errors.schemaMissing': 'schemaVersion is missing',
     'errors.jsonLoadFailed': 'Failed to load JSON: {{reason}}',
+    'about.title': 'About & licensing',
+    'about.ariaLabel': 'About and licensing',
+    'about.distributionLabel': 'FFmpeg distribution',
+    'about.licenseLabel': 'License',
+    'about.pathLabel': 'FFmpeg path',
+    'about.versionLabel': 'FFmpeg version',
+    'about.origin.bundled': 'Bundled with NodeVision',
+    'about.origin.external': 'External/system binary',
+    'about.noticeBundled': 'NodeVision ships FFmpeg compiled under the LGPL v2.1+. Use the links below to review the license text and download matching source code.',
+    'about.noticeExternal': 'FFmpeg was detected on this system. Confirm that the “{{license}}” license suits your redistribution requirements.',
+    'about.licenseLinkLabel': 'License text',
+    'about.sourceLinkLabel': 'FFmpeg source',
+    'about.versionUnknown': 'Unknown',
+    'about.licenseValue.lgpl': 'LGPL v2.1+',
+    'about.licenseValue.gpl': 'GPL v3+',
+    'about.licenseValue.nonfree': 'Nonfree build (--enable-nonfree)',
+    'about.licenseValue.unknown': 'Unknown license',
     'demo.jobName': 'FFmpeg demo render'
   },
   'ja-JP': {
@@ -192,6 +209,23 @@ const UI_TRANSLATIONS = {
     'toast.crashOff': 'クラッシュダンプを除外するよ',
     'errors.schemaMissing': 'schemaVersion がありません',
     'errors.jsonLoadFailed': 'JSONの読み込みに失敗しました: {{reason}}',
+    'about.title': 'アバウトとライセンス',
+    'about.ariaLabel': 'アバウトとライセンス',
+    'about.distributionLabel': 'FFmpeg配布形態',
+    'about.licenseLabel': 'ライセンス',
+    'about.pathLabel': 'FFmpegパス',
+    'about.versionLabel': 'FFmpegバージョン',
+    'about.origin.bundled': 'NodeVision同梱 (LGPL)',
+    'about.origin.external': '外部/システムのバイナリ',
+    'about.noticeBundled': 'NodeVisionはLGPL v2.1+準拠でビルドしたFFmpegを同梱しています。下のリンクからライセンス原文と対応するソースコードにアクセスしてください。',
+    'about.noticeExternal': 'このFFmpegはシステムから検出したものです（ライセンス: {{license}}）。再配布ポリシーに合っているかご確認ください。',
+    'about.licenseLinkLabel': 'ライセンス原文',
+    'about.sourceLinkLabel': 'FFmpegソース',
+    'about.versionUnknown': '不明',
+    'about.licenseValue.lgpl': 'LGPL v2.1+',
+    'about.licenseValue.gpl': 'GPL v3+',
+    'about.licenseValue.nonfree': '非フリー構成 (--enable-nonfree)',
+    'about.licenseValue.unknown': 'ライセンス不明',
     'demo.jobName': 'FFmpeg 合成'
   }
 } as const;
@@ -390,6 +424,48 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         justify-content: space-between;
         align-items: center;
         gap: 8px;
+      }
+      .about-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 16px;
+        background: rgba(13, 16, 25, 0.85);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .about-card header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .about-card dl {
+        margin: 0;
+      }
+      .about-card dt {
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .about-card dd {
+        margin: 2px 0 10px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .about-card .mono {
+        font-family: 'JetBrains Mono', 'SFMono-Regular', monospace;
+        word-break: break-all;
+      }
+      .about-links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .about-links a {
+        color: #88b6ff;
+        font-size: 12px;
       }
       .queue-lists {
         display: flex;
@@ -795,6 +871,57 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             <div id="inspect-history"></div>
           </div>
         </div>
+        <div
+          class="about-card"
+          id="about-card"
+          role="region"
+          aria-live="polite"
+          aria-label="About & licensing"
+          data-i18n-attr-aria-label="about.ariaLabel"
+        >
+          <header>
+            <strong data-i18n-key="about.title">About & licensing</strong>
+          </header>
+          <dl>
+            <div>
+              <dt data-i18n-key="about.distributionLabel">FFmpeg distribution</dt>
+              <dd id="about-distribution"></dd>
+            </div>
+            <div>
+              <dt data-i18n-key="about.licenseLabel">License</dt>
+              <dd id="about-license"></dd>
+            </div>
+            <div>
+              <dt data-i18n-key="about.pathLabel">FFmpeg path</dt>
+              <dd id="about-path" class="mono"></dd>
+            </div>
+            <div>
+              <dt data-i18n-key="about.versionLabel">FFmpeg version</dt>
+              <dd id="about-version"></dd>
+            </div>
+          </dl>
+          <p id="about-notice"></p>
+          <div class="about-links">
+            <a
+              id="about-license-link"
+              href="https://ffmpeg.org/legal.html"
+              target="_blank"
+              rel="noreferrer"
+              data-i18n-key="about.licenseLinkLabel"
+            >
+              License text
+            </a>
+            <a
+              id="about-source-link"
+              href="https://ffmpeg.org/download.html#sources"
+              target="_blank"
+              rel="noreferrer"
+              data-i18n-key="about.sourceLinkLabel"
+            >
+              FFmpeg source
+            </a>
+          </div>
+        </div>
       </section>
       <section class="canvas-wrap">
         <div id="canvas" role="region" aria-label="Node canvas" data-i18n-attr-aria-label="canvas.ariaLabel"></div>
@@ -876,7 +1003,14 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         connectionHint: document.getElementById('connection-pending'),
         demoJob: document.getElementById('btn-demo-job'),
         cancelAll: document.getElementById('btn-cancel-all'),
-        toast: document.getElementById('toast')
+        toast: document.getElementById('toast'),
+        aboutDistribution: document.getElementById('about-distribution'),
+        aboutLicense: document.getElementById('about-license'),
+        aboutPath: document.getElementById('about-path'),
+        aboutVersion: document.getElementById('about-version'),
+        aboutNotice: document.getElementById('about-notice'),
+        aboutLicenseLink: document.getElementById('about-license-link'),
+        aboutSourceLink: document.getElementById('about-source-link')
       };
 
       const deepClone = value => JSON.parse(JSON.stringify(value));
@@ -1234,6 +1368,35 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           \`<li>Token Label: \${BOOTSTRAP.status.token.label}</li>\`
         ];
         elements.statusList.innerHTML = items.join('');
+      };
+
+      const renderAbout = () => {
+        const metadata = BOOTSTRAP.status?.distribution?.ffmpeg;
+        if (!metadata || !elements.aboutDistribution || !elements.aboutLicense) {
+          return;
+        }
+        const licenseKey = metadata.license ?? 'unknown';
+        const licenseLabel = t(\`about.licenseValue.\${licenseKey}\`) ?? t('about.licenseValue.unknown');
+        const originKey = metadata.origin === 'bundled' ? 'about.origin.bundled' : 'about.origin.external';
+        elements.aboutDistribution.textContent = t(originKey);
+        elements.aboutLicense.textContent = licenseLabel;
+        if (elements.aboutPath) {
+          elements.aboutPath.textContent = BOOTSTRAP.status.ffmpeg.ffmpeg.path;
+        }
+        if (elements.aboutVersion) {
+          elements.aboutVersion.textContent =
+            BOOTSTRAP.status.ffmpeg.ffmpeg.version ?? t('about.versionUnknown');
+        }
+        if (elements.aboutNotice) {
+          const noticeKey = metadata.origin === 'bundled' ? 'about.noticeBundled' : 'about.noticeExternal';
+          elements.aboutNotice.textContent = t(noticeKey, { license: licenseLabel });
+        }
+        if (elements.aboutLicenseLink && metadata.licenseUrl) {
+          elements.aboutLicenseLink.setAttribute('href', metadata.licenseUrl);
+        }
+        if (elements.aboutSourceLink && metadata.sourceUrl) {
+          elements.aboutSourceLink.setAttribute('href', metadata.sourceUrl);
+        }
       };
 
       const setAutosaveMessage = msg => {
@@ -1860,6 +2023,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       document.addEventListener('keydown', handleKeydown);
 
       renderStatus();
+      renderAbout();
       renderNodes();
       renderConnections();
       updatePendingHint();

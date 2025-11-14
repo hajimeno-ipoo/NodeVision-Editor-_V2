@@ -20,8 +20,8 @@ const bootStatus: BootStatus = {
     updatedAt: now
   },
   ffmpeg: {
-    ffmpeg: { path: '/usr/bin/ffmpeg', version: '6.1' },
-    ffprobe: { path: '/usr/bin/ffprobe', version: '6.1' }
+    ffmpeg: { path: '/usr/bin/ffmpeg', version: '6.1', license: 'lgpl' },
+    ffprobe: { path: '/usr/bin/ffprobe', version: '6.1', license: 'lgpl' }
   },
   token: {
     label: 'default',
@@ -29,6 +29,14 @@ const bootStatus: BootStatus = {
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     createdAt: now,
     updatedAt: now
+  },
+  distribution: {
+    ffmpeg: {
+      origin: 'external',
+      license: 'lgpl',
+      licenseUrl: 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html',
+      sourceUrl: 'https://ffmpeg.org/download.html#sources'
+    }
   }
 };
 
