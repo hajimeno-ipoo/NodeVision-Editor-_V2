@@ -2,10 +2,13 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import Ajv2020 from 'ajv/dist/2020';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { inspectConcat, isNetworkPath, buildConcatFailure, ratioToNumber, parseRatio } from './concat';
 import type { InspectConcatRequest } from './types';
+import inspectRequestSchema from '../../../../doc/inspect_concat_API_v1/inspect_concat.request.schema.json';
+import inspectResponseSchema from '../../../../doc/inspect_concat_API_v1/inspect_concat.response.schema.json';
 
 vi.mock('execa', () => ({
   execa: vi.fn()
@@ -14,6 +17,9 @@ vi.mock('execa', () => ({
 import { execa } from 'execa';
 
 const execaMock = vi.mocked(execa);
+const ajv = new Ajv2020({ strict: false, allErrors: true, allowUnionTypes: true });
+const validateInspectRequest = ajv.compile(inspectRequestSchema);
+const validateInspectResponse = ajv.compile(inspectResponseSchema);
 
 const createTempDir = async (): Promise<string> => fs.mkdtemp(path.join(os.tmpdir(), 'inspect-test-'));
 
@@ -333,7 +339,7 @@ describe('inspectConcat', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('defaults pix_fmt metadata to null when missing', async () => {
+  it("defaults pix_fmt metadata to 'unknown' when missing", async () => {
     const fileA = await writeTempFile(tempDir, 'clip-a.mp4');
     const payload = {
       stdout: JSON.stringify({
@@ -353,7 +359,7 @@ describe('inspectConcat', () => {
       { clips: [{ path: fileA }, { path: fileA }] },
       { ffprobePath: '/usr/bin/ffprobe' }
     );
-    expect(result.details?.[0]?.pix_fmt).toBeNull();
+    expect(result.details?.[0]?.pix_fmt).toBe('unknown');
   });
 
   it('skips sar metadata when parsing fails', async () => {
@@ -531,5 +537,52 @@ describe('inspectConcat', () => {
     expect(result.details?.[0]?.duration_ms).toBe(12500);
     expect(result.details?.[0]?.bitrate_bps).toBe(1234567);
     expect(result.details?.[0]?.vcodec).toBe('hevc');
+  });
+});
+
+describe('inspect_concat contract schemas', () => {
+  it('accepts the canonical InspectConcatRequest shape', () => {
+    const request: InspectConcatRequest = {
+      version: '1.0',
+      clips: [
+        { path: '/tmp/a.mp4' },
+        { path: '/tmp/b.mp4' }
+      ],
+      options: {
+        fpsTolerance: 0.05,
+        include: ['duration', 'bitrate', 'vcodec', 'sar', 'fps_rational', 'pix_fmt']
+      }
+    };
+    const valid = validateInspectRequest(request);
+    if (!valid && validateInspectRequest.errors) {
+      throw new Error(JSON.stringify(validateInspectRequest.errors));
+    }
+    expect(valid).toBe(true);
+  });
+
+  it('produces responses that satisfy InspectConcatResponse schema', async () => {
+    const dir = await createTempDir();
+    try {
+      const fileA = await writeTempFile(dir, 'clip-a.mp4');
+      const fileB = await writeTempFile(dir, 'clip-b.mp4');
+      mockProbeSequence({ fps: '30/1', pix_fmt: 'yuv420p' }, { fps: '30/1', pix_fmt: 'yuv420p' });
+
+      const response = await inspectConcat(
+        {
+          version: '1.0',
+          clips: [{ path: fileA }, { path: fileB }],
+          options: { include: ['duration', 'pix_fmt', 'fps_rational'] }
+        },
+        { ffprobePath: '/usr/bin/ffprobe' }
+      );
+
+      const isValid = validateInspectResponse(response);
+      if (!isValid && validateInspectResponse.errors) {
+        throw new Error(JSON.stringify(validateInspectResponse.errors));
+      }
+      expect(isValid).toBe(true);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
   });
 });

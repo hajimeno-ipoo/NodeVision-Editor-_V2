@@ -1,12 +1,22 @@
 import type { JobHistoryEntry, JobSnapshot, InspectRequestLog, LogLevel } from '@nodevision/engine';
 import type { NodeVisionSettings } from '@nodevision/settings';
-import type { FFmpegDetectionResult } from '@nodevision/system-check';
+import type { BinaryLicense, FFmpegDetectionResult } from '@nodevision/system-check';
 import type { TokenRecord } from '@nodevision/tokens';
+
+export interface FFmpegDistributionMetadata {
+  origin: 'bundled' | 'external';
+  license: BinaryLicense;
+  licenseUrl: string;
+  sourceUrl: string;
+}
 
 export interface BootStatus {
   settings: NodeVisionSettings;
   ffmpeg: FFmpegDetectionResult;
   token: TokenRecord;
+  distribution: {
+    ffmpeg: FFmpegDistributionMetadata;
+  };
 }
 
 export interface QueueWarning {

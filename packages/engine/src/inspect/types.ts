@@ -2,7 +2,7 @@ export interface InspectClipRequest {
   path: string;
 }
 
-export type InspectInclude = 'duration' | 'bitrate' | 'vcodec' | 'sar' | 'fps_rational';
+export type InspectInclude = 'duration' | 'bitrate' | 'vcodec' | 'sar' | 'fps_rational' | 'pix_fmt';
 
 export interface InspectConcatRequest {
   clips: InspectClipRequest[];
@@ -29,7 +29,7 @@ export interface InspectClipDetails {
   w: number;
   h: number;
   fps: number;
-  pix_fmt: string | null;
+  pix_fmt: string;
   fps_rational?: InspectRatio;
   sar?: InspectRatio;
   duration_ms?: number;

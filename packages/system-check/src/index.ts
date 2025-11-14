@@ -8,9 +8,12 @@ import { execa } from 'execa';
 export const DEFAULT_TOTAL_LIMIT_BYTES = 1_000_000_000; // 1GB
 export const DEFAULT_SINGLE_JOB_LIMIT_BYTES = 500_000_000; // 500MB
 
+export type BinaryLicense = 'lgpl' | 'gpl' | 'nonfree' | 'unknown';
+
 export interface BinaryInfo {
   path: string;
   version: string | null;
+  license: BinaryLicense;
 }
 
 export interface FFmpegDetectionResult {
@@ -115,28 +118,64 @@ const parseVersion = (output: string): string | null => {
   return firstLine?.length ? firstLine : null;
 };
 
-const readBinaryVersion = async (binaryPath: string): Promise<string | null> => {
+const parseConfigurationFlags = (output: string): string[] => {
+  const configLine = output
+    .split('\n')
+    .map(line => line.trim())
+    .find(line => line.toLowerCase().startsWith('configuration:'));
+  if (!configLine) {
+    return [];
+  }
+  return configLine
+    .slice('configuration:'.length)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+};
+
+const detectBinaryLicense = (output: string): BinaryLicense => {
+  const flags = parseConfigurationFlags(output);
+  if (flags.some(flag => flag === '--enable-nonfree')) {
+    return 'nonfree';
+  }
+  if (flags.some(flag => flag === '--enable-gpl')) {
+    return 'gpl';
+  }
+  if (flags.length) {
+    return 'lgpl';
+  }
+  return 'unknown';
+};
+
+const readBinaryMetadata = async (binaryPath: string): Promise<{ version: string | null; license: BinaryLicense }> => {
   try {
     const { stdout } = await execa(binaryPath, ['-version'], { reject: false, timeout: 1000 });
-    return parseVersion(stdout);
+    return {
+      version: parseVersion(stdout),
+      license: detectBinaryLicense(stdout)
+    };
   } catch {
     /* c8 ignore next */
-    return null;
+    return { version: null, license: 'unknown' };
   }
 };
 
 export async function detectFFmpeg(options: FFmpegDetectionOptions = {}): Promise<FFmpegDetectionResult> {
   const ffmpegPath = await resolveBinary('ffmpeg', options.ffmpegPath ?? undefined);
   const ffprobePath = await resolveBinary('ffprobe', options.ffprobePath ?? undefined);
+  const ffmpegInfo = await readBinaryMetadata(ffmpegPath);
+  const ffprobeInfo = await readBinaryMetadata(ffprobePath);
 
   return {
     ffmpeg: {
       path: ffmpegPath,
-      version: await readBinaryVersion(ffmpegPath)
+      version: ffmpegInfo.version,
+      license: ffmpegInfo.license
     },
     ffprobe: {
       path: ffprobePath,
-      version: await readBinaryVersion(ffprobePath)
+      version: ffprobeInfo.version,
+      license: ffprobeInfo.license
     }
   };
 }
