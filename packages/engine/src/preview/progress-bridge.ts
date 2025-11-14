@@ -26,10 +26,7 @@ export class PreviewProgressBridge {
   private lastPreviewTimeMs = 0;
   private lastEncoderTimeMs = 0;
 
-  constructor(
-    private readonly progress: JobProgressSnapshotProvider,
-    private readonly options: PreviewProgressOptions
-  ) {
+  constructor(private readonly progress: JobProgressSnapshotProvider, options: PreviewProgressOptions) {
     const fps = validateFps(options.fps);
     this.frameDurationMs = 1000 / fps;
     const toleranceFrames = options.toleranceFrames ?? 1;

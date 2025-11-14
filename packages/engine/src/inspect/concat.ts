@@ -2,7 +2,31 @@ import { constants as fsConstants } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { execa } from 'execa';
+type ExecaModule = typeof import('execa');
+type ExecaLoader = () => Promise<ExecaModule>;
+
+/* c8 ignore start */
+const nativeDynamicImport = new Function('specifier', 'return import(specifier);') as (
+  specifier: string
+) => Promise<ExecaModule>;
+
+const defaultExecaLoader: ExecaLoader = () => nativeDynamicImport('execa');
+/* c8 ignore end */
+let execaModuleLoader: ExecaLoader = defaultExecaLoader;
+let execaRunner: ExecaModule['execa'] | null = null;
+
+export const __setExecaModuleLoaderForTests = (loader: ExecaLoader | null): void => {
+  execaModuleLoader = loader ?? defaultExecaLoader;
+  execaRunner = null;
+};
+
+const getExeca = async (): Promise<ExecaModule['execa']> => {
+  if (!execaRunner) {
+    const module = await execaModuleLoader();
+    execaRunner = module.execa;
+  }
+  return execaRunner;
+};
 
 import type {
   InspectClipDetails,
@@ -10,7 +34,6 @@ import type {
   InspectConcatRequest,
   InspectConcatResponse,
   InspectEquality,
-  InspectError,
   InspectInclude,
   InspectRatio
 } from './types';
@@ -190,6 +213,7 @@ const runFfprobe = async (
 
   let stdout: string;
   try {
+    const execa = await getExeca();
     const result = await execa(options.ffprobePath, [
       '-v',
       'error',

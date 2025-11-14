@@ -1,0 +1,4 @@
+## 2025-11-14 execa loader hotfix
+- Desktop Electron crashed on startup because `@nodevision/system-check` and `@nodevision/engine` tried to `require('execa')`, which is now ESM-only. Replaced the static import with a lazy loader that uses native `import()` (via a tiny dynamic-import helper) so CJS builds can still pull in execa at runtime.
+- Added `__setExecaModuleLoaderForTests` hooks so Vitest suites can inject mock implementations instead of relying on `vi.mock('execa')`. Engine/system-check tests were updated to use the new hook and still maintain 100% coverage.
+- System-check tests now record fake binary outputs instead of executing the temporary shell scripts, keeping behavior deterministic after the loader change. Coverage/lint/test targets remain green (`pnpm test`, `pnpm --filter desktop-electron build`).

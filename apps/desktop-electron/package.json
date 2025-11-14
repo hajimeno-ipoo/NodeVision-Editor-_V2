@@ -8,6 +8,8 @@
     "dev": "pnpm run build && electron dist/main.js"
   },
   "dependencies": {
+    "@nodevision/editor": "workspace:*",
+    "@nodevision/engine": "workspace:*",
     "@nodevision/settings": "workspace:*",
     "@nodevision/system-check": "workspace:*",
     "@nodevision/tokens": "workspace:*",

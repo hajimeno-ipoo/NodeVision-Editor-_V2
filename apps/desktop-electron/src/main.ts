@@ -1,6 +1,5 @@
 import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_NODE_TEMPLATES, seedDemoNodes } from '@nodevision/editor';
 import {
@@ -32,8 +31,6 @@ import { buildRendererHtml } from './ui-template';
 import { buildQueueWarnings } from './queue-warnings';
 import type { BootStatus, FFmpegDistributionMetadata, QueueSnapshot } from './types';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const preloadPath = path.join(__dirname, 'preload.js');
 const FFMPEG_SOURCE_URL = 'https://ffmpeg.org/download.html#sources';
 const FFMPEG_LICENSE_URLS: Record<BinaryLicense, string> = {
@@ -363,6 +360,7 @@ function createWindow(status: BootStatus): void {
     status,
     templates: DEFAULT_NODE_TEMPLATES,
     nodes: seedDemoNodes(),
+    connections: [],
     queue: getQueueSnapshot(),
     diagnostics: diagnosticsSnapshot()
   };

@@ -5,18 +5,23 @@ import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { inspectConcat, isNetworkPath, buildConcatFailure, ratioToNumber, parseRatio } from './concat';
+import {
+  inspectConcat,
+  isNetworkPath,
+  buildConcatFailure,
+  ratioToNumber,
+  parseRatio,
+  __setExecaModuleLoaderForTests
+} from './concat';
 import type { InspectConcatRequest } from './types';
 import inspectRequestSchema from '../../../../doc/inspect_concat_API_v1/inspect_concat.request.schema.json';
 import inspectResponseSchema from '../../../../doc/inspect_concat_API_v1/inspect_concat.response.schema.json';
 
-vi.mock('execa', () => ({
-  execa: vi.fn()
-}));
-
-import { execa } from 'execa';
-
-const execaMock = vi.mocked(execa);
+type ExecaModule = typeof import('execa');
+const execaMock = vi.fn();
+const installExecaMock = () => {
+  __setExecaModuleLoaderForTests(async () => ({ execa: execaMock } as unknown as ExecaModule));
+};
 const ajv = new Ajv2020({ strict: false, allErrors: true, allowUnionTypes: true });
 const validateInspectRequest = ajv.compile(inspectRequestSchema);
 const validateInspectResponse = ajv.compile(inspectResponseSchema);
@@ -69,15 +74,17 @@ describe('concat helpers', () => {
 describe('inspectConcat', () => {
   let tempDir: string;
 
-  beforeEach(async () => {
-    tempDir = await createTempDir();
-    execaMock.mockReset();
-  });
+beforeEach(async () => {
+  tempDir = await createTempDir();
+  installExecaMock();
+  execaMock.mockReset();
+});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-    execaMock.mockReset();
-  });
+afterEach(async () => {
+  await fs.rm(tempDir, { recursive: true, force: true });
+  __setExecaModuleLoaderForTests(null);
+  execaMock.mockReset();
+});
 
   it('returns ok when clips match', async () => {
     const fileA = await writeTempFile(tempDir, 'clip-a.mp4');

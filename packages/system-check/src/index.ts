@@ -3,7 +3,31 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { execa } from 'execa';
+type ExecaModule = typeof import('execa');
+type ExecaLoader = () => Promise<ExecaModule>;
+
+/* c8 ignore start */
+const nativeDynamicImport = new Function('specifier', 'return import(specifier);') as (
+  specifier: string
+) => Promise<ExecaModule>;
+
+const defaultExecaLoader: ExecaLoader = () => nativeDynamicImport('execa');
+/* c8 ignore end */
+let execaModuleLoader: ExecaLoader = defaultExecaLoader;
+let execaRunner: ExecaModule['execa'] | null = null;
+
+export const __setExecaModuleLoaderForTests = (loader: ExecaLoader | null): void => {
+  execaModuleLoader = loader ?? defaultExecaLoader;
+  execaRunner = null;
+};
+
+const getExeca = async (): Promise<ExecaModule['execa']> => {
+  if (!execaRunner) {
+    const module = await execaModuleLoader();
+    execaRunner = module.execa;
+  }
+  return execaRunner;
+};
 
 export const DEFAULT_TOTAL_LIMIT_BYTES = 1_000_000_000; // 1GB
 export const DEFAULT_SINGLE_JOB_LIMIT_BYTES = 500_000_000; // 500MB
@@ -149,6 +173,7 @@ const detectBinaryLicense = (output: string): BinaryLicense => {
 
 const readBinaryMetadata = async (binaryPath: string): Promise<{ version: string | null; license: BinaryLicense }> => {
   try {
+    const execa = await getExeca();
     const { stdout } = await execa(binaryPath, ['-version'], { reject: false, timeout: 1000 });
     return {
       version: parseVersion(stdout),

@@ -53,11 +53,11 @@ export interface JobProgressSnapshotProvider {
   setEstimatedTotalTime(milliseconds: number | null): JobProgressSnapshot;
 }
 
-export interface JobRunResult<TResult = unknown> {
+export interface JobRunResult {
   outputPath?: string | null;
   totalTimeMs?: number | null;
   outputTimeMs?: number | null;
-  result?: TResult;
+  result?: unknown;
 }
 
 export interface QueueFullEvent {
@@ -65,12 +65,12 @@ export interface QueueFullEvent {
   queuedJobs: number;
 }
 
-export interface QueueJobOptions<TResult = unknown> {
+export interface QueueJobOptions {
   name: string;
   estimatedTotalTimeMs?: number | null;
   metadata?: Record<string, unknown>;
-  execute: (ctx: JobRunContext) => Promise<JobRunResult<TResult>>;
-  generatePreview?: (result: JobRunResult<TResult>, ctx: JobPreviewContext) => Promise<void> | void;
+  execute: (ctx: JobRunContext) => Promise<JobRunResult>;
+  generatePreview?: (result: JobRunResult, ctx: JobPreviewContext) => Promise<void> | void;
 }
 
 export interface HistoryStore {

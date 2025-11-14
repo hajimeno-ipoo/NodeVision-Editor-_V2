@@ -4,12 +4,11 @@ import { EventEmitter } from 'node:events';
 import { JobCancelledError, QueueFullError, isJobCancelledError } from './job-errors';
 import { InMemoryHistoryStore } from './job-history';
 import { JobProgressTracker } from './job-progress';
-import {
+import type {
   CancelAllSummary,
   HistoryStore,
   JobHistoryEntry,
   LogLevel,
-  JobPreviewContext,
   JobRunContext,
   JobRunResult,
   JobSnapshot,
@@ -18,7 +17,7 @@ import {
   QueueFullEvent
 } from './types';
 
-interface InternalJob<TResult = unknown> {
+interface InternalJob {
   id: string;
   name: string;
   status: JobState;
@@ -28,7 +27,7 @@ interface InternalJob<TResult = unknown> {
   finishedAt: number | null;
   metadata?: Record<string, unknown>;
   progress: JobProgressTracker;
-  options: QueueJobOptions<TResult>;
+  options: QueueJobOptions;
   controller: AbortController;
   errorMessage?: string | null;
   message?: string | null;
@@ -67,7 +66,7 @@ export class JobQueue extends EventEmitter {
     this.queueTimeoutMs = options.queueTimeoutMs ?? DEFAULT_QUEUE_TIMEOUT_MS;
   }
 
-  enqueue<TResult>(options: QueueJobOptions<TResult>): string {
+  enqueue(options: QueueJobOptions): string {
     if (this.queue.length >= this.maxQueueLength) {
       this.lastQueueFullEvent = {
         occurredAt: Date.now(),
@@ -76,7 +75,7 @@ export class JobQueue extends EventEmitter {
       throw new QueueFullError(this.maxQueueLength);
     }
 
-    const job: InternalJob<TResult> = {
+    const job: InternalJob = {
       id: randomUUID(),
       name: options.name,
       status: 'queued',

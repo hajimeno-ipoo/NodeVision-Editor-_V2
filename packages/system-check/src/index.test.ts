@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   analyzeTempRoot,
@@ -11,10 +11,46 @@ import {
   detectFFmpeg,
   getDefaultTempRoot,
   enforceTempRoot,
-  ResourceLimitError
+  ResourceLimitError,
+  __setExecaModuleLoaderForTests
 } from './index';
 
+type ExecaModule = typeof import('execa');
+const execaMock = vi.fn();
+const binaryOutputs = new Map<string, string>();
+
+const installExecaMock = () => {
+  execaMock.mockImplementation(async (command: string) => {
+    if (!binaryOutputs.has(command)) {
+      throw Object.assign(new Error(`Unexpected command: ${command}`), {
+        stderr: '',
+        timedOut: false
+      });
+    }
+    return { stdout: binaryOutputs.get(command) ?? '' };
+  });
+  __setExecaModuleLoaderForTests(async () => ({ execa: execaMock } as unknown as ExecaModule));
+};
+
+const resetExecaMock = () => {
+  __setExecaModuleLoaderForTests(null);
+  execaMock.mockReset();
+  binaryOutputs.clear();
+};
+
 const runtimeIsWindows = () => process.platform === 'win32' || process.env.NODEVISION_FORCE_WINDOWS === '1';
+
+beforeEach(() => {
+  installExecaMock();
+});
+
+afterEach(() => {
+  resetExecaMock();
+});
+
+const registerBinaryOutput = (binaryPath: string, lines: string[]): void => {
+  binaryOutputs.set(binaryPath, lines.join('\n'));
+};
 
 const createFakeBinary = async (
   dir: string,
@@ -37,6 +73,7 @@ const createFakeBinary = async (
   if (!runtimeIsWindows()) {
     await fs.chmod(filePath, 0o755);
   }
+  registerBinaryOutput(filePath, lines);
   return filePath;
 };
 
@@ -118,6 +155,7 @@ describe('detectFFmpeg', () => {
     if (!runtimeIsWindows()) {
       await fs.chmod(ffmpegPath, 0o755);
     }
+    binaryOutputs.set(ffmpegPath, '');
     const result = await detectFFmpeg({ ffmpegPath, ffprobePath });
     expect(result.ffmpeg.version).toBeNull();
     expect(result.ffmpeg.license).toBe('unknown');

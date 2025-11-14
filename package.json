@@ -9,6 +9,8 @@
     "node": ">=18.19.0"
   },
   "scripts": {
+    "build:packages": "pnpm --filter '@nodevision/*' run build",
+    "predev": "pnpm run build:packages",
     "build": "pnpm run -r build",
     "lint": "eslint .",
     "format": "prettier --write .",

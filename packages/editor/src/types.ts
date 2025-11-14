@@ -68,6 +68,8 @@ export interface NodeTemplate {
   keywords: string[];
   width?: number;
   height?: number;
+  inputs?: PortDefinition[];
+  outputs?: PortDefinition[];
 }
 
 export interface SerializedProject {

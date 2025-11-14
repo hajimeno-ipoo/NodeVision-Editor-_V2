@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 
 import archiver from 'archiver';
+import type { ArchiverOptions } from 'archiver';
 import zipEncrypted from 'archiver-zip-encrypted';
 
 import type { InspectRequestLog, JobHistoryEntry } from '../types';
@@ -100,11 +101,12 @@ export async function exportDiagnosticsLogs(options: LogExportOptions): Promise<
 
   await new Promise<void>((resolve, reject) => {
     const output = createWriteStream(outputFile);
-    const archive = archiver.create('zip-encrypted', {
+    const archiveOptions: ArchiverOptions & { encryptionMethod: string; password: string } = {
       zlib: { level: 8 },
       encryptionMethod: 'aes256',
       password
-    });
+    };
+    const archive = archiver.create('zip-encrypted', archiveOptions);
 
     output.on('close', resolve);
     output.on('error', reject);
