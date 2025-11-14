@@ -20,6 +20,9 @@ const UI_TRANSLATIONS = {
     'toolbar.undo': 'Undo',
     'toolbar.redo': 'Redo',
     'toolbar.runningMode': 'Running mode',
+    'toolbar.localeLabel': 'Language',
+    'toolbar.locale.en': 'English',
+    'toolbar.locale.ja': 'Japanese',
     'autosave.pending': 'Waiting for changes...',
     'autosave.running': 'Monitoring changes while running ({{seconds}}s)',
     'autosave.idle': 'Watching for edits ({{seconds}}s)',
@@ -118,6 +121,42 @@ const UI_TRANSLATIONS = {
     'about.licenseValue.gpl': 'GPL v3+',
     'about.licenseValue.nonfree': 'Nonfree build (--enable-nonfree)',
     'about.licenseValue.unknown': 'Unknown license',
+    'nodeTemplate.loadMedia.title': 'Load Media',
+    'nodeTemplate.loadMedia.description': 'Open a local image or video file',
+    'nodeTemplate.loadMedia.port.media': 'Media',
+    'nodeTemplate.trim.title': 'Trim',
+    'nodeTemplate.trim.description': 'Cut media between in/out points',
+    'nodeTemplate.trim.port.source': 'Source',
+    'nodeTemplate.trim.port.result': 'Result',
+    'nodeTemplate.resize.title': 'Resize',
+    'nodeTemplate.resize.description': 'Resize media with aspect ratio controls',
+    'nodeTemplate.resize.port.source': 'Source',
+    'nodeTemplate.resize.port.resized': 'Resized',
+    'nodeTemplate.overlay.title': 'Overlay',
+    'nodeTemplate.overlay.description': 'Blend two sources with position controls',
+    'nodeTemplate.overlay.port.base': 'Base',
+    'nodeTemplate.overlay.port.layer': 'Layer',
+    'nodeTemplate.overlay.port.composite': 'Composite',
+    'nodeTemplate.text.title': 'Text Overlay',
+    'nodeTemplate.text.description': 'Render titles or captions with font and color controls',
+    'nodeTemplate.text.port.background': 'Background',
+    'nodeTemplate.text.port.titled': 'Titled',
+    'nodeTemplate.crop.title': 'Crop',
+    'nodeTemplate.crop.description': 'Trim the visible area to a custom frame',
+    'nodeTemplate.crop.port.source': 'Source',
+    'nodeTemplate.crop.port.cropped': 'Cropped',
+    'nodeTemplate.speed.title': 'Speed',
+    'nodeTemplate.speed.description': 'Ramp playback speed for slow/fast motion',
+    'nodeTemplate.speed.port.source': 'Source',
+    'nodeTemplate.speed.port.retimed': 'Retimed',
+    'nodeTemplate.changeFps.title': 'Change FPS',
+    'nodeTemplate.changeFps.description': 'Convert variable frame rate clips to constant FPS',
+    'nodeTemplate.changeFps.port.source': 'Source',
+    'nodeTemplate.changeFps.port.normalized': 'Normalized',
+    'nodeTemplate.export.title': 'Export Media',
+    'nodeTemplate.export.description': 'Finalize and export the edited result',
+    'nodeTemplate.export.port.program': 'Program',
+    'nodeTemplate.export.port.delivery': 'Exported',
     'demo.jobName': 'FFmpeg demo render'
   },
   'ja-JP': {
@@ -125,9 +164,12 @@ const UI_TRANSLATIONS = {
     'toolbar.alignLeft': '左揃え',
     'toolbar.alignTop': '上揃え',
     'toolbar.alignCenter': '中央揃え',
-    'toolbar.undo': 'Undo',
-    'toolbar.redo': 'Redo',
+    'toolbar.undo': '元に戻す',
+    'toolbar.redo': 'やり直し',
     'toolbar.runningMode': '実行中モード',
+    'toolbar.localeLabel': '言語',
+    'toolbar.locale.en': '英語',
+    'toolbar.locale.ja': '日本語',
     'autosave.pending': '変更待ち...',
     'autosave.running': '実行中…変更を監視中 ({{seconds}}秒)',
     'autosave.idle': '変更検知 ({{seconds}}秒)',
@@ -160,8 +202,8 @@ const UI_TRANSLATIONS = {
     'queue.noHistory': '履歴はまだありません',
     'queue.noLogs': 'ログなし',
     'queue.defaultJob': 'ジョブ',
-    'queue.stableTitle': 'Queue Stable',
-    'queue.stableSummary': '待機 {{queued}}/{{limit}} ・ Timeout {{timeout}}秒',
+    'queue.stableTitle': 'キューは安定',
+    'queue.stableSummary': '待機 {{queued}}/{{limit}} ・ タイムアウト {{timeout}}秒',
     'nodes.ariaLabel': '{{title}} ノード',
     'ports.inputsLabel': '{{title}} の入力',
     'ports.outputsLabel': '{{title}} の出力',
@@ -187,7 +229,7 @@ const UI_TRANSLATIONS = {
     'diagnostics.unknownSha': '不明',
     'diagnostics.historyEmpty': '履歴はまだありません',
     'diagnostics.noDetails': '詳細なし',
-    'diagnostics.defaultToken': 'token?',
+    'diagnostics.defaultToken': 'トークン?',
     'diagnostics.clipCount': '{{count}} クリップ',
     'diagnostics.defaultPath': '診断フォルダー',
     'json.banner': 'JSONプロジェクトの保存/読み込みはここから。schemaVersion=1.0.7 を保持します。',
@@ -226,6 +268,42 @@ const UI_TRANSLATIONS = {
     'about.licenseValue.gpl': 'GPL v3+',
     'about.licenseValue.nonfree': '非フリー構成 (--enable-nonfree)',
     'about.licenseValue.unknown': 'ライセンス不明',
+    'nodeTemplate.loadMedia.title': 'メディアを読み込み',
+    'nodeTemplate.loadMedia.description': 'ローカルの画像や動画を開く',
+    'nodeTemplate.loadMedia.port.media': 'メディア',
+    'nodeTemplate.trim.title': 'トリム',
+    'nodeTemplate.trim.description': 'IN/OUT間で素材をカット',
+    'nodeTemplate.trim.port.source': 'ソース',
+    'nodeTemplate.trim.port.result': '出力',
+    'nodeTemplate.resize.title': 'リサイズ',
+    'nodeTemplate.resize.description': 'アスペクト比を保ってサイズ変更',
+    'nodeTemplate.resize.port.source': 'ソース',
+    'nodeTemplate.resize.port.resized': 'リサイズ後',
+    'nodeTemplate.overlay.title': 'オーバーレイ',
+    'nodeTemplate.overlay.description': '2つの映像を合成して位置を調整',
+    'nodeTemplate.overlay.port.base': 'ベース',
+    'nodeTemplate.overlay.port.layer': 'レイヤー',
+    'nodeTemplate.overlay.port.composite': '合成結果',
+    'nodeTemplate.text.title': 'テキストオーバーレイ',
+    'nodeTemplate.text.description': '文字や字幕を描画',
+    'nodeTemplate.text.port.background': '背景',
+    'nodeTemplate.text.port.titled': 'テキスト出力',
+    'nodeTemplate.crop.title': 'クロップ',
+    'nodeTemplate.crop.description': '表示範囲をトリミング',
+    'nodeTemplate.crop.port.source': 'ソース',
+    'nodeTemplate.crop.port.cropped': 'クロップ後',
+    'nodeTemplate.speed.title': '再生速度',
+    'nodeTemplate.speed.description': 'スロー/早回しを設定',
+    'nodeTemplate.speed.port.source': 'ソース',
+    'nodeTemplate.speed.port.retimed': '速度変更後',
+    'nodeTemplate.changeFps.title': 'フレームレート変換',
+    'nodeTemplate.changeFps.description': '可変フレームを固定フレームに揃える',
+    'nodeTemplate.changeFps.port.source': 'ソース',
+    'nodeTemplate.changeFps.port.normalized': '正規化後',
+    'nodeTemplate.export.title': 'メディアを書き出し',
+    'nodeTemplate.export.description': '最終結果を書き出す',
+    'nodeTemplate.export.port.program': 'プログラム',
+    'nodeTemplate.export.port.delivery': '書き出し結果',
     'demo.jobName': 'FFmpeg 合成'
   }
 } as const;
@@ -367,6 +445,22 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(255, 255, 255, 0.05);
         padding: 4px;
         border-radius: 999px;
+      }
+      .locale-group {
+        align-items: center;
+        gap: 8px;
+      }
+      .locale-group label {
+        font-size: 12px;
+        letter-spacing: 0.01em;
+      }
+      .locale-group select {
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(5, 7, 12, 0.9);
+        color: inherit;
+        padding: 4px 10px;
+        font-size: 12px;
       }
       .search-box input {
         width: 100%;
@@ -778,6 +872,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             <input type="checkbox" id="running-toggle" /> <span data-i18n-key="toolbar.runningMode">Running mode</span>
           </label>
         </div>
+        <div class="toolbar-group locale-group">
+          <label for="locale-select" data-i18n-key="toolbar.localeLabel">Language</label>
+          <select id="locale-select" data-i18n-attr-aria-label="toolbar.localeLabel">
+            <option value="en-US" data-i18n-key="toolbar.locale.en">English</option>
+            <option value="ja-JP" data-i18n-key="toolbar.locale.ja">Japanese</option>
+          </select>
+        </div>
         <span id="autosave-indicator" aria-live="polite" data-i18n-key="autosave.pending">Waiting for changes…</span>
       </div>
     </header>
@@ -951,8 +1052,25 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       const TRANSLATIONS = ${TRANSLATIONS_EMBED};
       const SUPPORTED_LOCALES = ${SUPPORTED_LOCALES_EMBED};
       const FALLBACK_LOCALE = '${DEFAULT_LOCALE}';
+      const LOCALE_STORAGE_KEY = 'nodevision.locale';
+
+      const readStoredLocale = () => {
+        try {
+          if (typeof localStorage === 'undefined') {
+            return null;
+          }
+          return localStorage.getItem(LOCALE_STORAGE_KEY);
+        } catch (error) {
+          console.warn('[NodeVision] locale storage unavailable', error);
+          return null;
+        }
+      };
 
       const detectLocale = () => {
+        const stored = readStoredLocale();
+        if (stored && TRANSLATIONS[stored]) {
+          return stored;
+        }
         const configured = BOOTSTRAP?.status?.settings?.locale;
         if (configured && TRANSLATIONS[configured]) {
           return configured;
@@ -989,6 +1107,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         export: document.getElementById('btn-export'),
         load: document.getElementById('btn-load'),
         runningToggle: document.getElementById('running-toggle'),
+        localeSelect: document.getElementById('locale-select'),
         readonlyBanner: document.getElementById('readonly-banner'),
         queueRunning: document.getElementById('queue-running'),
         queueQueued: document.getElementById('queue-queued'),
@@ -1092,16 +1211,41 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         return cleaned;
       };
 
-      const t = (key, vars = {}) => {
-        const dict = TRANSLATIONS[state.locale] ?? TRANSLATIONS[FALLBACK_LOCALE];
+      const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj ?? {}, key);
+
+      const lookupTranslation = key => {
+        const localeDict = TRANSLATIONS[state.locale];
+        if (localeDict && hasOwn(localeDict, key)) {
+          return localeDict[key];
+        }
         const fallbackDict = TRANSLATIONS[FALLBACK_LOCALE];
-        const template = (dict && dict[key]) || (fallbackDict && fallbackDict[key]);
-        if (!template) {
+        if (fallbackDict && hasOwn(fallbackDict, key)) {
+          return fallbackDict[key];
+        }
+        return null;
+      };
+
+      const translateWithFallback = (key, fallback, vars = {}) => {
+        const template = lookupTranslation(key);
+        const base = template ?? fallback;
+        if (!base) {
           return key;
         }
-        const result = formatTemplate(template, vars);
-        return result;
+        return formatTemplate(base, vars);
       };
+
+      const t = (key, vars = {}) => translateWithFallback(key, key, vars);
+
+      const getNodeTitle = node => translateWithFallback(\`nodeTemplate.\${node.typeId}.title\`, node.title);
+
+      const getPortLabel = (typeId, port) =>
+        translateWithFallback(\`nodeTemplate.\${typeId}.port.\${port.id}\`, port.label);
+
+      const getTemplateTitle = template =>
+        translateWithFallback(\`nodeTemplate.\${template.typeId}.title\`, template.title);
+
+      const getTemplateDescription = template =>
+        translateWithFallback(\`nodeTemplate.\${template.typeId}.description\`, template.description ?? '');
 
       const applyI18nAttributes = node => {
         if (!node || !node.attributes) return;
@@ -1325,8 +1469,14 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           .map(connection => {
             const fromNode = state.nodes.find(node => node.id === connection.fromNodeId);
             const toNode = state.nodes.find(node => node.id === connection.toNodeId);
-            const fromLabel = \`\${fromNode?.title ?? connection.fromNodeId} • \${connection.fromPortId}\`;
-            const toLabel = \`\${toNode?.title ?? connection.toNodeId} • \${connection.toPortId}\`;
+            const fromNodeTitle = fromNode ? getNodeTitle(fromNode) : connection.fromNodeId;
+            const fromPort = fromNode?.outputs?.find(port => port.id === connection.fromPortId);
+            const fromPortLabel = fromPort ? getPortLabel(fromNode.typeId, fromPort) : connection.fromPortId;
+            const fromLabel = \`\${fromNodeTitle} • \${fromPortLabel}\`;
+            const toNodeTitle = toNode ? getNodeTitle(toNode) : connection.toNodeId;
+            const toPort = toNode?.inputs?.find(port => port.id === connection.toPortId);
+            const toPortLabel = toPort ? getPortLabel(toNode.typeId, toPort) : connection.toPortId;
+            const toLabel = \`\${toNodeTitle} • \${toPortLabel}\`;
             const summary = t('connections.itemLabel', { from: fromLabel, to: toLabel });
             return \`
               <li>
@@ -1473,10 +1623,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         });
       };
 
-      const describePort = (port, direction) =>
+      const describePort = (node, port, direction) =>
         t('ports.portLabel', {
           direction: t(direction === 'input' ? 'ports.direction.input' : 'ports.direction.output'),
-          label: port.label,
+          label: getPortLabel(node.typeId, port),
           dataType: port.dataType
         });
 
@@ -1500,6 +1650,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           classes.push('port-connected');
         }
         const ariaPressed = direction === 'output' ? String(pending) : 'false';
+        const portLabel = getPortLabel(node.typeId, port);
         return \`
           <button
             type="button"
@@ -1509,17 +1660,18 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             data-port-id="\${port.id}"
             data-direction="\${direction}"
             aria-pressed="\${ariaPressed}"
-            aria-label="\${escapeHtml(describePort(port, direction))}"
+            aria-label="\${escapeHtml(describePort(node, port, direction))}"
           >
-            \${escapeHtml(port.label)}
+            \${escapeHtml(portLabel)}
             <span>\${escapeHtml(port.dataType)}</span>
           </button>
         \`;
       };
 
       const buildPortGroup = (node, ports, direction) => {
+        const displayTitle = getNodeTitle(node);
         const labelKey = direction === 'input' ? 'ports.inputsLabel' : 'ports.outputsLabel';
-        const label = escapeHtml(t(labelKey, { title: node.title }));
+        const label = escapeHtml(t(labelKey, { title: displayTitle }));
         if (!ports.length) {
           const emptyKey = direction === 'input' ? 'ports.emptyInputs' : 'ports.emptyOutputs';
           const emptyLabel = escapeHtml(t(emptyKey));
@@ -1539,18 +1691,19 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       const renderNodes = () => {
         elements.canvas.innerHTML = '';
         state.nodes.forEach(node => {
+          const localizedTitle = getNodeTitle(node);
           const el = document.createElement('div');
           el.className = 'node';
           el.dataset.id = node.id;
           el.tabIndex = 0;
           el.setAttribute('role', 'group');
-          el.setAttribute('aria-label', t('nodes.ariaLabel', { title: node.title }));
+          el.setAttribute('aria-label', t('nodes.ariaLabel', { title: localizedTitle }));
           el.style.transform = \
             \`translate(\${node.position.x}px, \${node.position.y}px)\`;
           const inputsGroup = buildPortGroup(node, node.inputs, 'input');
           const outputsGroup = buildPortGroup(node, node.outputs, 'output');
           el.innerHTML = \`
-            <h3>\${escapeHtml(node.title)}</h3>
+            <h3>\${escapeHtml(localizedTitle)}</h3>
             <p>typeId: \${escapeHtml(node.typeId)}<br/>nodeVersion: \${escapeHtml(node.nodeVersion)}</p>
             \${inputsGroup}
             \${outputsGroup}
@@ -1640,8 +1793,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           return;
         }
         const fromNode = state.nodes.find(node => node.id === state.pendingConnection.fromNodeId);
+        const fromLabel = fromNode ? getNodeTitle(fromNode) : state.pendingConnection.fromNodeId;
         elements.connectionHint.textContent = t('connections.pending', {
-          from: fromNode?.title ?? state.pendingConnection.fromNodeId
+          from: fromLabel
         });
       };
 
@@ -1751,21 +1905,29 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
 
       const updateSuggestions = query => {
         const normalized = query.trim().toLowerCase();
-        const results = templates.filter(template => {
-          if (!normalized) return true;
-          return (
-            template.title.toLowerCase().includes(normalized) ||
-            template.keywords.some(keyword => keyword.toLowerCase().includes(normalized))
-          );
-        }).slice(0, 6);
+        const results = templates
+          .filter(template => {
+            if (!normalized) return true;
+            const localizedTitle = getTemplateTitle(template).toLowerCase();
+            const localizedDescription = getTemplateDescription(template).toLowerCase();
+            const haystacks = [
+              template.title.toLowerCase(),
+              (template.description ?? '').toLowerCase(),
+              localizedTitle,
+              localizedDescription,
+              ...template.keywords.map(keyword => keyword.toLowerCase())
+            ];
+            return haystacks.some(text => text && text.includes(normalized));
+          })
+          .slice(0, 6);
         elements.suggestions.innerHTML = '';
         results.forEach((template, index) => {
           const li = document.createElement('li');
           li.role = 'option';
-          li.id = \
-            \`suggestion-\${index}\`;
-          li.textContent = \
-            \`\${template.title} — \${template.description}\`;
+          li.id = \`suggestion-\${index}\`;
+          const localizedTitle = getTemplateTitle(template);
+          const localizedDescription = getTemplateDescription(template);
+          li.textContent = \`\${localizedTitle} — \${localizedDescription}\`;
           li.addEventListener('click', () => addNodeFromTemplate(template));
           elements.suggestions.appendChild(li);
         });
@@ -1944,6 +2106,20 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         });
       });
 
+      if (elements.localeSelect) {
+        elements.localeSelect.value = state.locale;
+        elements.localeSelect.addEventListener('change', event => {
+          const target = event.target;
+          if (!(target instanceof HTMLSelectElement)) {
+            return;
+          }
+          const next = target.value;
+          if (next && TRANSLATIONS[next]) {
+            setLocale(next);
+          }
+        });
+      }
+
       elements.export.addEventListener('click', serializeAndDownload);
       elements.load.addEventListener('click', loadFromTextarea);
       elements.undo.addEventListener('click', undo);
@@ -1975,6 +2151,47 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         await window.nodevision.cancelAllJobs();
         showToast(t('toast.cancelAll'));
         refreshQueue();
+      };
+
+      const refreshLocaleDependentViews = () => {
+        applyTranslations();
+        renderStatus();
+        renderAbout();
+        renderNodes();
+        renderConnections();
+        updatePendingHint();
+        updateSuggestions(elements.searchInput?.value ?? '');
+        updateJsonPreview();
+        renderQueue();
+        renderDiagnostics();
+        updateAutosaveIdleMessage();
+      };
+
+      const persistLocale = locale => {
+        try {
+          if (typeof localStorage === 'undefined') {
+            return;
+          }
+          localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+        } catch (error) {
+          console.warn('[NodeVision] persist locale failed', error);
+        }
+      };
+
+      const setLocale = locale => {
+        if (!TRANSLATIONS[locale]) {
+          return;
+        }
+        if (state.locale === locale) {
+          persistLocale(locale);
+          return;
+        }
+        state.locale = locale;
+        persistLocale(locale);
+        refreshLocaleDependentViews();
+        if (elements.localeSelect) {
+          elements.localeSelect.value = locale;
+        }
       };
 
       const exportLogs = async () => {

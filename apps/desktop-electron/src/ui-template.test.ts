@@ -146,7 +146,7 @@ describe('ui-template accessibility helpers', () => {
 
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const entry = dom.window.document.querySelector('.connections-list li span');
-    expect(entry?.textContent).toBe('Load • media → Trim • source');
+    expect(entry?.textContent).toBe('Load Media • Media → Trim • Source');
     dom.window.close();
   });
 
