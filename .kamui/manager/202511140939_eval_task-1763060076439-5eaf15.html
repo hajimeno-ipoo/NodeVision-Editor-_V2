@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gセクション a11y/i18n 評価レポート</title>
+    <style>
+      body {
+        font-family: "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        margin: 24px;
+        background-color: #eef3f4;
+        color: #1f2a30;
+      }
+      .eval-wrapper {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 32px;
+        background: #ffffff;
+        border: 1px solid #c4d3d7;
+      }
+      .eval-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .eval-header h1 {
+        font-size: 28px;
+        margin: 0;
+        letter-spacing: 0.04em;
+      }
+      .eval-desc {
+        font-size: 14px;
+        color: #394b53;
+        margin: 0;
+      }
+      .scoreboard {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .score-card {
+        flex: 1 1 220px;
+        border: 1px solid #c4d3d7;
+        padding: 16px;
+        background: #f6fafb;
+      }
+      .score-card__label {
+        font-size: 13px;
+        color: #2f3c42;
+        margin-bottom: 6px;
+      }
+      .score-card__value {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .task-overview {
+        margin-bottom: 24px;
+      }
+      .task-overview h2 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+      table.eval-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        border: 1px solid #c4d3d7;
+      }
+      table.eval-table th,
+      table.eval-table td {
+        border: 1px solid #c4d3d7;
+        padding: 18px;
+        vertical-align: top;
+      }
+      table.eval-table th {
+        background: #d8e6e9;
+        text-align: left;
+        font-size: 13px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .agent-block {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .metric-chart {
+        position: relative;
+        width: 160px;
+        height: 160px;
+        margin-bottom: 12px;
+      }
+      .metric-chart svg {
+        width: 160px;
+        height: 160px;
+      }
+      .metric-chart .grid {
+        fill: none;
+        stroke: #c4d3d7;
+        stroke-width: 1;
+      }
+      .metric-chart .score {
+        fill: rgba(62, 132, 168, 0.15);
+        stroke: #3e84a8;
+        stroke-width: 1.5;
+      }
+      .metric-label {
+        position: absolute;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #d0dde2;
+        padding: 2px 6px;
+        white-space: nowrap;
+      }
+      .metric-label.metric-1 { top: -18px; left: 50%; transform: translateX(-50%); }
+      .metric-label.metric-2 { top: 12px; right: -12px; }
+      .metric-label.metric-3 { bottom: 18px; right: -10px; }
+      .metric-label.metric-4 { bottom: -32px; left: 50%; transform: translateX(-50%); }
+      .metric-label.metric-5 { bottom: 18px; left: -10px; }
+      .metric-label.metric-6 { top: 12px; left: -12px; }
+      .section-title {
+        font-weight: 700;
+        font-size: 13px;
+        margin: 0 0 6px;
+        letter-spacing: 0.02em;
+      }
+      ul {
+        margin: 0 0 12px 18px;
+        padding: 0;
+      }
+      ul li {
+        margin-bottom: 6px;
+        font-size: 13px;
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 6px;
+        border: 1px solid #b8c9cd;
+        background: #eef3f4;
+        font-size: 11px;
+        margin-right: 4px;
+      }
+      a {
+        color: #226c8c;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="eval-wrapper">
+      <header class="eval-header">
+        <h1>Gセクション a11y / i18n 実装評価</h1>
+        <p class="eval-desc">チェックリスト G-01〜G-04 の実装品質を tmux ログと git diff から比較。コミット基準: cc6036d。</p>
+        <div class="scoreboard">
+          <div class="score-card">
+            <div class="score-card__label">🥇 task-1763060070007-f92add</div>
+            <div class="score-card__value">556 / 600</div>
+          </div>
+          <div class="score-card">
+            <div class="score-card__label">🥉 task-1763060072184-8eb8d5</div>
+            <div class="score-card__value">510 / 600</div>
+          </div>
+          <div class="score-card">
+            <div class="score-card__label">🏆 task-1763060074317-37df04</div>
+            <div class="score-card__value">569 / 600</div>
+          </div>
+        </div>
+      </header>
+      <section class="task-overview">
+        <h2>タスク概要</h2>
+        <p>NodeVision Editor の ComfyUI 風ノード画面に WCAG 2.1 AA 相当の a11y と en-US / ja-JP i18n を導入し、チェックリスト G-01〜G-04 を満たすことが目標。各エージェントは独立ワークツリーで renderer HTML, settings, editor テンプレート、テスト群を更新した。</p>
+      </section>
+      <table class="eval-table">
+        <thead>
+          <tr>
+            <th>Agent task-1763060070007-f92add</th>
+            <th>Agent task-1763060072184-8eb8d5</th>
+            <th>Agent task-1763060074317-37df04</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="agent-block">
+                <div class="metric-chart">
+                  <svg viewBox="0 0 160 160" role="img" aria-label="六角チャート">
+                    <polygon class="grid" points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" />
+                    <polygon class="score" points="80.0,23.0 126.8,53.0 127.8,107.6 80.0,137.6 29.1,109.4 35.8,54.5" />
+                  </svg>
+                  <div class="metric-label metric-1">要件適合 95点</div>
+                  <div class="metric-label metric-2">コード品質 90点</div>
+                  <div class="metric-label metric-3">テスト網羅 92点</div>
+                  <div class="metric-label metric-4">a11y有効性 96点</div>
+                  <div class="metric-label metric-5">i18n網羅 98点</div>
+                  <div class="metric-label metric-6">ドキュメント 85点</div>
+                </div>
+                <div>
+                  <p class="section-title">ハイライト</p>
+                  <ul>
+                    <li>共通ライブラリ <a href="../../../task-1763060070007-f92add/packages/i18n/src/index.ts">packages/i18n/src/index.ts:1-60</a> で locale 判定とテンプレート補間を集約し、`createTranslator` / `resolveLocale` を settings や renderer から再利用。</li>
+                    <li>Renderer がロケール付き payload を受け取り、テキスト辞書を一括生成（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts:1-80</a>）。ノード/ポート/接続一覧への `aria-*` 付与と多言語表示（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">同:1053-1115, 940-959</a>）を実装。</li>
+                    <li>Electron main が demo connections と locale を renderer に渡し（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/main.ts">apps/desktop-electron/src/main.ts:267-279</a>）、settings 保存時に locale を sanitize（<a href="../../../task-1763060070007-f92add/packages/settings/src/index.ts">packages/settings/src/index.ts:5-101</a>）。</li>
+                    <li>axe smoke を単体で回せる `test:a11y`（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts:1-81</a>）とテンプレート/ポート複製テスト群で 100% カバレッジを維持。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">改善点</p>
+                  <ul>
+                    <li>axe テストが `globalThis.navigator` を復元しておらず、後続テストで DOM shim が欠ける恐れ（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts:64-81</a>）。既存値を退避・復元するか、`vitest.spyOn(globalThis, 'window', ...)` で管理したい。</li>
+                    <li>接続リストは `state.connections` を初期 payload と JSON 読み込み時しか更新せず（<a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">同:940-959, 1180-1189, 1352</a>）、UI上で新規接続を作成しても一覧や `aria-live` が反映されない。`handleConnectionComplete` などで state を同期する必要あり。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">テスト / 証跡</p>
+                  <ul>
+                    <li><span class="pill">pnpm test</span> <span class="pill">pnpm test:a11y</span> （ログより coverage=100%, axe 違反≤5）。</li>
+                    <li>チェックリスト G-01〜G-04 を `[x]` 済み（<a href="../../../task-1763060070007-f92add/doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md">doc/check list/...:56-68</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">成果物</p>
+                  <ul>
+                    <li><a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+                    <li><a href="../../../task-1763060070007-f92add/packages/i18n/src/index.ts">packages/i18n/src/index.ts</a></li>
+                    <li><a href="../../../task-1763060070007-f92add/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts</a></li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="agent-block">
+                <div class="metric-chart">
+                  <svg viewBox="0 0 160 160" role="img" aria-label="六角チャート">
+                    <polygon class="grid" points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" />
+                    <polygon class="score" points="80.0,26.0 123.6,54.8 125.7,106.4 80.0,135.2 35.3,105.8 43.6,59.0" />
+                  </svg>
+                  <div class="metric-label metric-1">要件適合 90点</div>
+                  <div class="metric-label metric-2">コード品質 84点</div>
+                  <div class="metric-label metric-3">テスト網羅 88点</div>
+                  <div class="metric-label metric-4">a11y有効性 92点</div>
+                  <div class="metric-label metric-5">i18n網羅 86点</div>
+                  <div class="metric-label metric-6">ドキュメント 70点</div>
+                </div>
+                <div>
+                  <p class="section-title">ハイライト</p>
+                  <ul>
+                    <li>Renderer 専用 i18n バンドルとロケール正規化（<a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/i18n.ts">apps/desktop-electron/src/i18n.ts:1-230</a>）を導入し、`data-i18n-*` 属性で UI 文言を切替。</li>
+                    <li>Electron main が OS ロケールを検出し payload に埋め込み、demo connections を初期表示（<a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/main.ts">apps/desktop-electron/src/main.ts:27-46, 268-279</a>）。</li>
+                    <li>Renderer axe テストは en-US / ja-JP 両方を走査し、グローバル汚染を restore（<a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts:1-105</a>）。</li>
+                    <li>Node テンプレートに入力/出力ポートが定義され、seedDemoConnections とテストで配線データを保証（<a href="../../../task-1763060072184-8eb8d5/packages/editor/src/templates.ts">packages/editor/src/templates.ts:9-135</a>, <a href="../../../task-1763060072184-8eb8d5/packages/editor/src/state.ts">state.ts:37-74</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">改善点</p>
+                  <ul>
+                    <li>Settings には `locale` プロパティが追加されておらず（<a href="../../../task-1763060072184-8eb8d5/packages/settings/src/index.ts">packages/settings/src/index.ts:10-33</a> にフィールドが存在しない）、ユーザーが言語を固定できない。G-03 の「未訳は既定へフォールバック」より、設定保存にもロケールが必要。</li>
+                    <li>チェックリストで G-04 を ✅ としているが、`doc/reports/` にはネイティブレビュー証跡ファイルが無い（このワークツリーに `doc/reports/G_a11y_i18n_status_*.md` が存在しない）。証跡ドキュメントを追加するべき。</li>
+                    <li>`vitest.config.ts` が依然 `apps/**` をテスト対象から除外しているため（<a href="../../../task-1763060072184-8eb8d5/vitest.config.ts">vitest.config.ts:8-16</a>）、`pnpm test` では renderer の a11y 回帰が検知できない。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">テスト / 証跡</p>
+                  <ul>
+                    <li><span class="pill">pnpm test</span> <span class="pill">pnpm test:a11y</span> （ログより jsdom canvas warning のみ）。</li>
+                    <li>チェックリスト更新済み（<a href="../../../task-1763060072184-8eb8d5/doc/check list/NodeVision_Implementation_Checklist_v1.0.7.md">doc/check list/...:56-68</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">成果物</p>
+                  <ul>
+                    <li><a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+                    <li><a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/i18n.ts">apps/desktop-electron/src/i18n.ts</a></li>
+                    <li><a href="../../../task-1763060072184-8eb8d5/apps/desktop-electron/src/a11y.test.ts">apps/desktop-electron/src/a11y.test.ts</a></li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="agent-block">
+                <div class="metric-chart">
+                  <svg viewBox="0 0 160 160" role="img" aria-label="六角チャート">
+                    <polygon class="grid" points="80.0,20.0 132.0,50.0 132.0,110.0 80.0,140.0 28.0,110.0 28.0,50.0" />
+                    <polygon class="score" points="80.0,21.8 128.8,51.8 129.4,108.5 80.0,138.2 30.1,108.8 33.2,53.0" />
+                  </svg>
+                  <div class="metric-label metric-1">要件適合 97点</div>
+                  <div class="metric-label metric-2">コード品質 94点</div>
+                  <div class="metric-label metric-3">テスト網羅 95点</div>
+                  <div class="metric-label metric-4">a11y有効性 97点</div>
+                  <div class="metric-label metric-5">i18n網羅 96点</div>
+                  <div class="metric-label metric-6">ドキュメント 90点</div>
+                </div>
+                <div>
+                  <p class="section-title">ハイライト</p>
+                  <ul>
+                    <li>UI テンプレートが `data-i18n-*` 属性を全面採用し、HTML 内の全主要ラベルを二言語対応（<a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts:690-780, 940-1000</a>）。</li>
+                    <li>`vitest.config.ts` が `apps/**` をテスト対象に含め、axe テスト `<a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.a11y.test.ts">apps/desktop-electron/src/ui-template.a11y.test.ts:1-80</a>` を `pnpm test` でも実行。</li>
+                    <li>Port 定義の複製と検索インスタンスの改修（<a href="../../../task-1763060074317-37df04/packages/editor/src/search.ts">packages/editor/src/search.ts:1-34</a>, <a href="../../../task-1763060074317-37df04/packages/editor/src/persistence.ts">persistence.ts:1-35</a>）で a11y テキスト生成を安定化。</li>
+                    <li>G節証跡を専用レポートにまとめ（<a href="../../../task-1763060074317-37df04/doc/reports/G_a11y_i18n_status_20251113.md">doc/reports/G_a11y_i18n_status_20251113.md</a>）、実行ログ/レビュー時刻を明示。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">改善点</p>
+                  <ul>
+                    <li>axe テストは `globalThis` へ `window/document` を代入したまま終了しており（<a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.a11y.test.ts">apps/desktop-electron/src/ui-template.a11y.test.ts:45-68</a>）、他テストでメモリリークになる恐れ。後処理で削除または `afterEach` に restore を追加したい。</li>
+                    <li>`DEFAULT_NODE_TEMPLATES` の export ノードは依然 `outputs: []` のまま（<a href="../../../task-1763060074317-37df04/packages/editor/src/templates.ts">packages/editor/src/templates.ts:102-132</a>）で、接続リストや aria 説明文が最終ファイルポートを案内できない。書き出しポートを追加してテキスト整合を取るとよい。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">テスト / 証跡</p>
+                  <ul>
+                    <li><span class="pill">pnpm test</span>（26 files / 194 tests / coverage 100%）<span class="pill">pnpm test:a11y</span>（axe 違反 0）。</li>
+                    <li>G セクションレポートにネイティブレビューとテスト結果を記録（<a href="../../../task-1763060074317-37df04/doc/reports/G_a11y_i18n_status_20251113.md">doc/reports/...:1-37</a>）。</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="section-title">成果物</p>
+                  <ul>
+                    <li><a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.ts">apps/desktop-electron/src/ui-template.ts</a></li>
+                    <li><a href="../../../task-1763060074317-37df04/apps/desktop-electron/src/ui-template.a11y.test.ts">apps/desktop-electron/src/ui-template.a11y.test.ts</a></li>
+                    <li><a href="../../../task-1763060074317-37df04/doc/reports/G_a11y_i18n_status_20251113.md">doc/reports/G_a11y_i18n_status_20251113.md</a></li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
