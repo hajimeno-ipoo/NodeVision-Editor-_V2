@@ -12,6 +12,7 @@ const bootStatus: BootStatus = {
     tempRoot: '/tmp/nodevision',
     ffmpegPath: '/usr/bin/ffmpeg',
     ffprobePath: '/usr/bin/ffprobe',
+    locale: 'en-US',
     http: { enabled: false, tokenLabel: 'default', port: 3921 },
     presets: { videoBitrate: '8M', audioBitrate: '320k', container: 'mp4' },
     diagnostics: { lastTokenPreview: null, collectCrashDumps: false, lastLogExportPath: null },
@@ -48,7 +49,8 @@ const basePayload: RendererPayload = {
     lastLogExportPath: null,
     lastExportSha: null,
     inspectHistory: []
-  }
+  },
+  connections: []
 };
 
 const renderDom = (payload: RendererPayload) =>
@@ -67,7 +69,7 @@ describe('ui-template queue warnings', () => {
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const warningNode = dom.window.document.querySelector('.queue-warning strong');
     expect(warningNode?.textContent).toBe('QUEUE_FULL');
-    const message = dom.window.document.querySelector('.queue-warning span:nth-of-type(2)');
+    const message = dom.window.document.querySelector('.queue-warning span:nth-of-type(1)');
     expect(message?.textContent).toContain('QueueFullError発生');
     dom.window.close();
   });
@@ -77,6 +79,76 @@ describe('ui-template queue warnings', () => {
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const stableNode = dom.window.document.querySelector('.queue-warning strong');
     expect(stableNode?.textContent).toBe('Queue Stable');
+    dom.window.close();
+  });
+});
+
+describe('ui-template i18n', () => {
+  it('applies ja-JP translations when locale is configured', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      status: {
+        ...bootStatus,
+        settings: { ...bootStatus.settings, locale: 'ja-JP' }
+      }
+    });
+
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    expect(dom.window.document.documentElement.lang).toBe('ja-JP');
+    const searchLabel = dom.window.document.querySelector('.search-box span');
+    expect(searchLabel?.textContent).toBe('ノード検索');
+    dom.window.close();
+  });
+});
+
+describe('ui-template accessibility helpers', () => {
+  const sampleNodes = [
+    {
+      id: 'n1',
+      typeId: 'loadMedia',
+      nodeVersion: '1.0.0',
+      title: 'Load',
+      position: { x: 0, y: 0 },
+      width: 200,
+      height: 120,
+      inputs: [],
+      outputs: [{ id: 'media', label: 'Media', direction: 'output', dataType: 'video' }],
+      searchTokens: ['load']
+    },
+    {
+      id: 'n2',
+      typeId: 'trim',
+      nodeVersion: '1.0.0',
+      title: 'Trim',
+      position: { x: 160, y: 0 },
+      width: 200,
+      height: 120,
+      inputs: [{ id: 'source', label: 'Source', direction: 'input', dataType: 'video' }],
+      outputs: [{ id: 'result', label: 'Result', direction: 'output', dataType: 'video' }],
+      searchTokens: ['trim']
+    }
+  ];
+
+  it('renders connection entries with labels', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      nodes: sampleNodes,
+      connections: [{ id: 'c1', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' }]
+    });
+
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const entry = dom.window.document.querySelector('.connections-list li span');
+    expect(entry?.textContent).toBe('Load • media → Trim • source');
+    dom.window.close();
+  });
+
+  it('applies aria metadata to nodes and ports', async () => {
+    const dom = renderDom({ ...basePayload, nodes: sampleNodes });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const node = dom.window.document.querySelector('.node');
+    expect(node?.getAttribute('role')).toBe('group');
+    const port = dom.window.document.querySelector('.port');
+    expect(port?.getAttribute('aria-label')).toContain('port');
     dom.window.close();
   });
 });

@@ -9,7 +9,10 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Open a local image or video file',
     keywords: ['load', 'open', 'input', 'video', 'image'],
     width: 240,
-    height: 128
+    height: 128,
+    outputs: [
+      { id: 'media', label: 'Media', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'trim',
@@ -17,7 +20,13 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     title: 'Trim',
     category: 'Edit',
     description: 'Cut media between in/out points',
-    keywords: ['trim', 'cut', 'edit']
+    keywords: ['trim', 'cut', 'edit'],
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'result', label: 'Result', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'resize',
@@ -27,7 +36,13 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Resize media with aspect ratio controls',
     keywords: ['resize', 'scale', 'transform'],
     width: 240,
-    height: 150
+    height: 150,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'resized', label: 'Resized', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'overlay',
@@ -37,7 +52,14 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Blend two sources with position controls',
     keywords: ['overlay', 'blend', 'composite'],
     width: 260,
-    height: 170
+    height: 170,
+    inputs: [
+      { id: 'base', label: 'Base', direction: 'input', dataType: 'video', required: true },
+      { id: 'layer', label: 'Layer', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'composite', label: 'Composite', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'text',
@@ -47,7 +69,13 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Render titles or captions with font and color controls',
     keywords: ['text', 'title', 'caption'],
     width: 240,
-    height: 150
+    height: 150,
+    inputs: [
+      { id: 'background', label: 'Background', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'titled', label: 'Titled', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'crop',
@@ -57,7 +85,13 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Trim the visible area to a custom frame',
     keywords: ['crop', 'frame', 'bounds'],
     width: 220,
-    height: 140
+    height: 140,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'cropped', label: 'Cropped', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'speed',
@@ -67,7 +101,13 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Ramp playback speed for slow/fast motion',
     keywords: ['speed', 'slow', 'fast'],
     width: 220,
-    height: 140
+    height: 140,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'retimed', label: 'Retimed', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'changeFps',
@@ -77,7 +117,13 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Convert variable frame rate clips to constant FPS',
     keywords: ['fps', 'frame rate', 'cfr'],
     width: 220,
-    height: 140
+    height: 140,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'normalized', label: 'Normalized', direction: 'output', dataType: 'video', required: true }
+    ]
   },
   {
     typeId: 'export',
@@ -87,6 +133,12 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Finalize and export the edited result',
     keywords: ['export', 'save', 'output'],
     width: 240,
-    height: 150
+    height: 150,
+    inputs: [
+      { id: 'program', label: 'Program', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'delivery', label: 'Exported', direction: 'output', dataType: 'video', required: false }
+    ]
   }
 ];

@@ -1,5 +1,5 @@
 import { DEFAULT_NODE_TEMPLATES } from './templates';
-import type { EditorNode, EditorProject, EditorState } from './types';
+import type { EditorNode, EditorProject, EditorState, NodeTemplate } from './types';
 
 export const PROJECT_SCHEMA_VERSION = '1.0.7';
 
@@ -37,8 +37,8 @@ export const withUpdatedProject = (state: EditorState, project: EditorProject): 
   }
 });
 
-export const seedDemoNodes = (): EditorNode[] => {
-  return DEFAULT_NODE_TEMPLATES.slice(0, 3).map((template, index) => ({
+export const seedDemoNodes = (templates: NodeTemplate[] = DEFAULT_NODE_TEMPLATES): EditorNode[] => {
+  return templates.slice(0, 3).map((template, index) => ({
     id: `${template.typeId}-${index}`,
     typeId: template.typeId,
     nodeVersion: template.nodeVersion,
@@ -46,8 +46,8 @@ export const seedDemoNodes = (): EditorNode[] => {
     position: { x: 160 * index, y: 80 * index },
     width: template.width ?? 220,
     height: template.height ?? 120,
-    inputs: [],
-    outputs: [],
+    inputs: template.inputs?.map(port => ({ ...port })) ?? [],
+    outputs: template.outputs?.map(port => ({ ...port })) ?? [],
     searchTokens: template.keywords
   }));
 };
