@@ -166,6 +166,25 @@ describe('ui-template i18n', () => {
   });
 });
 
+describe('load media node UI', () => {
+  it('renders picker controls and hidden input', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      nodes: MEDIA_NODES
+    });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const picker = dom.window.document.querySelector<HTMLInputElement>('.node-media-upload input[type="file"]');
+    expect(picker?.type).toBe('file');
+    const uploadLabel = dom.window.document.querySelector('.node-media-upload');
+    expect(uploadLabel?.textContent).toContain('アップロードするファイルを選択');
+    const fileInput = dom.window.document.querySelector<HTMLInputElement>('.node-media-upload input[type="file"]');
+    expect(fileInput).toBeTruthy();
+    const placeholder = dom.window.document.querySelector('.node-media-empty');
+    expect(placeholder?.textContent).toBe('まだメディアが選ばれていません');
+    dom.window.close();
+  });
+});
+
 describe('ui-template accessibility helpers', () => {
 
   it('renders connection entries with labels', async () => {

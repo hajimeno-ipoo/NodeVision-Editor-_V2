@@ -261,6 +261,165 @@ import type {
     setTimeout(() => elements.toast.classList.remove('visible'), 3000);
   };
 
+  const inferMediaKind = (file: File): 'image' | 'video' => {
+    if (file.type?.startsWith('video/')) {
+      return 'video';
+    }
+    if (file.type?.startsWith('image/')) {
+      return 'image';
+    }
+    const ext = file.name?.split('.').pop()?.toLowerCase() ?? '';
+    const videoExts = new Set(['mp4', 'mov', 'm4v', 'mkv', 'webm', 'avi', 'flv']);
+    if (videoExts.has(ext)) {
+      return 'video';
+    }
+    return 'image';
+  };
+
+  const cleanupMediaPreview = (nodeId: string): void => {
+    const preview = state.mediaPreviews.get(nodeId);
+    if (preview && typeof URL?.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(preview.url);
+    }
+    if (preview) {
+      state.mediaPreviews.delete(nodeId);
+    }
+  };
+
+  const cleanupAllMediaPreviews = (): void => {
+    state.mediaPreviews.forEach(preview => {
+      if (typeof URL?.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(preview.url);
+      }
+    });
+    state.mediaPreviews.clear();
+  };
+
+  const pruneMediaPreviews = (): void => {
+    const nodeIds = new Set(state.nodes.map(node => node.id));
+    Array.from(state.mediaPreviews.keys()).forEach(nodeId => {
+      if (!nodeIds.has(nodeId)) {
+        cleanupMediaPreview(nodeId);
+      }
+    });
+  };
+
+  const updateMediaPreviewDimensions = (nodeId: string, width: number | null, height: number | null): void => {
+    const preview = state.mediaPreviews.get(nodeId);
+    if (!preview) {
+      return;
+    }
+    state.mediaPreviews.set(nodeId, {
+      ...preview,
+      width,
+      height
+    });
+    renderNodes();
+  };
+
+  const loadImageDimensionsFromUrl = (nodeId: string, url: string): void => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      updateMediaPreviewDimensions(nodeId, img.naturalWidth || img.width, img.naturalHeight || img.height);
+      img.src = '';
+    };
+    img.onerror = () => {
+      updateMediaPreviewDimensions(nodeId, null, null);
+    };
+    img.src = url;
+  };
+
+  const measureImageDimensions = (nodeId: string, file: File, url: string): void => {
+    if (typeof window.createImageBitmap === 'function') {
+      void window
+        .createImageBitmap(file)
+        .then(bitmap => {
+          updateMediaPreviewDimensions(nodeId, bitmap.width, bitmap.height);
+          if (typeof bitmap.close === 'function') {
+            bitmap.close();
+          }
+        })
+        .catch(() => {
+          loadImageDimensionsFromUrl(nodeId, url);
+        });
+      return;
+    }
+    loadImageDimensionsFromUrl(nodeId, url);
+  };
+
+  const measureVideoDimensions = (nodeId: string, url: string): void => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    const cleanup = () => {
+      video.src = '';
+      video.load();
+    };
+    video.onloadedmetadata = () => {
+      updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null);
+      cleanup();
+    };
+    video.onerror = () => {
+      updateMediaPreviewDimensions(nodeId, null, null);
+      cleanup();
+    };
+    video.src = url;
+    video.load();
+  };
+
+  const ingestMediaFile = (nodeId: string, file: File): void => {
+    if (typeof URL?.createObjectURL !== 'function') {
+      console.error('[NodeVision] URL.createObjectURL unavailable for media preview');
+      showToast(t('toast.mediaFailed'), 'error');
+      return;
+    }
+    cleanupMediaPreview(nodeId);
+    let objectUrl: string;
+    try {
+      objectUrl = URL.createObjectURL(file);
+    } catch (error) {
+      console.error('[NodeVision] failed to create preview URL', error);
+      showToast(t('toast.mediaFailed'), 'error');
+      return;
+    }
+    const fallbackType = file.name?.split('.').pop()?.toUpperCase() ?? '';
+    const resolvedType = file.type || fallbackType;
+    const kind = inferMediaKind(file);
+    state.mediaPreviews.set(nodeId, {
+      url: objectUrl,
+      name: file.name || 'media',
+      size: file.size ?? 0,
+      type: resolvedType,
+      kind,
+      width: null,
+      height: null
+    });
+    renderNodes();
+    if (kind === 'image') {
+      measureImageDimensions(nodeId, file, objectUrl);
+    } else {
+      measureVideoDimensions(nodeId, objectUrl);
+    }
+    if (file.name) {
+      showToast(t('toast.mediaSelected', { name: file.name }));
+    }
+  };
+
+  const handleMediaInputChange = (nodeId: string, input: HTMLInputElement): void => {
+    if (state.readonly) {
+      input.value = '';
+      return;
+    }
+    const file = input.files?.[0];
+    if (!file) {
+      input.value = '';
+      return;
+    }
+    ingestMediaFile(nodeId, file);
+    input.value = '';
+  };
+
   const renderQueue = (): void => {
     const renderJobs = (container: HTMLElement, jobs: JobSnapshot[], emptyKey: string): void => {
       if (!jobs?.length) {
@@ -832,8 +991,75 @@ import type {
     elements.connectionLayer.innerHTML = segments.join('');
   };
 
+  const INTERACTIVE_TAGS = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'LABEL']);
+
+  const isInteractiveTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+    if (INTERACTIVE_TAGS.has(target.tagName)) {
+      return true;
+    }
+    if (target.closest('[data-node-interactive="true"]')) {
+      return true;
+    }
+    if (target.hasAttribute('contenteditable')) {
+      return true;
+    }
+    return false;
+  };
+
+  const buildLoadNodeMediaSection = (nodeId: string): string => {
+    const preview = state.mediaPreviews.get(nodeId);
+    const uploadControl = `
+      <label class="node-media-upload${state.readonly ? ' disabled' : ''}">
+        <span>${escapeHtml(t('nodes.load.selectButton'))}</span>
+        <input type="file" accept="image/*,video/*" ${state.readonly ? 'disabled' : ''} data-media-input="${escapeHtml(
+          nodeId
+        )}" />
+      </label>
+    `;
+    const fileLabel = escapeHtml(preview?.name ?? t('nodes.load.noFile'));
+    const aspectText =
+      preview?.width && preview?.height
+        ? `${preview.width} × ${preview.height}`
+        : t('nodes.load.aspectUnknown');
+    const aspectHtml = `<p class="node-media-aspect">${escapeHtml(aspectText)}</p>`;
+
+    const toolbar = `
+      <div class="node-media-toolbar">
+        <button type="button" class="node-media-arrow" disabled aria-hidden="true">◀</button>
+        <span class="node-media-filename" title="${fileLabel}">${fileLabel}</span>
+        <button type="button" class="node-media-arrow" disabled aria-hidden="true">▶</button>
+      </div>
+    `;
+
+    if (!preview) {
+      return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}" data-node-interactive="true">
+        ${toolbar}
+        ${uploadControl}
+        <p class="node-media-empty">${escapeHtml(t('nodes.load.empty'))}</p>
+        ${aspectHtml}
+      </div>`;
+    }
+    const kind = preview.kind === 'video' ? 'video' : 'image';
+    const mediaTag =
+      kind === 'video'
+        ? `<video src="${preview.url}" controls playsinline preload="metadata" muted></video>`
+        : `<img src="${preview.url}" alt="${escapeHtml(preview.name)}" />`;
+    return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}" data-node-interactive="true">
+      ${toolbar}
+      ${uploadControl}
+      <div class="node-media-preview" data-kind="${kind}">
+        ${mediaTag}
+      </div>
+      ${aspectHtml}
+    </div>`;
+  };
+
   const renderNodes = (): void => {
     const host = elements.nodeLayer;
+    pruneMediaPreviews();
     setDropTarget(null);
     host.innerHTML = '';
     state.nodes.forEach(node => {
@@ -868,12 +1094,20 @@ import type {
         outputsGroup,
         '</div>'
       ];
+      if (node.typeId === 'loadMedia') {
+        htmlParts.push(buildLoadNodeMediaSection(node.id));
+      }
       el.innerHTML = htmlParts.join('');
       if (state.selection.has(node.id)) {
         el.classList.add('selected');
       }
       attachNodeEvents(el, node);
       attachPortEvents(el);
+      if (node.typeId === 'loadMedia') {
+        el.querySelectorAll<HTMLInputElement>('input[data-media-input]').forEach(input => {
+          input.addEventListener('change', () => handleMediaInputChange(node.id, input));
+        });
+      }
       host.appendChild(el);
     });
     renderConnectionPaths();
@@ -884,6 +1118,9 @@ import type {
     const onPointerDown = (event: PointerEvent): void => {
       if (state.readonly) return;
       if (event.button !== 0) return;
+      if (isInteractiveTarget(event.target)) {
+        return;
+      }
       const additive = event.shiftKey;
       if (additive) {
         if (state.selection.has(node.id)) {
@@ -926,8 +1163,11 @@ import type {
     };
 
     el.addEventListener('pointerdown', onPointerDown);
-    el.addEventListener('click', () => {
+    el.addEventListener('click', event => {
       if (state.readonly) return;
+      if (isInteractiveTarget(event.target)) {
+        return;
+      }
       if (!state.selection.has(node.id)) {
         state.selection.clear();
         state.selection.add(node.id);
@@ -1423,6 +1663,7 @@ import type {
         throw new Error(t('errors.schemaMissing'));
       }
       state.readonly = parsed.schemaVersion !== SCHEMA;
+      cleanupAllMediaPreviews();
       state.nodes = (parsed.nodes ?? []).map(buildNodeFromSerialized);
       state.connections = (parsed.connections ?? []).map(cloneConnection);
       state.pendingConnection = null;
@@ -1629,6 +1870,7 @@ import type {
     applyNodeHighlightClasses();
   });
 
+  window.addEventListener('beforeunload', cleanupAllMediaPreviews);
   document.addEventListener('keydown', handleKeydown);
 
   setupSidebarPanels();

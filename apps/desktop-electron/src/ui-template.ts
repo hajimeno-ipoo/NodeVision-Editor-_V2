@@ -405,6 +405,108 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 10px;
         padding: 4px 18px 0;
       }
+      .node-media {
+        padding: 0 18px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding-top: 12px;
+      }
+      .node-media-upload {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+        background: linear-gradient(180deg, #dcdfe8, #bec4d8);
+        color: #1d2333;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        overflow: hidden;
+      }
+      .node-media-upload.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .node-media-upload span {
+        pointer-events: none;
+      }
+      .node-media-upload input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+      .node-media-upload input[type="file"]:disabled {
+        cursor: not-allowed;
+      }
+      .node-media-empty {
+        margin: 0;
+        font-size: 12px;
+        color: rgba(48, 48, 60, 0.6);
+        text-align: center;
+        padding: 6px 0 2px;
+      }
+      .node-media-preview {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        overflow: hidden;
+        background: rgba(8, 10, 16, 0.85);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-height: 180px;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+      }
+      .node-media-preview img,
+      .node-media-preview video {
+        width: 100%;
+        height: auto;
+        max-height: 280px;
+        object-fit: contain;
+        background: #050709;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      }
+      .node-media-toolbar {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        align-items: center;
+      }
+      .node-media-arrow {
+        border-radius: 999px;
+        width: 32px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .node-media-filename {
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 999px;
+        padding: 4px 12px;
+        background: rgba(255, 255, 255, 0.65);
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .node-media-aspect {
+        margin: 10px 0 0;
+        font-size: 13px;
+        text-align: center;
+        color: rgba(48, 48, 60, 0.85);
+        font-weight: 600;
+      }
       button, .pill-button {
         border: none;
         border-radius: 999px;

@@ -41,6 +41,16 @@ export interface RendererDiagnostics extends DiagnosticsSnapshot {
   lastExportSha: string | null;
 }
 
+export interface NodeMediaPreview {
+  url: string;
+  name: string;
+  size: number;
+  type: string;
+  kind: 'image' | 'video';
+  width: number | null;
+  height: number | null;
+}
+
 export interface RendererState {
   locale: string;
   nodes: RendererNode[];
@@ -60,6 +70,7 @@ export interface RendererState {
   draggingConnection: DraggingConnection | null;
   highlightedConnections: Set<string>;
   pressedNodeId: string | null;
+  mediaPreviews: Map<string, NodeMediaPreview>;
 }
 
 export interface HistoryEntry {

@@ -7,7 +7,8 @@ import type {
   RendererQueueState,
   RendererState,
   NodePort,
-  HistoryEntry
+  HistoryEntry,
+  NodeMediaPreview
 } from './types';
 
 export const DEFAULT_QUEUE_LIMITS: QueueLimits = {
@@ -70,5 +71,6 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
   pendingConnection: null,
   draggingConnection: null,
   highlightedConnections: new Set<string>(),
-  pressedNodeId: null
+  pressedNodeId: null,
+  mediaPreviews: new Map<string, NodeMediaPreview>()
 });
