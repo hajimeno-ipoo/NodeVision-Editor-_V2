@@ -187,16 +187,88 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       main {
         flex: 1;
         display: grid;
-        grid-template-columns: 320px 1fr;
+        grid-template-columns: 72px 1fr;
         min-height: 0;
       }
       .sidebar {
         border-right: 1px solid rgba(255, 255, 255, 0.04);
-        padding: 20px;
+        background: linear-gradient(180deg, #141518, #101113);
+        position: relative;
+        overflow: visible;
+        min-height: 0;
+      }
+      .sidebar-icons {
+        width: 72px;
         display: flex;
         flex-direction: column;
-        gap: 20px;
-        background: linear-gradient(180deg, #141518, #101113);
+        gap: 12px;
+        align-items: center;
+        padding: 12px 0;
+      }
+      .sidebar-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.25);
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border 150ms ease, background 150ms ease, transform 150ms ease;
+      }
+      .sidebar-icon:focus-visible {
+        outline: 2px solid #7dc3ff;
+        outline-offset: 3px;
+      }
+      .sidebar-icon.active {
+        border-color: rgba(255, 223, 107, 0.9);
+        background: rgba(255, 223, 107, 0.18);
+        color: #ffe089;
+        transform: translateX(4px);
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+      .sidebar-panel-container {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 72px;
+        width: min(360px, calc(100vw - 120px));
+        background: linear-gradient(180deg, #1a1b21, #111218);
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 12px 0 24px rgba(0, 0, 0, 0.35);
+        padding: 20px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        transform: translateX(-120%);
+        transition: transform 220ms ease;
+        pointer-events: none;
+        z-index: 5;
+      }
+      .sidebar-panel-container[data-state='open'] {
+        transform: translateX(0);
+        pointer-events: all;
+      }
+      .sidebar-panel {
+        display: none;
+        flex-direction: column;
+        gap: 16px;
+        min-height: 0;
+      }
+      .sidebar-panel.active {
+        display: flex;
       }
       .canvas-wrap {
         position: relative;
@@ -812,11 +884,22 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       @media (max-width: 1100px) {
         main {
-          grid-template-columns: 1fr;
+          grid-template-columns: 56px 1fr;
         }
         .sidebar {
-          border-right: none;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .sidebar-icons {
+          flex-direction: row;
+          justify-content: center;
+          width: auto;
+        }
+        .sidebar-icon.active {
+          transform: translateY(-4px);
+        }
+        .sidebar-panel-container {
+          left: 56px;
+          width: min(420px, calc(100vw - 72px));
         }
         #json-panel {
           grid-template-columns: 1fr;
@@ -854,143 +937,164 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
     </header>
     <main>
       <section class="sidebar" aria-label="Node search and help" data-i18n-attr-aria-label="sidebar.ariaLabel">
-        <div>
-          <label class="search-box">
-            <span style="font-size:12px; color: rgba(255,255,255,0.7);" data-i18n-key="sidebar.searchLabel">Node search</span>
-            <input
-              id="node-search"
-              type="search"
-              placeholder="Load, Trim, Resize..."
-              autocomplete="off"
-              data-i18n-attr-placeholder="sidebar.searchPlaceholder"
-            />
-          </label>
-          <ul
-            id="search-suggestions"
-            class="suggestions"
-            role="listbox"
-            aria-label="Node suggestions"
-            data-i18n-attr-aria-label="sidebar.suggestionsLabel"
-          ></ul>
+        <div class="sidebar-icons" role="tablist">
+          <button type="button" class="sidebar-icon" data-panel="panel-search" aria-controls="panel-search" aria-expanded="false">
+            <span aria-hidden="true">🔍</span>
+            <span class="sr-only">Search</span>
+          </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-help" aria-controls="panel-help" aria-expanded="false">
+            <span aria-hidden="true">❓</span>
+            <span class="sr-only">Help</span>
+          </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-queue" aria-controls="panel-queue" aria-expanded="false">
+            <span aria-hidden="true">🗂️</span>
+            <span class="sr-only">Queue</span>
+          </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-connections" aria-controls="panel-connections" aria-expanded="false">
+            <span aria-hidden="true">🔌</span>
+            <span class="sr-only">Connections</span>
+          </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-diagnostics" aria-controls="panel-diagnostics" aria-expanded="false">
+            <span aria-hidden="true">📋</span>
+            <span class="sr-only">Diagnostics</span>
+          </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-about" aria-controls="panel-about" aria-expanded="false">
+            <span aria-hidden="true">ℹ️</span>
+            <span class="sr-only">About</span>
+          </button>
         </div>
-        <div class="help-card" aria-live="polite">
-          <strong data-i18n-key="help.shortcutsTitle">Shortcuts</strong>
-          <table>
-            <tr><td>Ctrl/Cmd + C</td><td data-i18n-key="help.copy">Copy node</td></tr>
-            <tr><td>Ctrl/Cmd + V</td><td data-i18n-key="help.paste">Paste (4px snap)</td></tr>
-            <tr><td>Ctrl/Cmd + D</td><td data-i18n-key="help.duplicate">Duplicate</td></tr>
-            <tr><td>1</td><td data-i18n-key="help.zoomReset">Zoom 100%</td></tr>
-            <tr><td>Shift + 1</td><td data-i18n-key="help.fitSelection">Fit selection</td></tr>
-          </table>
-        </div>
-        <div class="help-card">
-          <strong data-i18n-key="help.guideTitle">Guided actions</strong>
-          <p data-i18n-html="help.guideHtml">• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.</p>
-        </div>
-        <div class="readonly-banner" id="readonly-banner" data-i18n-key="readonly.banner">Read-only because the schema version differs. Editing is disabled.</div>
-        <div class="queue-card" aria-label="Job queue" data-i18n-attr-aria-label="queue.ariaLabel">
-          <header>
-            <strong data-i18n-key="queue.title">Job queue</strong>
-            <div class="toolbar-group">
-              <button type="button" id="btn-demo-job" data-i18n-key="queue.demoJob">Add demo job</button>
-              <button type="button" id="btn-cancel-all" data-i18n-key="queue.cancelAll">Cancel all</button>
-            </div>
-          </header>
-          <div id="queue-warnings" class="queue-alerts" aria-live="polite"></div>
-          <div class="queue-lists">
-            <div class="queue-section">
-              <strong data-i18n-key="queue.status.running">Running</strong>
-              <div id="queue-running"></div>
-            </div>
-            <div class="queue-section">
-              <strong data-i18n-key="queue.status.queued">Queued</strong>
-              <div id="queue-queued"></div>
-            </div>
-            <div class="queue-section">
-              <strong data-i18n-key="queue.historyTitle">History (20 entries)</strong>
-              <div id="queue-history"></div>
-            </div>
-          </div>
-        </div>
-        <div class="connections-card" aria-label="Connection list" data-i18n-attr-aria-label="connections.ariaLabel">
-          <header>
-            <strong data-i18n-key="connections.title">Connections</strong>
-            <span id="connection-pending" class="pending-hint" aria-live="polite"></span>
-          </header>
-          <ul id="connection-list" class="connections-list" role="list"></ul>
-        </div>
-        <div class="diagnostics-card" aria-label="Logs and diagnostics" data-i18n-attr-aria-label="diagnostics.ariaLabel">
-          <header>
-            <strong data-i18n-key="diagnostics.title">Logs & diagnostics</strong>
-            <label style="display:flex;gap:6px;align-items:center;">
-              <input type="checkbox" id="crash-consent" /> <span data-i18n-key="diagnostics.crashConsent">Include crash dumps</span>
+        <div class="sidebar-panel-container" id="sidebar-panels" data-state="closed">
+          <div id="panel-search" class="sidebar-panel" role="region" aria-hidden="true">
+            <label class="search-box">
+              <span style="font-size:12px; color: rgba(255,255,255,0.7);" data-i18n-key="sidebar.searchLabel">Node search</span>
+              <input
+                id="node-search"
+                type="search"
+                placeholder="Load, Trim, Resize..."
+                autocomplete="off"
+                data-i18n-attr-placeholder="sidebar.searchPlaceholder"
+              />
             </label>
-          </header>
-          <div class="diagnostics-export">
-            <input
-              type="password"
-              id="log-password"
-              placeholder="Export password"
-              autocomplete="off"
-              data-i18n-attr-placeholder="diagnostics.passwordPlaceholder"
-            />
-            <button type="button" id="btn-export-logs" data-i18n-key="diagnostics.exportButton">Export logs</button>
+            <ul
+              id="search-suggestions"
+              class="suggestions"
+              role="listbox"
+              aria-label="Node suggestions"
+              data-i18n-attr-aria-label="sidebar.suggestionsLabel"
+            ></ul>
           </div>
-          <div id="export-status"></div>
-          <div class="queue-section">
-            <strong data-i18n-key="diagnostics.inspectHistoryTitle">Inspect history (20 entries)</strong>
-            <div id="inspect-history"></div>
+          <div id="panel-help" class="sidebar-panel" role="region" aria-hidden="true">
+            <div class="help-card" aria-live="polite">
+              <strong data-i18n-key="help.shortcutsTitle">Shortcuts</strong>
+              <table>
+                <tr><td>Ctrl/Cmd + C</td><td data-i18n-key="help.copy">Copy node</td></tr>
+                <tr><td>Ctrl/Cmd + V</td><td data-i18n-key="help.paste">Paste (4px snap)</td></tr>
+                <tr><td>Ctrl/Cmd + D</td><td data-i18n-key="help.duplicate">Duplicate</td></tr>
+                <tr><td>1</td><td data-i18n-key="help.zoomReset">Zoom 100%</td></tr>
+                <tr><td>Shift + 1</td><td data-i18n-key="help.fitSelection">Fit selection</td></tr>
+              </table>
+            </div>
+            <div class="help-card">
+              <strong data-i18n-key="help.guideTitle">Guided actions</strong>
+              <p data-i18n-html="help.guideHtml">• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.</p>
+            </div>
           </div>
-        </div>
-        <div
-          class="about-card"
-          id="about-card"
-          role="region"
-          aria-live="polite"
-          aria-label="About & licensing"
-          data-i18n-attr-aria-label="about.ariaLabel"
-        >
-          <header>
-            <strong data-i18n-key="about.title">About & licensing</strong>
-          </header>
-          <dl>
-            <div>
-              <dt data-i18n-key="about.distributionLabel">FFmpeg distribution</dt>
-              <dd id="about-distribution"></dd>
+          <div id="panel-queue" class="sidebar-panel" role="region" aria-hidden="true">
+            <div class="readonly-banner" id="readonly-banner" data-i18n-key="readonly.banner">Read-only because the schema version differs. Editing is disabled.</div>
+            <div class="queue-card" aria-label="Job queue" data-i18n-attr-aria-label="queue.ariaLabel">
+              <header>
+                <strong data-i18n-key="queue.title">Job queue</strong>
+                <div class="toolbar-group">
+                  <button type="button" id="btn-demo-job" data-i18n-key="queue.demoJob">Add demo job</button>
+                  <button type="button" id="btn-cancel-all" data-i18n-key="queue.cancelAll">Cancel all</button>
+                </div>
+              </header>
+              <div id="queue-warnings" class="queue-alerts" aria-live="polite"></div>
+              <div class="queue-lists">
+                <div class="queue-section">
+                  <strong data-i18n-key="queue.status.running">Running</strong>
+                  <div id="queue-running"></div>
+                </div>
+                <div class="queue-section">
+                  <strong data-i18n-key="queue.status.queued">Queued</strong>
+                  <div id="queue-queued"></div>
+                </div>
+                <div class="queue-section">
+                  <strong data-i18n-key="queue.historyTitle">History (20 entries)</strong>
+                  <div id="queue-history"></div>
+                </div>
+              </div>
             </div>
-            <div>
-              <dt data-i18n-key="about.licenseLabel">License</dt>
-              <dd id="about-license"></dd>
+          </div>
+          <div id="panel-connections" class="sidebar-panel" role="region" aria-hidden="true">
+            <div class="connections-card" aria-label="Connection list" data-i18n-attr-aria-label="connections.ariaLabel">
+              <header>
+                <strong data-i18n-key="connections.title">Connections</strong>
+                <span id="connection-pending" class="pending-hint" aria-live="polite"></span>
+              </header>
+              <ul id="connection-list" class="connections-list" role="list"></ul>
             </div>
-            <div>
-              <dt data-i18n-key="about.pathLabel">FFmpeg path</dt>
-              <dd id="about-path" class="mono"></dd>
+          </div>
+          <div id="panel-diagnostics" class="sidebar-panel" role="region" aria-hidden="true">
+            <div class="diagnostics-card" aria-label="Logs and diagnostics" data-i18n-attr-aria-label="diagnostics.ariaLabel">
+              <header>
+                <strong data-i18n-key="diagnostics.title">Logs & diagnostics</strong>
+                <label style="display:flex;gap:6px;align-items:center;">
+                  <input type="checkbox" id="crash-consent" /> <span data-i18n-key="diagnostics.crashConsent">Include crash dumps</span>
+                </label>
+              </header>
+              <div class="diagnostics-export">
+                <input
+                  type="password"
+                  id="log-password"
+                  placeholder="Export password"
+                  autocomplete="off"
+                  data-i18n-attr-placeholder="diagnostics.passwordPlaceholder"
+                />
+                <button type="button" id="btn-export-logs" data-i18n-key="diagnostics.exportButton">Export logs</button>
+              </div>
+              <div id="export-status"></div>
+              <div class="queue-section">
+                <strong data-i18n-key="diagnostics.inspectHistoryTitle">Inspect history (20 entries)</strong>
+                <div id="inspect-history"></div>
+              </div>
             </div>
-            <div>
-              <dt data-i18n-key="about.versionLabel">FFmpeg version</dt>
-              <dd id="about-version"></dd>
-            </div>
-          </dl>
-          <p id="about-notice"></p>
-          <div class="about-links">
-            <a
-              id="about-license-link"
-              href="https://ffmpeg.org/legal.html"
-              target="_blank"
-              rel="noreferrer"
-              data-i18n-key="about.licenseLinkLabel"
+          </div>
+          <div id="panel-about" class="sidebar-panel" role="region" aria-hidden="true">
+            <div
+              class="about-card"
+              id="about-card"
+              aria-live="polite"
+              aria-label="About & licensing"
+              data-i18n-attr-aria-label="about.ariaLabel"
             >
-              License text
-            </a>
-            <a
-              id="about-source-link"
-              href="https://ffmpeg.org/download.html#sources"
-              target="_blank"
-              rel="noreferrer"
-              data-i18n-key="about.sourceLinkLabel"
-            >
-              FFmpeg source
-            </a>
+              <header>
+                <strong data-i18n-key="about.title">About & licensing</strong>
+              </header>
+              <dl>
+                <div>
+                  <dt data-i18n-key="about.distributionLabel">FFmpeg distribution</dt>
+                  <dd id="about-distribution"></dd>
+                </div>
+                <div>
+                  <dt data-i18n-key="about.licenseLabel">License</dt>
+                  <dd id="about-license"></dd>
+                </div>
+                <div>
+                  <dt data-i18n-key="about.pathLabel">FFmpeg path</dt>
+                  <dd id="about-path" class="mono"></dd>
+                </div>
+                <div>
+                  <dt data-i18n-key="about.versionLabel">Version</dt>
+                  <dd id="about-version"></dd>
+                </div>
+              </dl>
+              <div class="about-links">
+                <a id="about-license-link" href="#" target="_blank" rel="noreferrer" data-i18n-key="about.licenseLink">License</a>
+                <a id="about-source-link" href="#" target="_blank" rel="noreferrer" data-i18n-key="about.sourceLink">Source</a>
+              </div>
+              <p id="about-notice"></p>
+            </div>
           </div>
         </div>
       </section>

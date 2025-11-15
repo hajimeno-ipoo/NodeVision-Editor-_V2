@@ -447,6 +447,47 @@ import type {
     applyNodeHighlightClasses();
   };
 
+  const setupSidebarPanels = (): void => {
+    const container = document.getElementById('sidebar-panels');
+    if (!container) {
+      return;
+    }
+    const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.sidebar-icon'));
+    const panels = new Map<string, HTMLElement>();
+    buttons.forEach(button => {
+      const panelId = button.dataset.panel;
+      if (!panelId) return;
+      const panelEl = document.getElementById(panelId);
+      if (panelEl) {
+        panels.set(panelId, panelEl);
+      }
+    });
+    let activePanelId: string | null = null;
+    const setActivePanel = (panelId: string | null): void => {
+      panels.forEach((panel, id) => {
+        const isActive = id === panelId;
+        panel.classList.toggle('active', isActive);
+        panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+      });
+      buttons.forEach(button => {
+        const isActive = button.dataset.panel === panelId;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+      });
+      container.setAttribute('data-state', panelId ? 'open' : 'closed');
+      activePanelId = panelId;
+    };
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        const panelId = button.dataset.panel;
+        if (!panelId || !panels.has(panelId)) {
+          return;
+        }
+        setActivePanel(activePanelId === panelId ? null : panelId);
+      });
+    });
+  };
+
   const refreshQueue = async (): Promise<void> => {
     if (!nodevision?.getQueueSnapshot) return;
     try {
@@ -1540,6 +1581,7 @@ import type {
 
   document.addEventListener('keydown', handleKeydown);
 
+  setupSidebarPanels();
   renderStatus();
   renderAbout();
   renderNodes();
