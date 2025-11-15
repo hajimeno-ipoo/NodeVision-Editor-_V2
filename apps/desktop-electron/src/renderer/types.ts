@@ -59,6 +59,7 @@ export interface RendererState {
   pendingConnection: PendingConnection | null;
   draggingConnection: DraggingConnection | null;
   highlightedConnections: Set<string>;
+  pressedNodeId: string | null;
 }
 
 export interface HistoryEntry {

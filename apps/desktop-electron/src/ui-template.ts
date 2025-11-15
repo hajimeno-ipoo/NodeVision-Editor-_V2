@@ -185,17 +185,27 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         color: rgba(255, 255, 255, 0.8);
       }
       main {
+        --sidebar-collapsed-width: 72px;
+        --sidebar-expanded-width: 392px;
+        --sidebar-width: var(--sidebar-collapsed-width);
+        --panel-width: calc(var(--sidebar-expanded-width) - var(--sidebar-collapsed-width));
         flex: 1;
         display: grid;
-        grid-template-columns: 72px 1fr;
+        grid-template-columns: var(--sidebar-width) 1fr;
         min-height: 0;
+        transition: grid-template-columns 220ms ease;
+      }
+      main.sidebar-open {
+        --sidebar-width: var(--sidebar-expanded-width);
       }
       .sidebar {
         border-right: 1px solid rgba(255, 255, 255, 0.04);
         background: linear-gradient(180deg, #141518, #101113);
-        position: relative;
-        overflow: visible;
+        display: flex;
         min-height: 0;
+        width: var(--sidebar-width);
+        min-width: var(--sidebar-width);
+        transition: width 220ms ease;
       }
       .sidebar-icons {
         width: 72px;
@@ -240,26 +250,29 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         border: 0;
       }
       .sidebar-panel-container {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 72px;
-        width: min(360px, calc(100vw - 120px));
-        background: linear-gradient(180deg, #1a1b21, #111218);
-        border-right: 1px solid rgba(255, 255, 255, 0.06);
-        box-shadow: 12px 0 24px rgba(0, 0, 0, 0.35);
-        padding: 20px 24px 24px;
+        flex: 0 0 0;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         gap: 16px;
-        transform: translateX(-120%);
-        transition: transform 220ms ease;
+        opacity: 0;
         pointer-events: none;
-        z-index: 5;
+        padding: 0;
+        background: linear-gradient(180deg, #1a1b21, #111218);
+        border-left: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: none;
+        transition:
+          flex-basis 220ms ease,
+          opacity 200ms ease,
+          padding 200ms ease,
+          box-shadow 200ms ease;
       }
-      .sidebar-panel-container[data-state='open'] {
-        transform: translateX(0);
-        pointer-events: all;
+      main.sidebar-open .sidebar-panel-container {
+        flex: 0 0 var(--panel-width);
+        padding: 20px 24px 24px;
+        opacity: 1;
+        pointer-events: auto;
+        box-shadow: 12px 0 24px rgba(0, 0, 0, 0.35);
       }
       .sidebar-panel {
         display: none;
@@ -313,6 +326,17 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 10px;
         overflow: hidden;
         transition: border 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+        position: absolute;
+      }
+      .node::after {
+        content: '';
+        position: absolute;
+        inset: 4px;
+        border-radius: 14px;
+        border: 2px solid transparent;
+        pointer-events: none;
+        opacity: 0;
+        transition: border-color 150ms ease, opacity 150ms ease, box-shadow 150ms ease;
       }
       .node-header {
         display: flex;
@@ -351,9 +375,16 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(97, 97, 110, 0.15);
         color: rgba(48, 48, 60, 0.85);
       }
-      .node.selected {
-        border-color: #7dc3ff;
-        box-shadow: 0 0 0 2px rgba(125, 195, 255, 0.35);
+      .node.node-highlight,
+      .node.node-pressed {
+        border-color: rgba(255, 223, 107, 0.8);
+        box-shadow: 0 0 0 3px rgba(255, 223, 107, 0.35), 0 18px 32px rgba(0, 0, 0, 0.4);
+      }
+      .node.node-highlight::after,
+      .node.node-pressed::after {
+        border-color: rgba(255, 223, 107, 0.95);
+        opacity: 1;
+        box-shadow: 0 0 18px rgba(255, 223, 107, 0.6);
       }
       @keyframes nodeGlow {
         0% {
@@ -884,7 +915,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       @media (max-width: 1100px) {
         main {
-          grid-template-columns: 56px 1fr;
+          --sidebar-collapsed-width: 56px;
+          --sidebar-expanded-width: min(420px, calc(100vw - 80px));
         }
         .sidebar {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -896,10 +928,6 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         }
         .sidebar-icon.active {
           transform: translateY(-4px);
-        }
-        .sidebar-panel-container {
-          left: 56px;
-          width: min(420px, calc(100vw - 72px));
         }
         #json-panel {
           grid-template-columns: 1fr;

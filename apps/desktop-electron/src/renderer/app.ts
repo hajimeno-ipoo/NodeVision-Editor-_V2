@@ -387,6 +387,9 @@ import type {
         ids.add(connection.toNodeId);
       }
     });
+    if (state.pressedNodeId) {
+      ids.add(state.pressedNodeId);
+    }
     return ids;
   };
 
@@ -394,11 +397,8 @@ import type {
     const highlightedIds = getHighlightedNodeIds();
     elements.nodeLayer.querySelectorAll<HTMLElement>('.node').forEach(nodeEl => {
       const nodeId = nodeEl.dataset.id;
-      if (nodeId && highlightedIds.has(nodeId)) {
-        nodeEl.classList.add('node-highlight');
-      } else {
-        nodeEl.classList.remove('node-highlight');
-      }
+      if (!nodeId) return;
+      nodeEl.classList.toggle('node-highlight', highlightedIds.has(nodeId));
     });
   };
 
@@ -443,13 +443,16 @@ import type {
         return html.join('');
       })
       .join('');
+    applyPressedNodeStyles();
     renderConnectionPaths();
     applyNodeHighlightClasses();
   };
 
   const setupSidebarPanels = (): void => {
     const container = document.getElementById('sidebar-panels');
-    if (!container) {
+    const sidebarEl = document.querySelector<HTMLElement>('.sidebar');
+    const mainEl = document.querySelector<HTMLElement>('main');
+    if (!container || !sidebarEl || !mainEl) {
       return;
     }
     const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.sidebar-icon'));
@@ -475,6 +478,8 @@ import type {
         button.setAttribute('aria-expanded', isActive ? 'true' : 'false');
       });
       container.setAttribute('data-state', panelId ? 'open' : 'closed');
+      sidebarEl.setAttribute('data-panel-open', panelId ? 'true' : 'false');
+      mainEl.classList.toggle('sidebar-open', Boolean(panelId));
       activePanelId = panelId;
     };
     buttons.forEach(button => {
@@ -485,6 +490,19 @@ import type {
         }
         setActivePanel(activePanelId === panelId ? null : panelId);
       });
+    });
+    document.addEventListener('click', event => {
+      if (!activePanelId) return;
+      const target = event.target as HTMLElement;
+      if (!sidebarEl.contains(target)) {
+        setActivePanel(null);
+      }
+    });
+    document.addEventListener('keydown', event => {
+      if (!activePanelId) return;
+      if (event.key === 'Escape') {
+        setActivePanel(null);
+      }
     });
   };
 
@@ -620,6 +638,20 @@ import type {
     applySnapshot(state.history[state.historyIndex]);
   };
 
+  const applyPressedNodeStyles = (): void => {
+    elements.nodeLayer.querySelectorAll<HTMLElement>('.node').forEach(nodeEl => {
+      const id = nodeEl.dataset.id ?? '';
+      nodeEl.classList.toggle('node-pressed', !!state.pressedNodeId && state.pressedNodeId === id);
+    });
+  };
+
+  const setPressedNode = (nodeId: string | null): void => {
+    if (state.pressedNodeId === nodeId) return;
+    state.pressedNodeId = nodeId;
+    applyPressedNodeStyles();
+    renderConnectionPaths();
+  };
+
   const updateSelectionUi = (): void => {
     elements.nodeLayer.querySelectorAll<HTMLElement>('.node').forEach(nodeEl => {
       const id = nodeEl.dataset.id ?? '';
@@ -628,6 +660,7 @@ import type {
     document.querySelectorAll<HTMLButtonElement>('[data-align]').forEach(button => {
       button.disabled = state.selection.size === 0 || state.readonly;
     });
+    renderConnectionPaths();
   };
 
   const describePort = (node: RendererNode, port: NodePort, direction: PortDirection): string =>
@@ -783,7 +816,11 @@ import type {
     state.connections.forEach(connection => {
       const fromEl = findPortElement(connection.fromNodeId, connection.fromPortId, 'output');
       const toEl = findPortElement(connection.toNodeId, connection.toPortId, 'input');
-      const extraClass = state.highlightedConnections.has(connection.id) ? ' connection-highlight' : '';
+        const touchesPressed =
+          state.pressedNodeId &&
+          (state.pressedNodeId === connection.fromNodeId || state.pressedNodeId === connection.toNodeId);
+        const glow = state.highlightedConnections.has(connection.id) || Boolean(touchesPressed);
+      const extraClass = glow ? ' connection-highlight' : '';
       pushPath(getPortAnchorPoint(fromEl), getPortAnchorPoint(toEl), extraClass);
     });
     if (state.draggingConnection) {
@@ -847,6 +884,21 @@ import type {
     const onPointerDown = (event: PointerEvent): void => {
       if (state.readonly) return;
       if (event.button !== 0) return;
+      const additive = event.shiftKey;
+      if (additive) {
+        if (state.selection.has(node.id)) {
+          state.selection.delete(node.id);
+        } else {
+          state.selection.add(node.id);
+        }
+      } else {
+        if (!(state.selection.size === 1 && state.selection.has(node.id))) {
+          state.selection.clear();
+          state.selection.add(node.id);
+        }
+      }
+      updateSelectionUi();
+      setPressedNode(node.id);
       event.preventDefault();
       const rect = elements.canvas.getBoundingClientRect();
       const start = { x: event.clientX - rect.left, y: event.clientY - rect.top };
@@ -862,27 +914,25 @@ import type {
         renderConnectionPaths();
       };
       const up = (): void => {
+        setPressedNode(null);
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
         commitState();
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
     };
 
     el.addEventListener('pointerdown', onPointerDown);
-    el.addEventListener('click', (event: MouseEvent) => {
+    el.addEventListener('click', () => {
       if (state.readonly) return;
-      const additive = event.shiftKey;
-      if (!additive) {
+      if (!state.selection.has(node.id)) {
         state.selection.clear();
-      }
-      if (state.selection.has(node.id) && additive) {
-        state.selection.delete(node.id);
-      } else {
         state.selection.add(node.id);
+        updateSelectionUi();
       }
-      updateSelectionUi();
     });
     el.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Enter') {

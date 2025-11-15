@@ -69,5 +69,6 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
   connections: (bootstrap.connections ?? []).map(cloneConnection),
   pendingConnection: null,
   draggingConnection: null,
-  highlightedConnections: new Set<string>()
+  highlightedConnections: new Set<string>(),
+  pressedNodeId: null
 });
