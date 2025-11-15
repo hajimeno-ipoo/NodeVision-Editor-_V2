@@ -132,6 +132,27 @@ import type {
     return node ? getLoadNodeKindFromType(node.typeId) : 'any';
   };
 
+  let measurementContainer: HTMLElement | null = null;
+  const getMeasurementContainer = (): HTMLElement | null => {
+    if (!document?.body) {
+      return null;
+    }
+    if (measurementContainer && document.body.contains(measurementContainer)) {
+      return measurementContainer;
+    }
+    measurementContainer = document.createElement('div');
+    measurementContainer.id = 'nodevision-media-measurements';
+    measurementContainer.style.position = 'fixed';
+    measurementContainer.style.width = '1px';
+    measurementContainer.style.height = '1px';
+    measurementContainer.style.overflow = 'hidden';
+    measurementContainer.style.pointerEvents = 'none';
+    measurementContainer.style.opacity = '0';
+    measurementContainer.style.zIndex = '-1';
+    document.body.appendChild(measurementContainer);
+    return measurementContainer;
+  };
+
   let activeConnectionDrag: {
         portEl: HTMLElement;
         pointerId: number;
@@ -490,20 +511,59 @@ import type {
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.muted = true;
-    const cleanup = () => {
-      video.src = '';
-      video.load();
+    video.playsInline = true;
+    video.controls = false;
+    video.setAttribute('aria-hidden', 'true');
+    video.style.position = 'fixed';
+    video.style.left = '-9999px';
+    video.style.top = '-9999px';
+    video.style.width = '1px';
+    video.style.height = '1px';
+    video.style.pointerEvents = 'none';
+
+    const container = getMeasurementContainer();
+    if (container) {
+      container.appendChild(video);
+    }
+
+    const cleanup = (warn?: string): void => {
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      try {
+        video.pause();
+      } catch (error) {
+        console.warn('[NodeVision] video pause failed', error);
+      }
+      video.removeAttribute('src');
+      try {
+        video.load();
+      } catch (error) {
+        console.warn('[NodeVision] video load reset failed', error);
+      }
+      if (video.parentNode) {
+        video.parentNode.removeChild(video);
+      }
+      if (warn) {
+        console.warn('[NodeVision]', warn);
+      }
     };
+
     video.onloadedmetadata = () => {
       updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null);
       cleanup();
     };
+
     video.onerror = () => {
       updateMediaPreviewDimensions(nodeId, null, null);
-      cleanup();
+      cleanup('Failed to read video metadata for preview');
     };
-    video.src = url;
-    video.load();
+
+    try {
+      video.src = url;
+      video.load();
+    } catch (error) {
+      cleanup('Unable to schedule video metadata probe');
+    }
   };
 
   const ingestMediaFile = (nodeId: string, file: File): void => {
