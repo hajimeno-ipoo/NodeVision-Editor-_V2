@@ -7,12 +7,12 @@ import { buildFFmpegPlan } from './builder';
 
 describe('buildFFmpegPlan', () => {
   it('throws when load or export nodes are missing', () => {
-    expect(() => buildFFmpegPlan({ nodes: [] })).toThrow('loadMedia');
+    expect(() => buildFFmpegPlan({ nodes: [] })).toThrow('loadImage or loadVideo');
     expect(() => buildFFmpegPlan({} as unknown as MediaChain)).toThrow('media chain');
 
     const chain: MediaChain = {
       nodes: [
-        { id: 'load', typeId: 'loadMedia', nodeVersion: '1.0.0', path: 'input.mp4' }
+        { id: 'load', typeId: 'loadVideo', nodeVersion: '1.0.0', path: 'input.mp4' }
       ]
     };
 
@@ -24,7 +24,7 @@ describe('buildFFmpegPlan', () => {
       nodes: [
         {
           id: 'load',
-          typeId: 'loadMedia',
+          typeId: 'loadVideo',
           nodeVersion: '1.0.0',
           path: '/tmp/source.mp4',
           durationMs: 10_000,
@@ -80,7 +80,7 @@ describe('buildFFmpegPlan', () => {
       nodes: [
         {
           id: 'load',
-          typeId: 'loadMedia',
+          typeId: 'loadVideo',
           nodeVersion: '1.0.0',
           path: './fixture.mov',
           durationMs: 8000
@@ -175,7 +175,7 @@ describe('buildFFmpegPlan', () => {
   it('applies preview overrides, clamps opacity, and skips invalid speeds', () => {
     const chain: MediaChain = {
       nodes: [
-        { id: 'load', typeId: 'loadMedia', nodeVersion: '1.0.0', path: 'clip.mov' },
+        { id: 'load', typeId: 'loadVideo', nodeVersion: '1.0.0', path: 'clip.mov' },
         {
           id: 'trim-negative',
           typeId: 'trim',
@@ -242,7 +242,7 @@ describe('buildFFmpegPlan', () => {
       nodes: [
         {
           id: 'load',
-          typeId: 'loadMedia',
+          typeId: 'loadVideo',
           nodeVersion: '1.0.0',
           path: 'clip.mp4',
           durationMs: 5000,
@@ -280,7 +280,7 @@ describe('buildFFmpegPlan', () => {
   it('falls back to default preview fps when metadata is missing', () => {
     const chain: MediaChain = {
       nodes: [
-        { id: 'load', typeId: 'loadMedia', nodeVersion: '1.0.0', path: 'clip.mov' },
+        { id: 'load', typeId: 'loadVideo', nodeVersion: '1.0.0', path: 'clip.mov' },
         { id: 'export', typeId: 'export', nodeVersion: '1.0.0' }
       ]
     };
@@ -295,7 +295,7 @@ describe('buildFFmpegPlan', () => {
       nodes: [
         {
           id: 'load',
-          typeId: 'loadMedia',
+          typeId: 'loadVideo',
           nodeVersion: '1.0.0',
           path: 'clip.mov',
           durationMs: 5000
@@ -324,7 +324,7 @@ describe('buildFFmpegPlan', () => {
       nodes: [
         {
           id: 'load',
-          typeId: 'loadMedia',
+          typeId: 'loadVideo',
           nodeVersion: '1.0.0',
           path: 'clip.mov',
           durationMs: 6000
@@ -351,5 +351,29 @@ describe('buildFFmpegPlan', () => {
     expect(trimStage?.nodeVersion).toBe('strict-range');
     expect(trimStage?.params).toMatchObject({ startMs: null, endMs: 2000 });
     expect(plan.metadata.estimatedDurationMs).toBe(2000);
+  });
+
+  it('accepts loadImage nodes when building plans', () => {
+    const chain: MediaChain = {
+      nodes: [
+        { id: 'img', typeId: 'loadImage', nodeVersion: '1.0.0', path: 'still.png' },
+        { id: 'export', typeId: 'export', nodeVersion: '1.0.0' }
+      ]
+    };
+
+    const plan = buildFFmpegPlan(chain);
+    expect(plan.stages[0]).toMatchObject({ stage: 'input', typeId: 'loadImage' });
+  });
+
+  it('maintains compatibility with legacy loadMedia nodes', () => {
+    const chain: MediaChain = {
+      nodes: [
+        { id: 'legacy', typeId: 'loadMedia', nodeVersion: '1.0.0', path: 'legacy.mov' },
+        { id: 'export', typeId: 'export', nodeVersion: '1.0.0' }
+      ]
+    };
+
+    const plan = buildFFmpegPlan(chain);
+    expect(plan.stages[0]).toMatchObject({ stage: 'input', typeId: 'loadMedia' });
   });
 });

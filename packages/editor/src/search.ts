@@ -12,10 +12,10 @@ export class NodeSearchIndex {
     }
 
     return this.templates
-      .filter(template =>
-        template.title.toLowerCase().includes(normalized) ||
-        template.keywords.some(keyword => keyword.includes(normalized))
-      )
+      .filter(template => {
+        const tokens = [template.title.toLowerCase(), ...template.keywords.map(keyword => keyword.toLowerCase())];
+        return tokens.some(token => token.includes(normalized));
+      })
       .slice(0, 10);
   }
 

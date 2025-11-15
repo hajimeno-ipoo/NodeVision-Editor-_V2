@@ -2,12 +2,25 @@ import type { NodeTemplate } from './types';
 
 export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
   {
-    typeId: 'loadMedia',
+    typeId: 'loadImage',
     nodeVersion: '1.0.0',
-    title: 'Load Media',
+    title: 'Load Image',
     category: 'Input',
-    description: 'Open a local image or video file',
-    keywords: ['load', 'open', 'input', 'video', 'image'],
+    description: 'Open a local image file',
+    keywords: ['load', 'open', 'input', 'image', 'photo'],
+    width: 240,
+    height: 128,
+    outputs: [
+      { id: 'media', label: 'Media', direction: 'output', dataType: 'video', required: true }
+    ]
+  },
+  {
+    typeId: 'loadVideo',
+    nodeVersion: '1.0.0',
+    title: 'Load Video',
+    category: 'Input',
+    description: 'Open a local video file',
+    keywords: ['load', 'open', 'input', 'video'],
     width: 240,
     height: 128,
     outputs: [

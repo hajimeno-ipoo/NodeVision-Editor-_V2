@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_NODE_TEMPLATES } from './templates';
 import { NodeSearchIndex, SearchSession } from './search';
+import type { NodeTemplate } from './types';
 
 const mockId = (_template: any, index: number) => `mock-${index}`;
 
@@ -21,6 +22,22 @@ describe('search', () => {
     expect(node.position).toEqual({ x: 100, y: 100 });
   });
 
+  it('falls back to default dimensions when templates omit width/height', () => {
+    const template = {
+      typeId: 'simple',
+      nodeVersion: '1.0.0',
+      title: 'Simple',
+      category: 'Test',
+      description: 'No size provided',
+      keywords: ['simple'],
+      outputs: []
+    } satisfies NodeTemplate;
+    const index = new NodeSearchIndex([template], mockId);
+    const node = index.instantiate(template, { x: 0, y: 0 });
+    expect(node.width).toBe(220);
+    expect(node.height).toBe(120);
+  });
+
   it('cycles through results in a keyboard-friendly session', () => {
     const index = new NodeSearchIndex(DEFAULT_NODE_TEMPLATES, mockId);
     const session = new SearchSession(index);
@@ -35,5 +52,25 @@ describe('search', () => {
     session.update('does-not-exist');
     const fallback = session.move(1);
     expect(fallback.template).toBeNull();
+  });
+
+  it('matches templates when only keywords contain the query', () => {
+    const customIndex = new NodeSearchIndex(
+      [
+        {
+          typeId: 'keywordOnly',
+          nodeVersion: '1.0.0',
+          title: 'Luma Adjust',
+          category: 'Color',
+          description: 'Adjust exposure',
+          keywords: ['exposure', 'mask-only'],
+          outputs: []
+        }
+      ],
+      mockId
+    );
+    const hits = customIndex.search('mask-only');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].typeId).toBe('keywordOnly');
   });
 });

@@ -97,7 +97,7 @@ const stubRect = (el: Element | null, rect: { left: number; top: number; width: 
 const MEDIA_NODES = [
   {
     id: 'n1',
-    typeId: 'loadMedia',
+    typeId: 'loadImage',
     nodeVersion: '1.0.0',
     title: 'Load',
     position: { x: 0, y: 0 },
@@ -183,6 +183,31 @@ describe('load media node UI', () => {
     expect(placeholder?.textContent).toBe('まだメディアが選ばれていません');
     dom.window.close();
   });
+
+  it('sets accept attribute based on node type', async () => {
+    const nodes = [
+      ...MEDIA_NODES,
+      {
+        id: 'n3',
+        typeId: 'loadVideo',
+        nodeVersion: '1.0.0',
+        title: 'Load Video',
+        position: { x: 400, y: 0 },
+        width: 200,
+        height: 120,
+        inputs: [],
+        outputs: [{ id: 'media', label: 'Media', direction: 'output', dataType: 'video' }],
+        searchTokens: ['load', 'video']
+      }
+    ];
+    const dom = renderDom({ ...basePayload, nodes });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const imageInput = dom.window.document.querySelector<HTMLInputElement>('.node[data-id="n1"] .node-media-upload input');
+    const videoInput = dom.window.document.querySelector<HTMLInputElement>('.node[data-id="n3"] .node-media-upload input');
+    expect(imageInput?.accept).toBe('image/*');
+    expect(videoInput?.accept).toBe('video/*');
+    dom.window.close();
+  });
 });
 
 describe('ui-template accessibility helpers', () => {
@@ -196,7 +221,7 @@ describe('ui-template accessibility helpers', () => {
 
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const entry = dom.window.document.querySelector('.connections-list li span');
-    expect(entry?.textContent).toBe('メディアを読み込み • メディア → トリム • ソース');
+    expect(entry?.textContent).toBe('画像を読み込み • 画像 → トリム • ソース');
     dom.window.close();
   });
 

@@ -2,6 +2,8 @@ import path from 'node:path';
 
 export type MediaNodeType =
   | 'loadMedia'
+  | 'loadImage'
+  | 'loadVideo'
   | 'trim'
   | 'resize'
   | 'overlay'
@@ -18,7 +20,7 @@ interface BaseMediaNode {
 }
 
 export interface LoadMediaNode extends BaseMediaNode {
-  typeId: 'loadMedia';
+  typeId: 'loadMedia' | 'loadImage' | 'loadVideo';
   path: string;
   durationMs?: number | null;
   fps?: number | null;
@@ -113,7 +115,7 @@ interface BaseStage {
 
 export interface InputStage extends BaseStage {
   stage: 'input';
-  typeId: 'loadMedia';
+  typeId: 'loadMedia' | 'loadImage' | 'loadVideo';
   args: string[];
   path: string;
 }
@@ -284,9 +286,11 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
     throw new Error('A media chain with nodes is required');
   }
 
-  const loadNode = chain.nodes.find(node => node.typeId === 'loadMedia') as LoadMediaNode | undefined;
+  const loadNode = chain.nodes.find(node =>
+    node.typeId === 'loadVideo' || node.typeId === 'loadImage' || node.typeId === 'loadMedia'
+  ) as LoadMediaNode | undefined;
   if (!loadNode) {
-    throw new Error('A loadMedia node is required to build an FFmpeg plan');
+    throw new Error('A loadImage or loadVideo node is required to build an FFmpeg plan');
   }
 
   const exportNode = pickLast(chain.nodes, node => node.typeId === 'export') as ExportNode | null;
@@ -308,7 +312,7 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
   const stages: BuilderStage[] = [
     {
       stage: 'input',
-      typeId: 'loadMedia',
+      typeId: loadNode.typeId,
       nodeVersion: loadNode.nodeVersion,
       args: inputArgs,
       path: path.resolve(loadNode.path)

@@ -44,7 +44,20 @@ import type {
   const NODE_MIN_HEIGHT = MIN_PREVIEW_HEIGHT + MIN_NODE_CHROME;
   const NODE_MAX_HEIGHT = 720;
   const MAX_CHROME_SYNC_ATTEMPTS = 2;
+  type LoadNodeKind = 'image' | 'video' | 'any';
+  const LOAD_NODE_TYPES = new Set(['loadImage', 'loadVideo', 'loadMedia']);
+  const IMAGE_LOAD_TYPES = new Set(['loadImage', 'loadMedia']);
   const LOCALE_STORAGE_KEY = 'nodevision.locale';
+  const isLoadNodeType = (typeId: string): boolean => LOAD_NODE_TYPES.has(typeId);
+  const getLoadNodeKindFromType = (typeId: string): LoadNodeKind => {
+    if (typeId === 'loadVideo') {
+      return 'video';
+    }
+    if (IMAGE_LOAD_TYPES.has(typeId)) {
+      return 'image';
+    }
+    return 'any';
+  };
   const TRANSLATIONS: Record<string, Record<string, string>> = rendererWindow.__NODEVISION_TRANSLATIONS__ ?? {};
   const SUPPORTED_LOCALES: string[] = Array.isArray(rendererWindow.__NODEVISION_SUPPORTED_LOCALES__) && rendererWindow.__NODEVISION_SUPPORTED_LOCALES__.length
     ? rendererWindow.__NODEVISION_SUPPORTED_LOCALES__!
@@ -113,6 +126,11 @@ import type {
   };
 
   const state: RendererState = createInitialState(BOOTSTRAP, detectLocale());
+
+  const getLoadNodeKindById = (nodeId: string): LoadNodeKind => {
+    const node = state.nodes.find(item => item.id === nodeId);
+    return node ? getLoadNodeKindFromType(node.typeId) : 'any';
+  };
 
   let activeConnectionDrag: {
         portEl: HTMLElement;
@@ -489,6 +507,16 @@ import type {
   };
 
   const ingestMediaFile = (nodeId: string, file: File): void => {
+    const mode = getLoadNodeKindById(nodeId);
+    const kind = inferMediaKind(file);
+    if (mode === 'image' && kind !== 'image') {
+      showToast(t('toast.mediaWrongTypeImage'), 'error');
+      return;
+    }
+    if (mode === 'video' && kind !== 'video') {
+      showToast(t('toast.mediaWrongTypeVideo'), 'error');
+      return;
+    }
     if (typeof URL?.createObjectURL !== 'function') {
       console.error('[NodeVision] URL.createObjectURL unavailable for media preview');
       showToast(t('toast.mediaFailed'), 'error');
@@ -505,7 +533,6 @@ import type {
     }
     const fallbackType = file.name?.split('.').pop()?.toUpperCase() ?? '';
     const resolvedType = file.type || fallbackType;
-    const kind = inferMediaKind(file);
     state.mediaPreviews.set(nodeId, {
       url: objectUrl,
       name: file.name || 'media',
@@ -1141,10 +1168,12 @@ import type {
       )
       .join('');
 
-  const buildLoadNodeMediaSection = (nodeId: string): string => {
+  const buildLoadNodeMediaSection = (node: RendererNode): string => {
+    const nodeId = node.id;
     const preview = state.mediaPreviews.get(nodeId);
     const nodeSize = state.nodeSizes.get(nodeId) ?? { width: NODE_MIN_WIDTH, height: NODE_MIN_HEIGHT };
     const chrome = getNodeChromePadding(nodeId);
+    const nodeKind = getLoadNodeKindFromType(node.typeId);
     const ratio = getPreviewAspectRatio(nodeId);
     const heightLimit = Math.max(MIN_PREVIEW_HEIGHT, nodeSize.height - chrome);
     const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
@@ -1157,10 +1186,11 @@ import type {
     previewWidth = Math.max(MIN_PREVIEW_WIDTH, previewWidth);
     previewHeight = Math.max(MIN_PREVIEW_HEIGHT, Math.min(heightLimit, previewHeight));
     const inlineStyle = ` style="--preview-width:${previewWidth}px;--preview-height:${previewHeight}px"`;
+    const acceptAttr = nodeKind === 'image' ? 'image/*' : nodeKind === 'video' ? 'video/*' : 'image/*,video/*';
     const uploadControl = `
       <label class="node-media-upload${state.readonly ? ' disabled' : ''}">
         <span>${escapeHtml(t('nodes.load.selectButton'))}</span>
-        <input type="file" accept="image/*,video/*" ${state.readonly ? 'disabled' : ''} data-media-input="${escapeHtml(
+        <input type="file" accept="${acceptAttr}" ${state.readonly ? 'disabled' : ''} data-media-input="${escapeHtml(
           nodeId
         )}" />
       </label>
@@ -1338,8 +1368,8 @@ import type {
         outputsGroup,
         '</div>'
       ];
-      if (node.typeId === 'loadMedia') {
-        htmlParts.push(buildLoadNodeMediaSection(node.id));
+      if (isLoadNodeType(node.typeId)) {
+        htmlParts.push(buildLoadNodeMediaSection(node));
       }
       htmlParts.push(buildResizeHandles(node.id));
       el.innerHTML = htmlParts.join('');
@@ -1354,7 +1384,7 @@ import type {
       }
       attachNodeEvents(el, node);
       attachPortEvents(el);
-      if (node.typeId === 'loadMedia') {
+      if (isLoadNodeType(node.typeId)) {
         el.querySelectorAll<HTMLInputElement>('input[data-media-input]').forEach(input => {
           input.addEventListener('change', () => handleMediaInputChange(node.id, input));
         });

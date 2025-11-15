@@ -43,7 +43,7 @@ const bootStatus: BootStatus = {
 const sampleNodes = [
   {
     id: 'n1',
-    typeId: 'loadMedia',
+    typeId: 'loadImage',
     nodeVersion: '1.0.0',
     title: 'Load',
     position: { x: 0, y: 0 },
