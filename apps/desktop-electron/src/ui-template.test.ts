@@ -206,6 +206,34 @@ describe('ui-template connections layer', () => {
     dom.window.close();
   });
 
+  it('highlights selected connection when checkbox is toggled', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      nodes: MEDIA_NODES,
+      connections: [{ id: 'c-highlight', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' }]
+    });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const doc = dom.window.document;
+    const canvas = doc.getElementById('canvas');
+    stubRect(canvas, { left: 0, top: 0, width: 900, height: 600 });
+    const output = doc.querySelector('.port[data-node-id="n1"][data-port-id="media"]');
+    const input = doc.querySelector('.port[data-node-id="n2"][data-port-id="source"]');
+    stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
+    stubRect(input, { left: 420, top: 260, width: 24, height: 24 });
+    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+    stubRect(input?.querySelector('.port-dot'), { left: 426, top: 266, width: 12, height: 12 });
+
+    const checkbox = doc.querySelector<HTMLInputElement>('input[data-connection-check="c-highlight"]');
+    checkbox!.checked = true;
+    checkbox!.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+    const highlighted = doc.querySelector('#connection-layer path.connection-highlight');
+    expect(highlighted).toBeTruthy();
+    const highlightedNode = doc.querySelector('.node.node-highlight');
+    expect(highlightedNode).toBeTruthy();
+    dom.window.close();
+  });
+
   it('connects ports via pointer drag', async () => {
     const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
     ensurePointerEventPolyfill(dom);

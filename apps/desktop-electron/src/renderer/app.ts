@@ -379,10 +379,41 @@ import type {
     }
   };
 
+  const getHighlightedNodeIds = (): Set<string> => {
+    const ids = new Set<string>();
+    state.connections.forEach(connection => {
+      if (state.highlightedConnections.has(connection.id)) {
+        ids.add(connection.fromNodeId);
+        ids.add(connection.toNodeId);
+      }
+    });
+    return ids;
+  };
+
+  const applyNodeHighlightClasses = (): void => {
+    const highlightedIds = getHighlightedNodeIds();
+    elements.nodeLayer.querySelectorAll<HTMLElement>('.node').forEach(nodeEl => {
+      const nodeId = nodeEl.dataset.id;
+      if (nodeId && highlightedIds.has(nodeId)) {
+        nodeEl.classList.add('node-highlight');
+      } else {
+        nodeEl.classList.remove('node-highlight');
+      }
+    });
+  };
+
   const renderConnections = (): void => {
+    const activeIds = new Set(state.connections.map(connection => connection.id));
+    state.highlightedConnections.forEach(id => {
+      if (!activeIds.has(id)) {
+        state.highlightedConnections.delete(id);
+      }
+    });
     if (!state.connections.length) {
+      state.highlightedConnections.clear();
       elements.connectionsList.innerHTML = '<li class="connections-empty">' + t('connections.empty') + '</li>';
       renderConnectionPaths();
+      applyNodeHighlightClasses();
       return;
     }
     elements.connectionsList.innerHTML = state.connections
@@ -398,18 +429,22 @@ import type {
         const toPortLabel = toNode && toPort ? getPortLabel(toNode.typeId, toPort) : connection.toPortId;
         const toLabel = toNodeTitle + ' • ' + toPortLabel;
         const summary = t('connections.itemLabel', { from: fromLabel, to: toLabel });
+        const isHighlighted = state.highlightedConnections.has(connection.id);
         const html = [
           '<li>',
+          '<label class="connection-row">',
+          '<input type="checkbox" data-connection-check="', escapeHtml(connection.id), '" ',
+          isHighlighted ? 'checked aria-checked="true"' : '',
+          ' />',
           '<span>', escapeHtml(summary), '</span>',
-          '<button type="button" class="pill-button pill-danger" data-connection-id="',
-          escapeHtml(connection.id),
-          '">', t('connections.remove'), '</button>',
+          '</label>',
           '</li>'
         ];
         return html.join('');
       })
       .join('');
     renderConnectionPaths();
+    applyNodeHighlightClasses();
   };
 
   const refreshQueue = async (): Promise<void> => {
@@ -707,7 +742,8 @@ import type {
     state.connections.forEach(connection => {
       const fromEl = findPortElement(connection.fromNodeId, connection.fromPortId, 'output');
       const toEl = findPortElement(connection.toNodeId, connection.toPortId, 'input');
-      pushPath(getPortAnchorPoint(fromEl), getPortAnchorPoint(toEl));
+      const extraClass = state.highlightedConnections.has(connection.id) ? ' connection-highlight' : '';
+      pushPath(getPortAnchorPoint(fromEl), getPortAnchorPoint(toEl), extraClass);
     });
     if (state.draggingConnection) {
       const fromEl = findPortElement(state.draggingConnection.fromNodeId, state.draggingConnection.fromPortId, 'output');
@@ -763,6 +799,7 @@ import type {
       host.appendChild(el);
     });
     renderConnectionPaths();
+    applyNodeHighlightClasses();
   };
 
   const attachNodeEvents = (el: HTMLElement, node: RendererNode): void => {
@@ -1487,13 +1524,18 @@ import type {
     renderDiagnostics();
     showToast(result.collectCrashDumps ? t('toast.crashOn') : t('toast.crashOff'));
   });
-  elements.connectionsList.addEventListener('click', event => {
-    const target = event.target as HTMLElement;
-    if (target.tagName !== 'BUTTON') return;
-    const connectionId = target.getAttribute('data-connection-id');
+  elements.connectionsList.addEventListener('change', event => {
+    const target = event.target as HTMLInputElement;
+    if (!target || target.getAttribute('data-connection-check') === null) return;
+    const connectionId = target.getAttribute('data-connection-check');
     if (!connectionId) return;
-    state.connections = state.connections.filter(connection => connection.id !== connectionId);
-    commitState();
+    if (target.checked) {
+      state.highlightedConnections.add(connectionId);
+    } else {
+      state.highlightedConnections.delete(connectionId);
+    }
+    renderConnectionPaths();
+    applyNodeHighlightClasses();
   });
 
   document.addEventListener('keydown', handleKeydown);

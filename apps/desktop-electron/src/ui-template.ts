@@ -283,6 +283,19 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         border-color: #7dc3ff;
         box-shadow: 0 0 0 2px rgba(125, 195, 255, 0.35);
       }
+      @keyframes nodeGlow {
+        0% {
+          border-color: rgba(255, 223, 107, 0.65);
+          box-shadow: 0 0 12px rgba(255, 223, 107, 0.35);
+        }
+        100% {
+          border-color: rgba(255, 244, 201, 1);
+          box-shadow: 0 0 28px rgba(255, 244, 201, 0.95);
+        }
+      }
+      .node-highlight {
+        animation: nodeGlow 1.2s ease-in-out infinite alternate;
+      }
       .node-ports {
         display: flex;
         flex-direction: column;
@@ -471,10 +484,24 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 12px;
       }
       .connections-list li {
+        display: block;
+      }
+      .connection-row {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 10px;
+      }
+      .connection-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #ffd166;
+        cursor: pointer;
+      }
+      .connection-row span {
+        flex: 1;
+      }
+      .connection-row input[type="checkbox"]:checked + span {
+        color: #ffe6a1;
       }
       .connections-list .connections-empty {
         opacity: 0.7;
@@ -576,6 +603,22 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         stroke-width: 4px;
         stroke-linecap: round;
         filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+      }
+      @keyframes connectionGlow {
+        0% {
+          stroke-width: 4px;
+          stroke: rgba(255, 223, 107, 0.85);
+          filter: drop-shadow(0 0 8px rgba(255, 223, 107, 0.45));
+        }
+        100% {
+          stroke-width: 8px;
+          stroke: rgba(255, 244, 201, 1);
+          filter: drop-shadow(0 0 22px rgba(255, 244, 201, 0.95));
+        }
+      }
+      #connection-layer path.connection-highlight {
+        stroke: rgba(255, 244, 201, 1);
+        animation: connectionGlow 1.2s ease-in-out infinite alternate;
       }
       #connection-layer .connection-preview {
         stroke: rgba(255, 209, 102, 0.9);
