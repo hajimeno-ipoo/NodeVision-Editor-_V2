@@ -1,0 +1,4 @@
+## 2025-11-15 Renderer script extraction (update)
+- `apps/desktop-electron/src/renderer/app.ts` now contains the former inline script with full TypeScript typing: DOM elements are strongly typed, renderer state is modeled via `RendererState`, and node/connection helpers reuse repo types.
+- `apps/desktop-electron/src/ui-template.ts` injects the renderer bundle by loading `dist/renderer/app.js` when available or transpiling `renderer/app.ts` on the fly; window bootstrap globals are set separately via `buildRendererScripts`.
+- `pnpm --filter desktop-electron build` and `pnpm test` both pass (Vitest coverage 100%).
