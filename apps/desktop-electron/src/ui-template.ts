@@ -390,31 +390,74 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       #canvas.zooming {
         cursor: zoom-in;
       }
+      #node-layer,
+      #connection-layer {
+        position: absolute;
+        inset: 0;
+      }
+      #node-layer {
+        min-height: 100%;
+      }
+      #connection-layer {
+        pointer-events: none;
+        overflow: visible;
+      }
       .node {
         position: absolute;
-        border-radius: 12px;
-        padding: 12px 14px;
-        min-width: 200px;
-        min-height: 100px;
-        background: rgba(19, 23, 32, 0.94);
+        border-radius: 18px;
+        padding: 14px 18px 16px;
+        min-width: 220px;
+        background: linear-gradient(150deg, rgba(19, 23, 32, 0.96), rgba(12, 15, 23, 0.96));
         border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-        backdrop-filter: blur(8px);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(12px);
         color: #f8fafc;
-        transition: border 120ms ease, box-shadow 120ms ease;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: border 120ms ease, box-shadow 120ms ease, transform 120ms ease;
       }
-      .node h3 {
-        margin: 0 0 6px;
+      .node-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .node-title {
+        margin: 0;
         font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
       }
-      .node p {
+      .node-meta {
+        margin: 0;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .node-description {
         margin: 0;
         font-size: 12px;
         color: rgba(255, 255, 255, 0.7);
       }
+      .node-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.85);
+      }
       .node.selected {
         border-color: #4e9eff;
-        box-shadow: 0 0 0 2px rgba(78, 158, 255, 0.3);
+        box-shadow: 0 0 0 2px rgba(78, 158, 255, 0.35);
+      }
+      .node-ports {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
       }
       button, .pill-button {
         border: none;
@@ -612,47 +655,108 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .ports {
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 8px;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
       }
       .ports.inputs {
-        justify-content: flex-start;
+        align-items: flex-start;
       }
       .ports.outputs {
-        justify-content: flex-end;
+        align-items: flex-end;
       }
       .port {
-        border-radius: 999px;
+        border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 6px 10px;
-        background: rgba(255, 255, 255, 0.05);
+        padding: 6px 12px;
+        background: rgba(7, 10, 16, 0.85);
         color: inherit;
-        font-size: 12px;
+        font-size: 13px;
         display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 140px;
+        justify-content: space-between;
+        transition: border 120ms ease, box-shadow 120ms ease, background 120ms ease;
+      }
+      .port.input {
+        flex-direction: row;
+        text-align: left;
+      }
+      .port.output {
+        flex-direction: row-reverse;
+        text-align: right;
+      }
+      .port-text {
+        display: flex;
         flex-direction: column;
         gap: 2px;
-        min-width: 92px;
+        min-width: 0;
       }
-      .port span {
+      .port.output .port-text {
+        align-items: flex-end;
+      }
+      .port-label {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .port-type {
         font-size: 11px;
         opacity: 0.7;
+        display: block;
       }
       .port:focus-visible {
         outline: 2px solid #4e9eff;
         outline-offset: 2px;
       }
+      .port-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        background: #05070d;
+        box-shadow: 0 0 8px rgba(78, 158, 255, 0.5);
+        flex-shrink: 0;
+      }
+      .port.input .port-dot {
+        border-color: #f472b6;
+      }
+      .port.output .port-dot {
+        border-color: #38bdf8;
+      }
       .port-connected {
-        border-color: #4e9eff;
-        box-shadow: 0 0 0 1px rgba(78, 158, 255, 0.35);
+        border-color: rgba(78, 158, 255, 0.5);
+        box-shadow: 0 0 0 2px rgba(78, 158, 255, 0.15);
+      }
+      .port-connected .port-dot {
+        background: rgba(78, 158, 255, 0.8);
       }
       .port-pending {
-        border-color: #ffd166;
-        box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.4);
+        border-color: rgba(255, 209, 102, 0.8);
+        box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.35);
+      }
+      .port-drop-target {
+        border-color: rgba(126, 255, 178, 0.9);
+        box-shadow: 0 0 0 2px rgba(126, 255, 178, 0.35), 0 0 18px rgba(126, 255, 178, 0.35);
+      }
+      .port-drop-target .port-dot {
+        border-color: #7effb2;
+        background: rgba(126, 255, 178, 0.25);
       }
       .port-placeholder {
         font-size: 12px;
         opacity: 0.6;
+      }
+      #connection-layer path {
+        fill: none;
+        stroke: rgba(119, 196, 255, 0.85);
+        stroke-width: 3px;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 6px rgba(78, 158, 255, 0.4));
+      }
+      #connection-layer .connection-preview {
+        stroke: rgba(255, 209, 102, 0.9);
+        stroke-dasharray: 8 6;
       }
       .pill-button.pill-danger {
         border: 1px solid rgba(255, 82, 82, 0.55);
@@ -1025,7 +1129,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         </div>
       </section>
       <section class="canvas-wrap">
-        <div id="canvas" role="region" aria-label="Node canvas" data-i18n-attr-aria-label="canvas.ariaLabel"></div>
+        <div id="canvas" role="region" aria-label="Node canvas" data-i18n-attr-aria-label="canvas.ariaLabel">
+          <svg id="connection-layer" aria-hidden="true"></svg>
+          <div id="node-layer"></div>
+        </div>
       </section>
     </main>
     <section id="json-panel">
@@ -1095,9 +1202,18 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
 
       const createId = base =>
         (crypto?.randomUUID ? crypto.randomUUID() : \`\${base}-\${Date.now()}-\${Math.floor(Math.random() * 9999)}\`);
+      const cssEscape = value => {
+        if (window.CSS?.escape) {
+          return window.CSS.escape(String(value));
+        }
+        return String(value).replace(/([^a-zA-Z0-9_-])/g, '\\$1');
+      };
+
       const elements = {
         statusList: document.getElementById('status-list'),
         canvas: document.getElementById('canvas'),
+        nodeLayer: document.getElementById('node-layer'),
+        connectionLayer: document.getElementById('connection-layer'),
         searchInput: document.getElementById('node-search'),
         suggestions: document.getElementById('search-suggestions'),
         autosave: document.getElementById('autosave-indicator'),
@@ -1184,8 +1300,11 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           inspectHistory: BOOTSTRAP.diagnostics?.inspectHistory ?? []
         },
         connections: (BOOTSTRAP.connections ?? []).map(cloneConnection),
-        pendingConnection: null
+        pendingConnection: null,
+        draggingConnection: null
       };
+      let activeConnectionDrag = null;
+      let dropTargetPort = null;
 
       const formatTemplate = (template, vars = {}) => {
         let result = template;
@@ -1460,9 +1579,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       };
 
       const renderConnections = () => {
-        if (!elements.connectionsList) return;
+        if (!elements.connectionsList) {
+          renderConnectionPaths();
+          return;
+        }
         if (!state.connections.length) {
-          elements.connectionsList.innerHTML = \`<li class="connections-empty">\${t('connections.empty')}</li>\`;
+          elements.connectionsList.innerHTML = '<li class="connections-empty">' + t('connections.empty') + '</li>';
+          renderConnectionPaths();
           return;
         }
         elements.connectionsList.innerHTML = state.connections
@@ -1472,20 +1595,24 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             const fromNodeTitle = fromNode ? getNodeTitle(fromNode) : connection.fromNodeId;
             const fromPort = fromNode?.outputs?.find(port => port.id === connection.fromPortId);
             const fromPortLabel = fromPort ? getPortLabel(fromNode.typeId, fromPort) : connection.fromPortId;
-            const fromLabel = \`\${fromNodeTitle} • \${fromPortLabel}\`;
+            const fromLabel = fromNodeTitle + ' • ' + fromPortLabel;
             const toNodeTitle = toNode ? getNodeTitle(toNode) : connection.toNodeId;
             const toPort = toNode?.inputs?.find(port => port.id === connection.toPortId);
             const toPortLabel = toPort ? getPortLabel(toNode.typeId, toPort) : connection.toPortId;
-            const toLabel = \`\${toNodeTitle} • \${toPortLabel}\`;
+            const toLabel = toNodeTitle + ' • ' + toPortLabel;
             const summary = t('connections.itemLabel', { from: fromLabel, to: toLabel });
-            return \`
-              <li>
-                <span>\${escapeHtml(summary)}</span>
-                <button type="button" class="pill-button pill-danger" data-connection-id="\${connection.id}">\${t('connections.remove')}</button>
-              </li>
-            \`;
+            const html = [
+              '<li>',
+              '<span>', escapeHtml(summary), '</span>',
+              '<button type="button" class="pill-button pill-danger" data-connection-id="',
+              escapeHtml(connection.id),
+              '">', t('connections.remove'), '</button>',
+              '</li>'
+            ];
+            return html.join('');
           })
           .join('');
+        renderConnectionPaths();
       };
 
       const refreshQueue = async () => {
@@ -1586,6 +1713,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         state.nodes = deepClone(snapshot.nodes);
         state.connections = deepClone(snapshot.connections ?? []);
         state.pendingConnection = null;
+        state.draggingConnection = null;
+        setDropTarget(null);
         state.selection.clear();
         renderNodes();
         renderConnections();
@@ -1651,6 +1780,14 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         }
         const ariaPressed = direction === 'output' ? String(pending) : 'false';
         const portLabel = getPortLabel(node.typeId, port);
+        const textHtml = \`
+            <span class="port-text">
+              <span class="port-label">\${escapeHtml(portLabel)}</span>
+              <span class="port-type">\${escapeHtml(port.dataType ?? '')}</span>
+            </span>
+        \`;
+        const dot = '<span class="port-dot" aria-hidden="true"></span>';
+        const inner = direction === 'input' ? \`\${dot}\${textHtml}\` : \`\${textHtml}\${dot}\`;
         return \`
           <button
             type="button"
@@ -1662,8 +1799,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             aria-pressed="\${ariaPressed}"
             aria-label="\${escapeHtml(describePort(node, port, direction))}"
           >
-            \${escapeHtml(portLabel)}
-            <span>\${escapeHtml(port.dataType)}</span>
+            \${inner}
           </button>
         \`;
       };
@@ -1688,35 +1824,150 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         \`;
       };
 
+      const getRelativePoint = event => {
+        const rect = elements.canvas?.getBoundingClientRect();
+        if (!rect) {
+          return { x: 0, y: 0 };
+        }
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        };
+      };
+
+      const getPortAnchorPoint = portEl => {
+        if (!elements.canvas || !portEl) return null;
+        const dot = portEl.querySelector('.port-dot');
+        const target = dot ?? portEl;
+        const rect = target.getBoundingClientRect();
+        const canvasRect = elements.canvas.getBoundingClientRect();
+        return {
+          x: rect.left - canvasRect.left + rect.width / 2,
+          y: rect.top - canvasRect.top + rect.height / 2
+        };
+      };
+
+      const buildCurvePath = (start, end) => {
+        const dx = end.x - start.x;
+        const direction = Math.sign(dx || 1);
+        const offset = Math.max(Math.abs(dx) * 0.5, 48);
+        const c1x = start.x + direction * offset;
+        const c2x = end.x - direction * offset;
+        return (
+          'M ' +
+          start.x +
+          ' ' +
+          start.y +
+          ' C ' +
+          c1x +
+          ' ' +
+          start.y +
+          ' ' +
+          c2x +
+          ' ' +
+          end.y +
+          ' ' +
+          end.x +
+          ' ' +
+          end.y
+        );
+      };
+
+      const findPortElement = (nodeId, portId, direction) => {
+        const root = elements.nodeLayer ?? elements.canvas;
+        if (!root) return null;
+        const selector =
+          '.port[data-node-id="' +
+          cssEscape(nodeId) +
+          '"][data-port-id="' +
+          cssEscape(portId) +
+          '"][data-direction="' +
+          direction +
+          '"]';
+        return root.querySelector(selector);
+      };
+
+      const renderConnectionPaths = () => {
+        if (!elements.connectionLayer || !elements.canvas) return;
+        const rect = elements.canvas.getBoundingClientRect();
+        elements.connectionLayer.setAttribute('viewBox', '0 0 ' + rect.width + ' ' + rect.height);
+        elements.connectionLayer.setAttribute('width', String(rect.width));
+        elements.connectionLayer.setAttribute('height', String(rect.height));
+        const segments = [];
+        const pushPath = (start, end, extraClass = '') => {
+          if (!start || !end) return;
+          const pathMarkup =
+            '<path class="connection-path' +
+            extraClass +
+            '" d="' +
+            buildCurvePath(start, end) +
+            '" />';
+          segments.push(pathMarkup);
+        };
+        state.connections.forEach(connection => {
+          const fromEl = findPortElement(connection.fromNodeId, connection.fromPortId, 'output');
+          const toEl = findPortElement(connection.toNodeId, connection.toPortId, 'input');
+          pushPath(getPortAnchorPoint(fromEl), getPortAnchorPoint(toEl));
+        });
+        if (state.draggingConnection) {
+          const fromEl = findPortElement(state.draggingConnection.fromNodeId, state.draggingConnection.fromPortId, 'output');
+          const startPoint = getPortAnchorPoint(fromEl);
+          const endPoint = state.draggingConnection.cursor ?? startPoint;
+          pushPath(startPoint, endPoint, ' connection-preview');
+        }
+        elements.connectionLayer.innerHTML = segments.join('');
+      };
+
       const renderNodes = () => {
-        elements.canvas.innerHTML = '';
+        const host = elements.nodeLayer ?? elements.canvas;
+        if (!host) {
+          renderConnectionPaths();
+          return;
+        }
+        setDropTarget(null);
+        host.innerHTML = '';
         state.nodes.forEach(node => {
           const localizedTitle = getNodeTitle(node);
+          const template = templates.find(item => item.typeId === node.typeId);
+          const description = template ? getTemplateDescription(template) : '';
+          const nodeVersion = node.nodeVersion ?? '1.0.0';
+          const metaText = node.typeId + ' • v' + nodeVersion;
           const el = document.createElement('div');
           el.className = 'node';
           el.dataset.id = node.id;
           el.tabIndex = 0;
           el.setAttribute('role', 'group');
           el.setAttribute('aria-label', t('nodes.ariaLabel', { title: localizedTitle }));
-          el.style.transform = \
-            \`translate(\${node.position.x}px, \${node.position.y}px)\`;
+          el.style.transform = 'translate(' + node.position.x + 'px, ' + node.position.y + 'px)';
           const inputsGroup = buildPortGroup(node, node.inputs, 'input');
           const outputsGroup = buildPortGroup(node, node.outputs, 'output');
-          el.innerHTML = \`
-            <h3>\${escapeHtml(localizedTitle)}</h3>
-            <p>typeId: \${escapeHtml(node.typeId)}<br/>nodeVersion: \${escapeHtml(node.nodeVersion)}</p>
-            \${inputsGroup}
-            \${outputsGroup}
-          \`;
+          const descriptionHtml = description
+            ? '<p class="node-description">' + escapeHtml(description) + '</p>'
+            : '';
+          const htmlParts = [
+            '<header class="node-header">',
+            '<div>',
+            '<p class="node-title">', escapeHtml(localizedTitle), '</p>',
+            '<p class="node-meta">', escapeHtml(metaText), '</p>',
+            descriptionHtml,
+            '</div>',
+            '<span class="node-chip">v', escapeHtml(nodeVersion), '</span>',
+            '</header>',
+            '<div class="node-ports">',
+            inputsGroup,
+            outputsGroup,
+            '</div>'
+          ];
+          el.innerHTML = htmlParts.join('');
           if (state.selection.has(node.id)) {
             el.classList.add('selected');
           }
           attachNodeEvents(el, node);
           attachPortEvents(el);
-          elements.canvas.appendChild(el);
+          host.appendChild(el);
         });
+        renderConnectionPaths();
       };
-
 
       const attachNodeEvents = (el, node) => {
         const onPointerDown = event => {
@@ -1774,6 +2025,19 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             event.stopPropagation();
             handlePortActivation(portEl);
           });
+          portEl.addEventListener('pointerdown', event => {
+            startConnectionDrag(portEl, event);
+          });
+          portEl.addEventListener('pointerenter', () => {
+            if (state.draggingConnection && portEl.getAttribute('data-direction') === 'input') {
+              setDropTarget(portEl);
+            }
+          });
+          portEl.addEventListener('pointerleave', () => {
+            if (dropTargetPort === portEl) {
+              setDropTarget(null);
+            }
+          });
           portEl.addEventListener('keydown', event => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
@@ -1799,10 +2063,113 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         });
       };
 
+      const setDropTarget = target => {
+        if (dropTargetPort === target) {
+          return;
+        }
+        if (dropTargetPort) {
+          dropTargetPort.classList.remove('port-drop-target');
+        }
+        dropTargetPort = target ?? null;
+        if (dropTargetPort) {
+          dropTargetPort.classList.add('port-drop-target');
+        }
+      };
+
+      const primePendingConnection = (nodeId, portId) => {
+        if (
+          state.pendingConnection &&
+          state.pendingConnection.fromNodeId === nodeId &&
+          state.pendingConnection.fromPortId === portId
+        ) {
+          return;
+        }
+        state.pendingConnection = { fromNodeId: nodeId, fromPortId: portId };
+        updatePendingHint();
+        renderNodes();
+      };
+
+      const handleConnectionDragMove = event => {
+        if (!activeConnectionDrag) return;
+        const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+        if (pointerId !== (activeConnectionDrag.pointerId ?? 1)) {
+          return;
+        }
+        if (!activeConnectionDrag.started) {
+          const distance = Math.hypot(
+            event.clientX - activeConnectionDrag.origin.x,
+            event.clientY - activeConnectionDrag.origin.y
+          );
+          if (distance > 3) {
+            const nodeId = activeConnectionDrag.portEl.getAttribute('data-node-id');
+            const portId = activeConnectionDrag.portEl.getAttribute('data-port-id');
+            if (nodeId && portId) {
+              primePendingConnection(nodeId, portId);
+              activeConnectionDrag.started = true;
+              state.draggingConnection = {
+                fromNodeId: nodeId,
+                fromPortId: portId,
+                cursor: getRelativePoint(event)
+              };
+              renderConnectionPaths();
+            }
+          }
+          return;
+        }
+        if (state.draggingConnection) {
+          state.draggingConnection.cursor = getRelativePoint(event);
+          renderConnectionPaths();
+        }
+      };
+
+      const handleConnectionDragUp = event => {
+        if (!activeConnectionDrag) return;
+        const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+        if (pointerId !== (activeConnectionDrag.pointerId ?? 1)) {
+          return;
+        }
+        if (activeConnectionDrag.started && dropTargetPort) {
+          handlePortActivation(dropTargetPort);
+        } else if (activeConnectionDrag.started) {
+          clearPendingConnection();
+        }
+        endConnectionDrag();
+      };
+
+      const endConnectionDrag = () => {
+        if (activeConnectionDrag) {
+          window.removeEventListener('pointermove', handleConnectionDragMove);
+          window.removeEventListener('pointerup', handleConnectionDragUp);
+          activeConnectionDrag = null;
+        }
+        state.draggingConnection = null;
+        setDropTarget(null);
+        renderConnectionPaths();
+      };
+
+      const startConnectionDrag = (portEl, event) => {
+        if (state.readonly) return;
+        if (portEl.getAttribute('data-direction') !== 'output') return;
+        if (typeof event.button === 'number' && event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        activeConnectionDrag = {
+          portEl,
+          pointerId: typeof event.pointerId === 'number' ? event.pointerId : 1,
+          origin: { x: event.clientX, y: event.clientY },
+          started: false
+        };
+        window.addEventListener('pointermove', handleConnectionDragMove);
+        window.addEventListener('pointerup', handleConnectionDragUp);
+      };
+
       const clearPendingConnection = () => {
         if (!state.pendingConnection) return;
         state.pendingConnection = null;
         updatePendingHint();
+        endConnectionDrag();
         renderNodes();
       };
 
@@ -1817,9 +2184,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             clearPendingConnection();
             return;
           }
-          state.pendingConnection = { fromNodeId: nodeId, fromPortId: portId };
-          updatePendingHint();
-          renderNodes();
+          primePendingConnection(nodeId, portId);
           return;
         }
         if (!state.pendingConnection) {
@@ -1838,6 +2203,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         if (exists) {
           state.pendingConnection = null;
           updatePendingHint();
+          endConnectionDrag();
           renderNodes();
           return;
         }
@@ -1851,6 +2217,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         state.connections = [connection, ...state.connections];
         state.pendingConnection = null;
         updatePendingHint();
+        endConnectionDrag();
         commitState();
       };
 

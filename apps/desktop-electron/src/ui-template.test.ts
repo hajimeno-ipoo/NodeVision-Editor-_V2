@@ -64,6 +64,63 @@ const basePayload: RendererPayload = {
 const renderDom = (payload: RendererPayload) =>
   new JSDOM(buildRendererHtml(payload), { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true });
 
+const ensurePointerEventPolyfill = (dom: JSDOM) => {
+  if (dom.window.PointerEvent) {
+    return;
+  }
+  class PointerEventPolyfill extends dom.window.MouseEvent {
+    pointerId: number;
+    constructor(type: string, params: MouseEventInit & { pointerId?: number } = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 1;
+    }
+  }
+  // @ts-expect-error jsdom does not define PointerEvent by default
+  dom.window.PointerEvent = PointerEventPolyfill;
+};
+
+const stubRect = (el: Element | null, rect: { left: number; top: number; width: number; height: number }) => {
+  if (!el) return;
+  Object.defineProperty(el, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      right: rect.left + rect.width,
+      bottom: rect.top + rect.height
+    })
+  });
+};
+
+const MEDIA_NODES = [
+  {
+    id: 'n1',
+    typeId: 'loadMedia',
+    nodeVersion: '1.0.0',
+    title: 'Load',
+    position: { x: 0, y: 0 },
+    width: 200,
+    height: 120,
+    inputs: [],
+    outputs: [{ id: 'media', label: 'Media', direction: 'output', dataType: 'video' }],
+    searchTokens: ['load']
+  },
+  {
+    id: 'n2',
+    typeId: 'trim',
+    nodeVersion: '1.0.0',
+    title: 'Trim',
+    position: { x: 200, y: 0 },
+    width: 200,
+    height: 120,
+    inputs: [{ id: 'source', label: 'Source', direction: 'input', dataType: 'video' }],
+    outputs: [{ id: 'result', label: 'Result', direction: 'output', dataType: 'video' }],
+    searchTokens: ['trim']
+  }
+] as const;
+
 describe('ui-template queue warnings', () => {
   it('renders provided warnings list', async () => {
     const warnings: QueueWarning[] = [
@@ -110,37 +167,11 @@ describe('ui-template i18n', () => {
 });
 
 describe('ui-template accessibility helpers', () => {
-  const sampleNodes = [
-    {
-      id: 'n1',
-      typeId: 'loadMedia',
-      nodeVersion: '1.0.0',
-      title: 'Load',
-      position: { x: 0, y: 0 },
-      width: 200,
-      height: 120,
-      inputs: [],
-      outputs: [{ id: 'media', label: 'Media', direction: 'output', dataType: 'video' }],
-      searchTokens: ['load']
-    },
-    {
-      id: 'n2',
-      typeId: 'trim',
-      nodeVersion: '1.0.0',
-      title: 'Trim',
-      position: { x: 160, y: 0 },
-      width: 200,
-      height: 120,
-      inputs: [{ id: 'source', label: 'Source', direction: 'input', dataType: 'video' }],
-      outputs: [{ id: 'result', label: 'Result', direction: 'output', dataType: 'video' }],
-      searchTokens: ['trim']
-    }
-  ];
 
   it('renders connection entries with labels', async () => {
     const dom = renderDom({
       ...basePayload,
-      nodes: sampleNodes,
+      nodes: MEDIA_NODES,
       connections: [{ id: 'c1', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' }]
     });
 
@@ -151,12 +182,55 @@ describe('ui-template accessibility helpers', () => {
   });
 
   it('applies aria metadata to nodes and ports', async () => {
-    const dom = renderDom({ ...basePayload, nodes: sampleNodes });
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const node = dom.window.document.querySelector('.node');
     expect(node?.getAttribute('role')).toBe('group');
     const port = dom.window.document.querySelector('.port');
     expect(port?.getAttribute('aria-label')).toContain('port');
+    dom.window.close();
+  });
+});
+
+describe('ui-template connections layer', () => {
+  it('renders SVG curves for stored connections', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      nodes: MEDIA_NODES,
+      connections: [{ id: 'c-svg', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' }]
+    });
+
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const paths = dom.window.document.querySelectorAll('#connection-layer path');
+    expect(paths.length).toBeGreaterThan(0);
+    dom.window.close();
+  });
+
+  it('connects ports via pointer drag', async () => {
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
+    ensurePointerEventPolyfill(dom);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const doc = dom.window.document;
+    const canvas = doc.getElementById('canvas');
+    stubRect(canvas, { left: 0, top: 0, width: 900, height: 600 });
+    const output = doc.querySelector('.port[data-node-id="n1"][data-port-id="media"]');
+    const input = doc.querySelector('.port[data-node-id="n2"][data-port-id="source"]');
+    stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
+    stubRect(input, { left: 420, top: 260, width: 24, height: 24 });
+    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+    stubRect(input?.querySelector('.port-dot'), { left: 426, top: 266, width: 12, height: 12 });
+
+    output?.dispatchEvent(
+      new dom.window.PointerEvent('pointerdown', { pointerId: 5, button: 0, clientX: 136, clientY: 252, bubbles: true })
+    );
+    dom.window.dispatchEvent(
+      new dom.window.PointerEvent('pointermove', { pointerId: 5, clientX: 360, clientY: 270, bubbles: true })
+    );
+    input?.dispatchEvent(new dom.window.PointerEvent('pointerenter', { pointerId: 5, bubbles: true }));
+    dom.window.dispatchEvent(new dom.window.PointerEvent('pointerup', { pointerId: 5, bubbles: true }));
+
+    const rows = doc.querySelectorAll('.connections-list li');
+    expect(rows.length).toBe(1);
     dom.window.close();
   });
 });

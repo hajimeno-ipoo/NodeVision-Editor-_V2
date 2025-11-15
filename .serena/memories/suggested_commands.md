@@ -1,0 +1,12 @@
+## Frequently used commands (NodeVision Editor _V2)
+- `pnpm install` — bootstrap workspace deps.
+- `pnpm dev` — repo-level dev flow; runs `pnpm run build:packages` (tsc for @nodevision/*) then launches desktop Electron (`apps/desktop-electron`).
+- `pnpm run build:packages` — rebuild all shared packages without launching Electron.
+- `pnpm --filter desktop-electron build` — compile Electron main/renderer (tsc) without running it.
+- `pnpm test` — Vitest suite (packages + apps) with coverage target 100%.
+- `pnpm test:a11y` — axe accessibility smoke for renderer HTML template.
+- `pnpm lint` / `pnpm format` — ESLint/Prettier using repo configs.
+- `pnpm --filter desktop-electron dev` — run only the desktop app (after packages built) for debugging.
+- `NV_HTTP=1 NV_HTTP_TOKEN=xyz pnpm start:desktop` — run prod Electron build with HTTP server enabled for testing tokens/inspect endpoint.
+- `uvx --from git+https://github.com/oraios/serena serena project index` — refresh Serena search index when structure changes.
+- `scripts/generate-sample-media.ts` — regenerate sample video assets referenced in docs/tests.
