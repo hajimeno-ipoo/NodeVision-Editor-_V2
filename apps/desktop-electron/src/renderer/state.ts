@@ -8,7 +8,8 @@ import type {
   RendererState,
   NodePort,
   HistoryEntry,
-  NodeMediaPreview
+  NodeMediaPreview,
+  NodeSize
 } from './types';
 
 export const DEFAULT_QUEUE_LIMITS: QueueLimits = {
@@ -53,24 +54,37 @@ const buildDiagnostics = (bootstrap: RendererPayload): RendererDiagnostics => ({
   inspectHistory: bootstrap.diagnostics?.inspectHistory ?? []
 });
 
-export const createInitialState = (bootstrap: RendererPayload, locale: string): RendererState => ({
-  locale,
-  nodes: (bootstrap.nodes ?? []).map(cloneNode),
-  selection: new Set<string>(),
-  clipboard: [] as RendererNode[],
-  zoom: 1,
-  history: [] as HistoryEntry[],
-  historyIndex: -1,
-  autosaveTimer: null,
-  lastAutosave: null,
-  isRunning: false,
-  readonly: false,
-  queue: buildQueueState(bootstrap),
-  diagnostics: buildDiagnostics(bootstrap),
-  connections: (bootstrap.connections ?? []).map(cloneConnection),
-  pendingConnection: null,
-  draggingConnection: null,
-  highlightedConnections: new Set<string>(),
-  pressedNodeId: null,
-  mediaPreviews: new Map<string, NodeMediaPreview>()
-});
+export const createInitialState = (bootstrap: RendererPayload, locale: string): RendererState => {
+  const nodes = (bootstrap.nodes ?? []).map(cloneNode);
+  const nodeSizes = new Map<string, NodeSize>();
+  nodes.forEach(node =>
+    nodeSizes.set(node.id, {
+      width: Math.max(336, node.width ?? 336),
+      height: Math.max(460, node.height ?? 460)
+    })
+  );
+  return {
+    locale,
+    nodes,
+    selection: new Set<string>(),
+    clipboard: [] as RendererNode[],
+    zoom: 1,
+    history: [] as HistoryEntry[],
+    historyIndex: -1,
+    autosaveTimer: null,
+    lastAutosave: null,
+    isRunning: false,
+    readonly: false,
+    queue: buildQueueState(bootstrap),
+    diagnostics: buildDiagnostics(bootstrap),
+    connections: (bootstrap.connections ?? []).map(cloneConnection),
+    pendingConnection: null,
+    draggingConnection: null,
+    highlightedConnections: new Set<string>(),
+    pressedNodeId: null,
+    mediaPreviews: new Map<string, NodeMediaPreview>(),
+    nodeSizes,
+    nodeChrome: new Map<string, number>(),
+    resizing: null
+  };
+};

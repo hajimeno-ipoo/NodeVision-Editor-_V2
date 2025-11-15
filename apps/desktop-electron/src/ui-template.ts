@@ -245,7 +245,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         height: 1px;
         padding: 0;
         margin: -1px;
-        overflow: hidden;
+        overflow: visible;
         clip: rect(0, 0, 0, 0);
         border: 0;
       }
@@ -316,7 +316,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         position: absolute;
         border-radius: 18px;
         padding: 0 0 14px;
-        min-width: 240px;
+        min-width: 336px;
+        min-height: 460px;
         background: linear-gradient(180deg, #fafafa, #e6e6ea);
         border: 1px solid rgba(0, 0, 0, 0.08);
         box-shadow: 0 12px 34px rgba(78, 86, 107, 0.35);
@@ -326,7 +327,6 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 10px;
         overflow: hidden;
         transition: border 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-        position: absolute;
       }
       .node::after {
         content: '';
@@ -346,6 +346,12 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         padding: 12px 18px 6px;
         background: linear-gradient(180deg, #fefefe, #ececef);
         border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      .node-header-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
       }
       .node-title {
         margin: 0;
@@ -374,6 +380,37 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 11px;
         background: rgba(97, 97, 110, 0.15);
         color: rgba(48, 48, 60, 0.85);
+      }
+      .node-resize-handle {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: rgba(33, 119, 255, 0.95);
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 6px 12px rgba(33, 119, 255, 0.4);
+        cursor: pointer;
+        z-index: 2;
+      }
+      .node-resize-nw {
+        top: -8px;
+        left: -8px;
+        cursor: nwse-resize;
+      }
+      .node-resize-ne {
+        top: -8px;
+        right: -8px;
+        cursor: nesw-resize;
+      }
+      .node-resize-sw {
+        bottom: -8px;
+        left: -8px;
+        cursor: nesw-resize;
+      }
+      .node-resize-se {
+        bottom: -8px;
+        right: -8px;
+        cursor: nwse-resize;
       }
       .node.node-highlight,
       .node.node-pressed {
@@ -412,6 +449,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 8px;
         border-top: 1px solid rgba(0, 0, 0, 0.05);
         padding-top: 12px;
+        flex: 1;
+        min-height: 240px;
+        --preview-size: 320px;
       }
       .node-media-upload {
         position: relative;
@@ -451,28 +491,30 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         text-align: center;
         padding: 6px 0 2px;
       }
-      .node-media-preview {
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 12px;
-        overflow: hidden;
-        background: rgba(8, 10, 16, 0.85);
+      .node-media-frame {
+        width: 100%;
         display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-height: 180px;
-        align-items: center;
         justify-content: center;
-        padding: 8px;
+      }
+      .node-media-preview {
+        border: none;
+        border-radius: 0;
+        overflow: visible;
+        background: transparent;
+        display: block;
+        padding: 0;
+        width: min(100%, var(--preview-width, 320px));
+        height: var(--preview-height, 240px);
+        max-width: 100%;
       }
       .node-media-preview img,
       .node-media-preview video {
         width: 100%;
-        height: auto;
-        max-height: 280px;
+        height: 100%;
         object-fit: contain;
-        background: #050709;
-        border-radius: 8px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
       }
       .node-media-toolbar {
         display: grid;

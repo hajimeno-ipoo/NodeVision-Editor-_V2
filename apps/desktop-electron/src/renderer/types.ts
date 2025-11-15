@@ -51,6 +51,20 @@ export interface NodeMediaPreview {
   height: number | null;
 }
 
+export interface NodeSize {
+  width: number;
+  height: number;
+}
+
+export interface NodeResizeSession {
+  nodeId: string;
+  handle: 'nw' | 'ne' | 'sw' | 'se';
+  startPointer: { x: number; y: number };
+  startSize: NodeSize;
+  startPosition: { x: number; y: number };
+  element: HTMLElement;
+}
+
 export interface RendererState {
   locale: string;
   nodes: RendererNode[];
@@ -71,6 +85,9 @@ export interface RendererState {
   highlightedConnections: Set<string>;
   pressedNodeId: string | null;
   mediaPreviews: Map<string, NodeMediaPreview>;
+  nodeSizes: Map<string, NodeSize>;
+  nodeChrome: Map<string, number>;
+  resizing: NodeResizeSession | null;
 }
 
 export interface HistoryEntry {

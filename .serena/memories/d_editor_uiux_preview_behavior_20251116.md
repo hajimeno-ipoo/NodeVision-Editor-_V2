@@ -1,0 +1,4 @@
+## 2025-11-16 Media preview refinements (update)
+- `state.nodeChrome` マップでノードごとの実測クローム高さを保持し、`getMinimumHeightForWidth(nodeId, width)` がクローム＋プレビュー実寸を元に最小高さを再計算するようにした。DOMレンダ後に `syncNodeChromePadding()` を走らせて不足時はノード高さを自動補正し、ラベルやツールバーが切れないようにしている。
+- プレビュー枠はアップロードしたメディアの実アスペクト比を基準にサイズ計算するよう変更。`getPreviewAspectRatio()` を復活させ、`buildLoadNodeMediaSection()` で width/height 両方を比率に合わせて再算出し、黒帯が出ないよう `object-fit: contain` の枠自体が縮む/広がる挙動にした。
+- クローム計測も `getBoundingClientRect()` ベースの実測値を使うようにし、ビデオ/画像どちらでも高さが正しく反映される。変更ファイル: `apps/desktop-electron/src/renderer/app.ts`, `state.ts`, `types.ts`. `pnpm test` で100%カバレッジ維持済み。

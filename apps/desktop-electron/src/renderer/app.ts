@@ -23,14 +23,27 @@ import type {
   Point,
   SerializedNode,
   RendererDom,
-  NodevisionApi
+  NodevisionApi,
+  NodeSize
 } from './types';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
   const nodevision = (window as unknown as { nodevision?: NodevisionApi }).nodevision;
   const SNAP = 4;
+  const DRAG_THRESHOLD = 3;
   const SCHEMA = '1.0.7';
+  const MIN_PREVIEW_WIDTH = 280;
+  const MIN_PREVIEW_HEIGHT = 240;
+  const HORIZONTAL_PREVIEW_PADDING = 56;
+  const PREVIEW_FRAME_RATIO = MIN_PREVIEW_WIDTH / MIN_PREVIEW_HEIGHT;
+  const MIN_NODE_CHROME = 220;
+  const DEFAULT_NODE_CHROME = 300;
+  const NODE_MIN_WIDTH = MIN_PREVIEW_WIDTH + HORIZONTAL_PREVIEW_PADDING;
+  const NODE_MAX_WIDTH = 520;
+  const NODE_MIN_HEIGHT = MIN_PREVIEW_HEIGHT + MIN_NODE_CHROME;
+  const NODE_MAX_HEIGHT = 720;
+  const MAX_CHROME_SYNC_ATTEMPTS = 2;
   const LOCALE_STORAGE_KEY = 'nodevision.locale';
   const TRANSLATIONS: Record<string, Record<string, string>> = rendererWindow.__NODEVISION_TRANSLATIONS__ ?? {};
   const SUPPORTED_LOCALES: string[] = Array.isArray(rendererWindow.__NODEVISION_SUPPORTED_LOCALES__) && rendererWindow.__NODEVISION_SUPPORTED_LOCALES__.length
@@ -295,6 +308,36 @@ import type {
     state.mediaPreviews.clear();
   };
 
+  const getNodeChromePadding = (nodeId: string): number => {
+    const stored = state.nodeChrome.get(nodeId);
+    if (typeof stored === 'number' && stored >= MIN_NODE_CHROME) {
+      return Math.min(NODE_MAX_HEIGHT, stored);
+    }
+    return DEFAULT_NODE_CHROME;
+  };
+
+  const getPreviewWidthForNodeWidth = (nodeWidth: number): number =>
+    Math.max(MIN_PREVIEW_WIDTH, nodeWidth - HORIZONTAL_PREVIEW_PADDING);
+
+  const getPreviewAspectRatio = (nodeId: string): number => {
+    const preview = state.mediaPreviews.get(nodeId);
+    if (preview?.width && preview?.height) {
+      const ratio = preview.width / preview.height;
+      if (Number.isFinite(ratio) && ratio > 0) {
+        return ratio;
+      }
+    }
+    return PREVIEW_FRAME_RATIO;
+  };
+
+  const getMinimumHeightForWidth = (nodeId: string, width: number): number => {
+    const chrome = getNodeChromePadding(nodeId);
+    const desiredPreviewWidth = getPreviewWidthForNodeWidth(width);
+    const previewHeight = Math.max(MIN_PREVIEW_HEIGHT, desiredPreviewWidth / PREVIEW_FRAME_RATIO);
+    const desired = previewHeight + chrome;
+    return Math.max(NODE_MIN_HEIGHT, desired);
+  };
+
   const pruneMediaPreviews = (): void => {
     const nodeIds = new Set(state.nodes.map(node => node.id));
     Array.from(state.mediaPreviews.keys()).forEach(nodeId => {
@@ -302,6 +345,83 @@ import type {
         cleanupMediaPreview(nodeId);
       }
     });
+  };
+
+  const clampWidth = (value: number): number => Math.min(NODE_MAX_WIDTH, Math.max(NODE_MIN_WIDTH, value));
+  const clampHeight = (value: number): number => Math.min(NODE_MAX_HEIGHT, Math.max(NODE_MIN_HEIGHT, value));
+
+  const ensureNodeSize = (node: RendererNode): NodeSize => {
+    const stored = state.nodeSizes.get(node.id);
+    const fallbackWidth = node.width ?? NODE_MIN_WIDTH;
+    const fallbackHeight = node.height ?? NODE_MIN_HEIGHT;
+    const width = clampWidth(stored?.width ?? fallbackWidth);
+    const minHeight = getMinimumHeightForWidth(node.id, width);
+    const height = Math.max(minHeight, clampHeight(stored?.height ?? fallbackHeight));
+    const size: NodeSize = { width, height };
+    state.nodeSizes.set(node.id, size);
+    node.width = width;
+    node.height = height;
+    return size;
+  };
+
+  const pruneNodeSizes = (): void => {
+    const nodeIds = new Set(state.nodes.map(node => node.id));
+    Array.from(state.nodeSizes.keys()).forEach(nodeId => {
+      if (!nodeIds.has(nodeId)) {
+        state.nodeSizes.delete(nodeId);
+      }
+    });
+  };
+
+  const pruneNodeChrome = (): void => {
+    const nodeIds = new Set(state.nodes.map(node => node.id));
+    Array.from(state.nodeChrome.keys()).forEach(nodeId => {
+      if (!nodeIds.has(nodeId)) {
+        state.nodeChrome.delete(nodeId);
+      }
+    });
+  };
+
+  const syncNodeChromePadding = (): boolean => {
+    let needsRerender = false;
+    elements.nodeLayer.querySelectorAll<HTMLElement>('.node').forEach(el => {
+      const nodeId = el.dataset.id;
+      if (!nodeId) {
+        return;
+      }
+      const previewEl = el.querySelector<HTMLElement>('.node-media-preview');
+      if (!previewEl) {
+        if (state.nodeChrome.has(nodeId)) {
+          state.nodeChrome.delete(nodeId);
+        }
+        return;
+      }
+      const previewHeight = Math.max(
+        MIN_PREVIEW_HEIGHT,
+        Math.round(previewEl.scrollHeight || previewEl.getBoundingClientRect().height)
+      );
+      const chromeCandidate = Math.max(
+        MIN_NODE_CHROME,
+        Math.round(el.scrollHeight - previewHeight)
+      );
+      const stored = state.nodeChrome.get(nodeId);
+      if (stored !== chromeCandidate) {
+        state.nodeChrome.set(nodeId, chromeCandidate);
+      }
+      const size = state.nodeSizes.get(nodeId);
+      if (size) {
+        const minHeight = Math.max(NODE_MIN_HEIGHT, previewHeight + chromeCandidate);
+        if (size.height < minHeight) {
+          size.height = minHeight;
+          const node = state.nodes.find(item => item.id === nodeId);
+          if (node) {
+            node.height = minHeight;
+          }
+          needsRerender = true;
+        }
+      }
+    });
+    return needsRerender;
   };
 
   const updateMediaPreviewDimensions = (nodeId: string, width: number | null, height: number | null): void => {
@@ -1009,8 +1129,34 @@ import type {
     return false;
   };
 
+  type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se';
+
+  const buildResizeHandles = (nodeId: string): string =>
+    ['nw', 'ne', 'sw', 'se']
+      .map(
+        handle =>
+          `<div class="node-resize-handle node-resize-${handle}" data-resize-handle="${handle}" data-node-id="${escapeHtml(
+            nodeId
+          )}" data-node-interactive="true" aria-hidden="true"></div>`
+      )
+      .join('');
+
   const buildLoadNodeMediaSection = (nodeId: string): string => {
     const preview = state.mediaPreviews.get(nodeId);
+    const nodeSize = state.nodeSizes.get(nodeId) ?? { width: NODE_MIN_WIDTH, height: NODE_MIN_HEIGHT };
+    const chrome = getNodeChromePadding(nodeId);
+    const ratio = getPreviewAspectRatio(nodeId);
+    const heightLimit = Math.max(MIN_PREVIEW_HEIGHT, nodeSize.height - chrome);
+    const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
+    let previewWidth = widthLimit;
+    let previewHeight = previewWidth / ratio;
+    if (previewHeight > heightLimit) {
+      previewHeight = heightLimit;
+      previewWidth = Math.min(widthLimit, previewHeight * ratio);
+    }
+    previewWidth = Math.max(MIN_PREVIEW_WIDTH, previewWidth);
+    previewHeight = Math.max(MIN_PREVIEW_HEIGHT, Math.min(heightLimit, previewHeight));
+    const inlineStyle = ` style="--preview-width:${previewWidth}px;--preview-height:${previewHeight}px"`;
     const uploadControl = `
       <label class="node-media-upload${state.readonly ? ' disabled' : ''}">
         <span>${escapeHtml(t('nodes.load.selectButton'))}</span>
@@ -1035,7 +1181,7 @@ import type {
     `;
 
     if (!preview) {
-      return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}" data-node-interactive="true">
+      return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}"${inlineStyle}>
         ${toolbar}
         ${uploadControl}
         <p class="node-media-empty">${escapeHtml(t('nodes.load.empty'))}</p>
@@ -1047,19 +1193,114 @@ import type {
       kind === 'video'
         ? `<video src="${preview.url}" controls playsinline preload="metadata" muted></video>`
         : `<img src="${preview.url}" alt="${escapeHtml(preview.name)}" />`;
-    return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}" data-node-interactive="true">
+    return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}"${inlineStyle}>
       ${toolbar}
       ${uploadControl}
-      <div class="node-media-preview" data-kind="${kind}">
-        ${mediaTag}
+      <div class="node-media-frame">
+        <div class="node-media-preview" data-kind="${kind}">
+          ${mediaTag}
+        </div>
       </div>
       ${aspectHtml}
     </div>`;
   };
 
-  const renderNodes = (): void => {
+  const startResize = (node: RendererNode, handle: ResizeHandle, element: HTMLElement, event: PointerEvent): void => {
+    if (state.readonly) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const size = ensureNodeSize(node);
+    state.resizing = {
+      nodeId: node.id,
+      handle,
+      startPointer: { x: event.clientX, y: event.clientY },
+      startSize: size,
+      startPosition: { x: node.position.x, y: node.position.y },
+      element
+    };
+    window.addEventListener('pointermove', handleResizePointerMove);
+    window.addEventListener('pointerup', finishResize);
+    window.addEventListener('pointercancel', cancelResize);
+  };
+
+  const handleResizePointerMove = (event: PointerEvent): void => {
+    const session = state.resizing;
+    if (!session) {
+      return;
+    }
+    event.preventDefault();
+    const node = state.nodes.find(item => item.id === session.nodeId);
+    if (!node) {
+      return;
+    }
+    const deltaX = (event.clientX - session.startPointer.x) / state.zoom;
+    const deltaY = (event.clientY - session.startPointer.y) / state.zoom;
+    let width = session.startSize.width;
+    let height = session.startSize.height;
+    let posX = session.startPosition.x;
+    let posY = session.startPosition.y;
+
+    if (session.handle.includes('e')) {
+      width = clampWidth(session.startSize.width + deltaX);
+    }
+    if (session.handle.includes('w')) {
+      const candidate = session.startSize.width - deltaX;
+      const clamped = clampWidth(candidate);
+      const applied = session.startSize.width - clamped;
+      width = clamped;
+      posX = snap(session.startPosition.x + applied);
+    }
+    const minHeightForWidth = getMinimumHeightForWidth(node.id, width);
+    if (session.handle.includes('s')) {
+      height = clampHeight(session.startSize.height + deltaY);
+    }
+    if (session.handle.includes('n')) {
+      const candidate = session.startSize.height - deltaY;
+      const clamped = clampHeight(candidate);
+      const applied = session.startSize.height - clamped;
+      height = clamped;
+      posY = snap(session.startPosition.y + applied);
+    }
+    height = Math.max(minHeightForWidth, height);
+
+    node.position.x = posX;
+    node.position.y = posY;
+    const enforcedHeight = Math.max(minHeightForWidth, height);
+    if (session.handle.includes('n') && enforcedHeight !== height) {
+      posY = snap(session.startPosition.y + (session.startSize.height - enforcedHeight));
+    }
+    node.width = width;
+    node.height = enforcedHeight;
+    state.nodeSizes.set(node.id, { width, height: enforcedHeight });
+    session.element.style.width = `${width}px`;
+    session.element.style.height = `${enforcedHeight}px`;
+    session.element.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
+    renderConnectionPaths();
+  };
+
+  const endResizeSession = (commit: boolean): void => {
+    if (!state.resizing) {
+      return;
+    }
+    window.removeEventListener('pointermove', handleResizePointerMove);
+    window.removeEventListener('pointerup', finishResize);
+    window.removeEventListener('pointercancel', cancelResize);
+    state.resizing = null;
+    if (commit) {
+      commitState();
+    }
+  };
+
+  const finishResize = (): void => endResizeSession(true);
+  const cancelResize = (): void => endResizeSession(false);
+
+  let suppressChromeMeasurement = false;
+
+  const renderNodes = (attempt: number = 0): void => {
     const host = elements.nodeLayer;
     pruneMediaPreviews();
+    pruneNodeSizes();
+    pruneNodeChrome();
     setDropTarget(null);
     host.innerHTML = '';
     state.nodes.forEach(node => {
@@ -1080,9 +1321,12 @@ import type {
       const descriptionHtml = description
         ? '<p class="node-description">' + escapeHtml(description) + '</p>'
         : '';
+      const nodeSize = ensureNodeSize(node);
+      const nodeWidth = nodeSize.width;
+      const nodeHeight = nodeSize.height;
       const htmlParts = [
         '<header class="node-header">',
-        '<div>',
+        '<div class="node-header-main">',
         '<p class="node-title">', escapeHtml(localizedTitle), '</p>',
         '<p class="node-meta">', escapeHtml(metaText), '</p>',
         descriptionHtml,
@@ -1097,7 +1341,14 @@ import type {
       if (node.typeId === 'loadMedia') {
         htmlParts.push(buildLoadNodeMediaSection(node.id));
       }
+      htmlParts.push(buildResizeHandles(node.id));
       el.innerHTML = htmlParts.join('');
+      el.style.width = `${nodeWidth}px`;
+      el.style.height = `${nodeHeight}px`;
+      el.style.minWidth = `${NODE_MIN_WIDTH}px`;
+      el.style.maxWidth = `${NODE_MAX_WIDTH}px`;
+      el.style.minHeight = `${NODE_MIN_HEIGHT}px`;
+      el.style.maxHeight = `${NODE_MAX_HEIGHT}px`;
       if (state.selection.has(node.id)) {
         el.classList.add('selected');
       }
@@ -1108,8 +1359,20 @@ import type {
           input.addEventListener('change', () => handleMediaInputChange(node.id, input));
         });
       }
+      el.querySelectorAll<HTMLElement>('[data-resize-handle]').forEach(handle => {
+        handle.addEventListener('pointerdown', event => {
+          const direction = (handle.getAttribute('data-resize-handle') as ResizeHandle) ?? 'se';
+          startResize(node, direction, el, event);
+        });
+      });
       host.appendChild(el);
     });
+    const needsSync = !suppressChromeMeasurement && syncNodeChromePadding();
+    suppressChromeMeasurement = false;
+    if (needsSync && attempt < MAX_CHROME_SYNC_ATTEMPTS) {
+      renderNodes(attempt + 1);
+      return;
+    }
     renderConnectionPaths();
     applyNodeHighlightClasses();
   };
@@ -1143,19 +1406,38 @@ import type {
         x: start.x - node.position.x,
         y: start.y - node.position.y
       };
+      let moved = false;
+      let dragging = false;
       const move = (moveEvent: PointerEvent): void => {
         const current = { x: moveEvent.clientX - rect.left, y: moveEvent.clientY - rect.top };
-        node.position.x = snap(current.x - offset.x);
-        node.position.y = snap(current.y - offset.y);
-        el.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
-        renderConnectionPaths();
+        const deltaX = current.x - start.x;
+        const deltaY = current.y - start.y;
+        if (!dragging) {
+          const distance = Math.hypot(deltaX, deltaY);
+          if (distance < DRAG_THRESHOLD) {
+            return;
+          }
+          dragging = true;
+        }
+        const nextX = snap(current.x - offset.x);
+        const nextY = snap(current.y - offset.y);
+        if (nextX !== node.position.x || nextY !== node.position.y) {
+          node.position.x = nextX;
+          node.position.y = nextY;
+          moved = true;
+          el.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
+          renderConnectionPaths();
+        }
       };
       const up = (): void => {
         setPressedNode(null);
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         window.removeEventListener('pointercancel', up);
-        commitState();
+        if (dragging && moved) {
+          suppressChromeMeasurement = true;
+          commitState();
+        }
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
