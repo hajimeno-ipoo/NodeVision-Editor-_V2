@@ -14,7 +14,7 @@
 | W | 期間 | マイルストーン | 主要アウトプット | Exit Criteria |
 |---|------|----------------|------------------|---------------|
 | W1 | 11/13-11/19 | M0 Foundation | pnpm/Electron基盤、設定保存、ヘルスチェック、サンプルメディア | FFmpeg検出/HTTPトークン自動生成、tempRoot監視（E3001発火テスト） |
-| W2 | 11/20-11/26 | Editor Core + Autosave | キャンバス/ノード配置、型付きポート、保存/読み込み、Undo/Redo/オートセーブ | AC-CAN-001, AC-CONN-001, AC-ROUND-001, AC-UNDO-001 パス |
+| W2 | 11/20-11/26 | Editor Core + Autosave | キャンバス/ノード配置、型付きポート、保存/読み込み、Undo/Redo/オートセーブ | AC-CAN-001, AC-CONN-001, AC-CONN-002, AC-ROUND-001, AC-UNDO-001 パス |
 | W3 | 11/27-12/03 | Inspect + IPC/HTTP Security | engine.inspectConcat, HTTPエンドポイント、contract test、トークン/レート制限 | AC-HTTP-TOKEN-001/002, AC-HTTP-RATE-001, AC-INSPECT-001達成 |
 | W4 | 12/04-12/10 | Media ノード群 + プレビュー | Trim/Resize/Overlay/Crop/Speed、色管理、プレビュー（bilinear/bicubic切替） | AC-TRIM-001〜AC-PREVIEW-001網羅、sRGB準拠計測 |
 | W5 | 12/11-12/17 | Queue/History/Logging | 単一キューとキャンセルUX、履歴20件、ログエクスポートAES-256 | AC-CANCEL-001, AC-LOG-ROTATE-001, AC-LOG-EXPORT-001満たす |
@@ -35,6 +35,7 @@
 - **タスク**
   - キャンバスパン/ズーム、検索からノード追加、8pxグリッド/4pxスナップ。
   - 型付きポートと接続チェック、整列ボタン、ショートカット登録。
+  - ComfyUIスタイルのノードカードとドラッグ接続UI（SVGベジェ配線、接続リスト同期）。
   - JSON保存/読み込み＋`schemaVersion`管理、マイグレーション試行と読み取り専用モード。
   - Undo/Redo 100履歴、アイドル2s/実行時10sオートセーブ。
 - **テスト**: schema migration contract、Autosave idleタイマー、a11yフォーカス循環 smoke。
@@ -85,4 +86,3 @@
 - **開発 > QA ハンドオフ**: 各W末にQAへデモ＋テストケース同期。HTTP/セキュリティ部分はW3前にレビュー会。
 - **ドキュメント**: v1.0.7ベースで実装ノートとACトレーサビリティをDoc/reports配下に追加。リリース時に評価レポートへ反映。
 - **リスクレビュー**: 毎週火曜スタンドアップでリスクテーブルを更新し、E2Eブロッカーを即共有。
-

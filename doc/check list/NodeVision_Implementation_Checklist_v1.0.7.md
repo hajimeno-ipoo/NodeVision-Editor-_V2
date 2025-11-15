@@ -38,6 +38,7 @@
 - [x] D-03 検索→Enterでノード生成、フォーカスサイクルでキーボード完結（Doc §5, §10）。→ 検索ボックスと`<ul role="listbox">`候補を用意し、Enter/Clickでノード生成&Tab移動をサポート。
 - [x] D-04 保存/読み込みJSONは `schemaVersion`/`nodeVersion` を含み、マイグレーション失敗時は読み取り専用（Doc §2, 付録A, AC-MIGRATE-001）。→ `packages/editor/src/persistence.ts` + レンダラーのJSONパネルでschemaVersion=1.0.7を書き出し、異なるバージョンは `.readonly` バナーで読取専用化。
 - [x] D-05 Undo/Redo 100履歴とオートセーブ（アイドル2秒／実行時10秒）を有効化（Doc §5）。→ `packages/editor/src/history.ts` のHistoryManager/AutosaveSchedulerと、レンダラーの undo/redo ボタン＋オートセーブ表示を連携。
+- [x] D-06 ComfyUIスタイルカード＋ドラッグ接続とベジェ描画を提供（Doc §5, AC-CONN-002）。→ `apps/desktop-electron/src/ui-template.ts` でノードカード/ポートUIを再設計し、SVG接続レイヤーとポインタイベント（`startConnectionDrag`等）を実装。`apps/desktop-electron/src/ui-template.test.ts` で接続リスト表記・ドラッグ接続Vitestを追加し、`pnpm test`/`pnpm test:a11y` で確認済み。
 
 ## E. Media/プレビュー
 - [x] E-01 FFmpeg ビルダーチェーン（Load→Trim→Resize→Save）が最短パスで生成される（Doc §6, §9）。→ `packages/engine/src/ffmpeg/builder.ts` にノード統合ロジックと `buildFFmpegPlan` を実装し、`builder.test.ts`（8ケース）でLoad→Trim→Resize→Exportの最短パス/連続トリム/出力引数を網羅、Vitestカバレッジ100%。
