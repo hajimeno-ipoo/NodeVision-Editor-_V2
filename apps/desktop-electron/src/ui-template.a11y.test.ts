@@ -12,7 +12,7 @@ const bootStatus: BootStatus = {
     tempRoot: '/tmp/nodevision',
     ffmpegPath: '/usr/bin/ffmpeg',
     ffprobePath: '/usr/bin/ffprobe',
-    locale: 'en-US',
+    locale: 'ja-JP',
     http: { enabled: false, tokenLabel: 'default', port: 3921 },
     presets: { videoBitrate: '8M', audioBitrate: '320k', container: 'mp4' },
     diagnostics: { lastTokenPreview: null, collectCrashDumps: false, lastLogExportPath: null },

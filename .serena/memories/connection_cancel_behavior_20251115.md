@@ -1,0 +1,1 @@
+Updated renderer drag logic so dropping on canvas only removes a connection if the user started by detaching an existing link (pendingConnection.detachedConnectionId is set). Starting a brand new connection and dropping before connecting now just cancels without removing previous links. Tests cover this scenario.

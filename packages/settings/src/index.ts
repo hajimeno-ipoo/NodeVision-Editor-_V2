@@ -10,6 +10,7 @@ export interface NodeVisionSettings {
   tempRoot: string;
   ffmpegPath: string | null;
   ffprobePath: string | null;
+  locale: 'en-US' | 'ja-JP';
   http: {
     enabled: boolean;
     tokenLabel: string;
@@ -41,6 +42,7 @@ const defaultSettings = (): NodeVisionSettings => {
     tempRoot: path.join(os.tmpdir(), 'nodevision-temp'),
     ffmpegPath: null,
     ffprobePath: null,
+    locale: 'ja-JP',
     http: {
       enabled: false,
       tokenLabel: 'default',
@@ -85,7 +87,8 @@ const sanitizeSettings = (input: Partial<NodeVisionSettings> | null | undefined)
     diagnostics: {
       ...defaults.diagnostics,
       ...(input?.diagnostics ?? {})
-    }
+    },
+    locale: (input?.locale === 'en-US' || input?.locale === 'ja-JP') ? input.locale : defaults.locale
   } satisfies NodeVisionSettings;
 
   return {

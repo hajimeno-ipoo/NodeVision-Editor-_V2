@@ -12,7 +12,7 @@ const bootStatus: BootStatus = {
     tempRoot: '/tmp/nodevision',
     ffmpegPath: '/usr/bin/ffmpeg',
     ffprobePath: '/usr/bin/ffprobe',
-    locale: 'en-US',
+    locale: 'ja-JP',
     http: { enabled: false, tokenLabel: 'default', port: 3921 },
     presets: { videoBitrate: '8M', audioBitrate: '320k', container: 'mp4' },
     diagnostics: { lastTokenPreview: null, collectCrashDumps: false, lastLogExportPath: null },
@@ -143,7 +143,7 @@ describe('ui-template queue warnings', () => {
     const dom = renderDom(basePayload);
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const stableNode = dom.window.document.querySelector('.queue-warning strong');
-    expect(stableNode?.textContent).toBe('Queue Stable');
+    expect(stableNode?.textContent).toBe('キューは安定');
     dom.window.close();
   });
 });
@@ -177,7 +177,7 @@ describe('ui-template accessibility helpers', () => {
 
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const entry = dom.window.document.querySelector('.connections-list li span');
-    expect(entry?.textContent).toBe('Load Media • Media → Trim • Source');
+    expect(entry?.textContent).toBe('メディアを読み込み • メディア → トリム • ソース');
     dom.window.close();
   });
 
@@ -187,7 +187,7 @@ describe('ui-template accessibility helpers', () => {
     const node = dom.window.document.querySelector('.node');
     expect(node?.getAttribute('role')).toBe('group');
     const port = dom.window.document.querySelector('.port');
-    expect(port?.getAttribute('aria-label')).toContain('port');
+    expect(port?.getAttribute('aria-label')).toContain('ポート');
     dom.window.close();
   });
 });
@@ -233,6 +233,170 @@ describe('ui-template connections layer', () => {
     expect(rows.length).toBe(1);
     dom.window.close();
   });
+
+  it('drops a dragged curve on canvas to remove an existing connection', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      nodes: MEDIA_NODES,
+      connections: [{ id: 'c-detach', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' }]
+    });
+    ensurePointerEventPolyfill(dom);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const doc = dom.window.document;
+    const canvas = doc.getElementById('canvas');
+    stubRect(canvas, { left: 0, top: 0, width: 900, height: 600 });
+    const output = doc.querySelector<HTMLElement>('.port[data-node-id="n1"][data-port-id="media"]');
+    const input = doc.querySelector<HTMLElement>('.port[data-node-id="n2"][data-port-id="source"]');
+    stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
+    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+    stubRect(input, { left: 420, top: 260, width: 24, height: 24 });
+
+    input?.dispatchEvent(
+      new dom.window.PointerEvent('pointerdown', { pointerId: 7, button: 0, clientX: 420, clientY: 260, bubbles: true })
+    );
+    dom.window.dispatchEvent(
+      new dom.window.PointerEvent('pointermove', { pointerId: 7, clientX: 560, clientY: 320, bubbles: true })
+    );
+    dom.window.dispatchEvent(new dom.window.PointerEvent('pointerup', { pointerId: 7, bubbles: true }));
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+    const firstRow = doc.querySelector('.connections-list li');
+    const jsonValue = (doc.getElementById('project-json') as HTMLTextAreaElement | null)?.value ?? '{}';
+    const project = JSON.parse(jsonValue);
+    expect(project.connections.length).toBe(0);
+    expect(firstRow?.classList.contains('connections-empty')).toBe(true);
+    dom.window.close();
+  });
+
+  it('keeps other outputs intact when removing a single connection via input drag', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      nodes: [
+        ...MEDIA_NODES,
+        {
+          id: 'n3',
+          typeId: 'resize',
+          nodeVersion: '1.0.0',
+          title: 'Resize',
+          position: { x: 420, y: 200 },
+          width: 200,
+          height: 120,
+          inputs: [{ id: 'source', label: 'Source', direction: 'input', dataType: 'video' }],
+          outputs: [],
+          searchTokens: ['resize']
+        }
+      ],
+      connections: [
+        { id: 'c-left', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' },
+        { id: 'c-right', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n3', toPortId: 'source' }
+      ]
+    });
+    ensurePointerEventPolyfill(dom);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const doc = dom.window.document;
+    const canvas = doc.getElementById('canvas');
+    stubRect(canvas, { left: 0, top: 0, width: 900, height: 600 });
+    const sourceInput = doc.querySelector<HTMLElement>('.port[data-node-id="n2"][data-port-id="source"]');
+    stubRect(sourceInput, { left: 360, top: 240, width: 24, height: 24 });
+
+    sourceInput?.dispatchEvent(
+      new dom.window.PointerEvent('pointerdown', { pointerId: 11, button: 0, clientX: 360, clientY: 240, bubbles: true })
+    );
+    dom.window.dispatchEvent(
+      new dom.window.PointerEvent('pointermove', { pointerId: 11, clientX: 520, clientY: 300, bubbles: true })
+    );
+    dom.window.dispatchEvent(new dom.window.PointerEvent('pointerup', { pointerId: 11, bubbles: true }));
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+    const rows = doc.querySelectorAll('.connections-list li');
+    expect(rows.length).toBe(1);
+    const jsonValue = (doc.getElementById('project-json') as HTMLTextAreaElement | null)?.value ?? '{}';
+    const project = JSON.parse(jsonValue);
+    expect(project.connections.length).toBe(1);
+    expect(project.connections[0].toNodeId).toBe('n3');
+    dom.window.close();
+  });
+
+  it('rewires a connection by dragging from an input to another node', async () => {
+    const nodes = [
+      ...MEDIA_NODES,
+      {
+        id: 'n3',
+        typeId: 'resize',
+        nodeVersion: '1.0.0',
+        title: 'Resize',
+        position: { x: 420, y: 200 },
+        width: 200,
+        height: 120,
+        inputs: [{ id: 'source', label: 'Source', direction: 'input', dataType: 'video' }],
+        outputs: [],
+        searchTokens: ['resize']
+      }
+    ] as const;
+    const dom = renderDom({
+      ...basePayload,
+      nodes,
+      connections: [{ id: 'c-rewire', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' }]
+    });
+    ensurePointerEventPolyfill(dom);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const doc = dom.window.document;
+    const canvas = doc.getElementById('canvas');
+    stubRect(canvas, { left: 0, top: 0, width: 900, height: 600 });
+    const output = doc.querySelector<HTMLElement>('.port[data-node-id="n1"][data-port-id="media"]');
+    const sourceInput = doc.querySelector<HTMLElement>('.port[data-node-id="n2"][data-port-id="source"]');
+    const newInput = doc.querySelector<HTMLElement>('.port[data-node-id="n3"][data-port-id="source"]');
+    stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
+    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+    stubRect(sourceInput, { left: 360, top: 240, width: 24, height: 24 });
+    stubRect(newInput, { left: 620, top: 240, width: 24, height: 24 });
+
+    sourceInput?.dispatchEvent(
+      new dom.window.PointerEvent('pointerdown', { pointerId: 8, button: 0, clientX: 360, clientY: 240, bubbles: true })
+    );
+    dom.window.dispatchEvent(
+      new dom.window.PointerEvent('pointermove', { pointerId: 8, clientX: 640, clientY: 260, bubbles: true })
+    );
+    newInput?.dispatchEvent(new dom.window.PointerEvent('pointerenter', { pointerId: 8, bubbles: true }));
+    dom.window.dispatchEvent(new dom.window.PointerEvent('pointerup', { pointerId: 8, bubbles: true }));
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+    const entry = doc.querySelector('.connections-list li span')?.textContent ?? '';
+    expect(entry).toContain('リサイズ');
+    const jsonValue = (doc.getElementById('project-json') as HTMLTextAreaElement | null)?.value ?? '{}';
+    const project = JSON.parse(jsonValue);
+    expect(project.connections[0].toNodeId).toBe('n3');
+    dom.window.close();
+  });
+
+  it('cancels a second connection drag without removing the existing one', async () => {
+    const dom = renderDom({
+      ...basePayload,
+      nodes: MEDIA_NODES,
+      connections: [{ id: 'c-single', fromNodeId: 'n1', fromPortId: 'media', toNodeId: 'n2', toPortId: 'source' }]
+    });
+    ensurePointerEventPolyfill(dom);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const doc = dom.window.document;
+    const canvas = doc.getElementById('canvas');
+    stubRect(canvas, { left: 0, top: 0, width: 900, height: 600 });
+    const output = doc.querySelector<HTMLElement>('.port[data-node-id="n1"][data-port-id="media"]');
+    stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
+    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+
+    output?.dispatchEvent(
+      new dom.window.PointerEvent('pointerdown', { pointerId: 12, button: 0, clientX: 136, clientY: 252, bubbles: true })
+    );
+    dom.window.dispatchEvent(
+      new dom.window.PointerEvent('pointermove', { pointerId: 12, clientX: 360, clientY: 260, bubbles: true })
+    );
+    dom.window.dispatchEvent(new dom.window.PointerEvent('pointerup', { pointerId: 12, bubbles: true }));
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+    const rows = doc.querySelectorAll('.connections-list li');
+    expect(rows.length).toBe(1);
+    const jsonValue = (doc.getElementById('project-json') as HTMLTextAreaElement | null)?.value ?? '{}';
+    const project = JSON.parse(jsonValue);
+    expect(project.connections.length).toBe(1);
+    expect(project.connections[0].toNodeId).toBe('n2');
+    dom.window.close();
+  });
 });
 
 describe('ui-template about card', () => {
@@ -240,7 +404,7 @@ describe('ui-template about card', () => {
     const dom = renderDom(basePayload);
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const distribution = dom.window.document.getElementById('about-distribution');
-    expect(distribution?.textContent).toContain('External');
+    expect(distribution?.textContent).toContain('外部');
     const notice = dom.window.document.getElementById('about-notice');
     expect(notice?.textContent).toContain('LGPL');
     dom.window.close();

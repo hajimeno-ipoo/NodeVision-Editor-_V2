@@ -14,305 +14,12 @@ export interface RendererPayload {
   connections: NodeConnection[];
 }
 
-const UI_TRANSLATIONS = {
-  'en-US': {
-    'app.title': 'NodeVision Editor',
-    'toolbar.alignLeft': 'Align left',
-    'toolbar.alignTop': 'Align top',
-    'toolbar.alignCenter': 'Align center',
-    'toolbar.undo': 'Undo',
-    'toolbar.redo': 'Redo',
-    'toolbar.runningMode': 'Running mode',
-    'toolbar.localeLabel': 'Language',
-    'toolbar.locale.en': 'English',
-    'toolbar.locale.ja': 'Japanese',
-    'autosave.pending': 'Waiting for changes...',
-    'autosave.running': 'Monitoring changes while running ({{seconds}}s)',
-    'autosave.idle': 'Watching for edits ({{seconds}}s)',
-    'autosave.saved': 'Autosaved at {{time}}',
-    'sidebar.ariaLabel': 'Node search and help',
-    'sidebar.searchLabel': 'Node search',
-    'sidebar.searchPlaceholder': 'Load, Trim, Resize...',
-    'sidebar.suggestionsLabel': 'Node suggestions',
-    'help.shortcutsTitle': 'Shortcuts',
-    'help.copy': 'Copy node',
-    'help.paste': 'Paste (4px snap)',
-    'help.duplicate': 'Duplicate',
-    'help.zoomReset': 'Zoom 100%',
-    'help.fitSelection': 'Fit selection',
-    'help.guideTitle': 'Guided actions',
-    'help.guideHtml': '• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.',
-    'readonly.banner': 'Read-only because the schema version differs. Editing is disabled.',
-    'queue.ariaLabel': 'Job queue',
-    'queue.title': 'Job queue',
-    'queue.demoJob': 'Add demo job',
-    'queue.cancelAll': 'Cancel all',
-    'queue.status.running': 'Running',
-    'queue.status.queued': 'Queued',
-    'queue.status.coolingDown': 'Cooling down',
-    'queue.status.failed': 'Failed',
-    'queue.status.canceled': 'Canceled',
-    'queue.historyTitle': 'History (20 entries)',
-    'queue.emptyActive': 'No active jobs',
-    'queue.emptyQueued': 'No queued jobs',
-    'queue.noHistory': 'No history yet',
-    'queue.noLogs': 'No logs yet',
-    'queue.defaultJob': 'Job',
-    'queue.stableTitle': 'Queue Stable',
-    'queue.stableSummary': 'Queued {{queued}}/{{limit}} • Timeout {{timeout}}s',
-    'nodes.ariaLabel': '{{title}} node',
-    'ports.inputsLabel': '{{title}} inputs',
-    'ports.outputsLabel': '{{title}} outputs',
-    'ports.emptyInputs': 'No inputs',
-    'ports.emptyOutputs': 'No outputs',
-    'ports.direction.input': 'Input',
-    'ports.direction.output': 'Output',
-    'ports.portLabel': '{{direction}} port {{label}} ({{dataType}})',
-    'connections.title': 'Connections',
-    'connections.ariaLabel': 'Connection list',
-    'connections.empty': 'No connections yet',
-    'connections.remove': 'Remove connection',
-    'connections.itemLabel': '{{from}} → {{to}}',
-    'connections.pending': 'Select an input port to finish connection from {{from}}',
-    'diagnostics.ariaLabel': 'Logs and diagnostics',
-    'diagnostics.title': 'Logs & diagnostics',
-    'diagnostics.crashConsent': 'Include crash dumps',
-    'diagnostics.passwordPlaceholder': 'Export password',
-    'diagnostics.exportButton': 'Export logs',
-    'diagnostics.inspectHistoryTitle': 'Inspect history (20 entries)',
-    'diagnostics.noExport': 'No exports yet',
-    'diagnostics.lastExport': 'Last export: {{path}} (SHA {{sha}})',
-    'diagnostics.unknownSha': 'unknown',
-    'diagnostics.historyEmpty': 'No inspect history yet',
-    'diagnostics.noDetails': 'No details',
-    'diagnostics.defaultToken': 'token?',
-    'diagnostics.clipCount': '{{count}} clips',
-    'diagnostics.defaultPath': 'diagnostics folder',
-    'json.banner': 'Manage JSON saves and loads here. schemaVersion=1.0.7 is preserved.',
-    'json.export': 'Export JSON',
-    'json.import': 'Import JSON',
-    'json.editorLabel': 'JSON for save/load',
-    'canvas.ariaLabel': 'Node canvas',
-    'toast.queueRefreshFailed': 'Failed to refresh queue: {{message}}',
-    'toast.demoJobMissing': 'Demo job API is unavailable',
-    'toast.demoJobAdded': 'Demo job added',
-    'toast.queueFull': '{{code}}: queue is full',
-    'toast.demoJobFailed': 'Failed to add job: {{reason}}',
-    'toast.cancelAll': 'All jobs canceled',
-    'toast.exportMissing': 'Export API is not connected',
-    'toast.exportFailed': 'Export failed: {{reason}}',
-    'toast.logsExported': 'Logs exported to {{path}}{{shaSuffix}}',
-    'toast.logsExportedSha': ' (SHA256: {{sha}})',
-    'toast.crashOn': 'Crash dumps will be included',
-    'toast.crashOff': 'Crash dumps will be excluded',
-    'errors.schemaMissing': 'schemaVersion is missing',
-    'errors.jsonLoadFailed': 'Failed to load JSON: {{reason}}',
-    'about.title': 'About & licensing',
-    'about.ariaLabel': 'About and licensing',
-    'about.distributionLabel': 'FFmpeg distribution',
-    'about.licenseLabel': 'License',
-    'about.pathLabel': 'FFmpeg path',
-    'about.versionLabel': 'FFmpeg version',
-    'about.origin.bundled': 'Bundled with NodeVision',
-    'about.origin.external': 'External/system binary',
-    'about.noticeBundled': 'NodeVision ships FFmpeg compiled under the LGPL v2.1+. Use the links below to review the license text and download matching source code.',
-    'about.noticeExternal': 'FFmpeg was detected on this system. Confirm that the “{{license}}” license suits your redistribution requirements.',
-    'about.licenseLinkLabel': 'License text',
-    'about.sourceLinkLabel': 'FFmpeg source',
-    'about.versionUnknown': 'Unknown',
-    'about.licenseValue.lgpl': 'LGPL v2.1+',
-    'about.licenseValue.gpl': 'GPL v3+',
-    'about.licenseValue.nonfree': 'Nonfree build (--enable-nonfree)',
-    'about.licenseValue.unknown': 'Unknown license',
-    'nodeTemplate.loadMedia.title': 'Load Media',
-    'nodeTemplate.loadMedia.description': 'Open a local image or video file',
-    'nodeTemplate.loadMedia.port.media': 'Media',
-    'nodeTemplate.trim.title': 'Trim',
-    'nodeTemplate.trim.description': 'Cut media between in/out points',
-    'nodeTemplate.trim.port.source': 'Source',
-    'nodeTemplate.trim.port.result': 'Result',
-    'nodeTemplate.resize.title': 'Resize',
-    'nodeTemplate.resize.description': 'Resize media with aspect ratio controls',
-    'nodeTemplate.resize.port.source': 'Source',
-    'nodeTemplate.resize.port.resized': 'Resized',
-    'nodeTemplate.overlay.title': 'Overlay',
-    'nodeTemplate.overlay.description': 'Blend two sources with position controls',
-    'nodeTemplate.overlay.port.base': 'Base',
-    'nodeTemplate.overlay.port.layer': 'Layer',
-    'nodeTemplate.overlay.port.composite': 'Composite',
-    'nodeTemplate.text.title': 'Text Overlay',
-    'nodeTemplate.text.description': 'Render titles or captions with font and color controls',
-    'nodeTemplate.text.port.background': 'Background',
-    'nodeTemplate.text.port.titled': 'Titled',
-    'nodeTemplate.crop.title': 'Crop',
-    'nodeTemplate.crop.description': 'Trim the visible area to a custom frame',
-    'nodeTemplate.crop.port.source': 'Source',
-    'nodeTemplate.crop.port.cropped': 'Cropped',
-    'nodeTemplate.speed.title': 'Speed',
-    'nodeTemplate.speed.description': 'Ramp playback speed for slow/fast motion',
-    'nodeTemplate.speed.port.source': 'Source',
-    'nodeTemplate.speed.port.retimed': 'Retimed',
-    'nodeTemplate.changeFps.title': 'Change FPS',
-    'nodeTemplate.changeFps.description': 'Convert variable frame rate clips to constant FPS',
-    'nodeTemplate.changeFps.port.source': 'Source',
-    'nodeTemplate.changeFps.port.normalized': 'Normalized',
-    'nodeTemplate.export.title': 'Export Media',
-    'nodeTemplate.export.description': 'Finalize and export the edited result',
-    'nodeTemplate.export.port.program': 'Program',
-    'nodeTemplate.export.port.delivery': 'Exported',
-    'demo.jobName': 'FFmpeg demo render'
-  },
-  'ja-JP': {
-    'app.title': 'NodeVisionエディター',
-    'toolbar.alignLeft': '左揃え',
-    'toolbar.alignTop': '上揃え',
-    'toolbar.alignCenter': '中央揃え',
-    'toolbar.undo': '元に戻す',
-    'toolbar.redo': 'やり直し',
-    'toolbar.runningMode': '実行中モード',
-    'toolbar.localeLabel': '言語',
-    'toolbar.locale.en': '英語',
-    'toolbar.locale.ja': '日本語',
-    'autosave.pending': '変更待ち...',
-    'autosave.running': '実行中…変更を監視中 ({{seconds}}秒)',
-    'autosave.idle': '変更検知 ({{seconds}}秒)',
-    'autosave.saved': '{{time}} に自動保存したよ',
-    'sidebar.ariaLabel': 'ノード検索とヘルプ',
-    'sidebar.searchLabel': 'ノード検索',
-    'sidebar.searchPlaceholder': 'ロード、トリム、リサイズ…',
-    'sidebar.suggestionsLabel': 'ノード候補',
-    'help.shortcutsTitle': 'ショートカット',
-    'help.copy': 'ノードをコピー',
-    'help.paste': '貼り付け（4pxスナップ）',
-    'help.duplicate': '複製',
-    'help.zoomReset': 'ズーム 100%',
-    'help.fitSelection': '選択範囲にフィット',
-    'help.guideTitle': '操作ガイド',
-    'help.guideHtml': '・ドラッグでノード移動（4pxスナップ）<br />・Enterで候補を追加<br />・Tabでカードにフォーカスできます。',
-    'readonly.banner': 'スキーマ差分のため読み取り専用です（編集は無効化）。',
-    'queue.ariaLabel': 'ジョブキュー',
-    'queue.title': 'ジョブキュー',
-    'queue.demoJob': 'デモジョブ追加',
-    'queue.cancelAll': 'すべてキャンセル',
-    'queue.status.running': '実行中',
-    'queue.status.queued': '待機中',
-    'queue.status.coolingDown': 'クールダウン',
-    'queue.status.failed': '失敗',
-    'queue.status.canceled': 'キャンセル済み',
-    'queue.historyTitle': '履歴 (20件)',
-    'queue.emptyActive': '実行中のジョブはありません',
-    'queue.emptyQueued': '待機ジョブなし',
-    'queue.noHistory': '履歴はまだありません',
-    'queue.noLogs': 'ログなし',
-    'queue.defaultJob': 'ジョブ',
-    'queue.stableTitle': 'キューは安定',
-    'queue.stableSummary': '待機 {{queued}}/{{limit}} ・ タイムアウト {{timeout}}秒',
-    'nodes.ariaLabel': '{{title}} ノード',
-    'ports.inputsLabel': '{{title}} の入力',
-    'ports.outputsLabel': '{{title}} の出力',
-    'ports.emptyInputs': '入力なし',
-    'ports.emptyOutputs': '出力なし',
-    'ports.direction.input': '入力',
-    'ports.direction.output': '出力',
-    'ports.portLabel': '{{direction}}ポート {{label}} ({{dataType}})',
-    'connections.title': '接続',
-    'connections.ariaLabel': '接続リスト',
-    'connections.empty': '接続はまだありません',
-    'connections.remove': '接続を削除',
-    'connections.itemLabel': '{{from}} → {{to}}',
-    'connections.pending': '{{from}} から接続する入力ポートを選択してください',
-    'diagnostics.ariaLabel': 'ログと診断',
-    'diagnostics.title': 'ログ & 診断',
-    'diagnostics.crashConsent': 'クラッシュダンプを含める',
-    'diagnostics.passwordPlaceholder': 'エクスポート用パスワード',
-    'diagnostics.exportButton': 'ログを書き出し',
-    'diagnostics.inspectHistoryTitle': 'inspect履歴 (20件)',
-    'diagnostics.noExport': 'まだエクスポートしていません',
-    'diagnostics.lastExport': '最後のエクスポート: {{path}} (SHA {{sha}})',
-    'diagnostics.unknownSha': '不明',
-    'diagnostics.historyEmpty': '履歴はまだありません',
-    'diagnostics.noDetails': '詳細なし',
-    'diagnostics.defaultToken': 'トークン?',
-    'diagnostics.clipCount': '{{count}} クリップ',
-    'diagnostics.defaultPath': '診断フォルダー',
-    'json.banner': 'JSONプロジェクトの保存/読み込みはここから。schemaVersion=1.0.7 を保持します。',
-    'json.export': 'JSONを書き出し',
-    'json.import': 'JSONを読み込み',
-    'json.editorLabel': '保存用JSON',
-    'canvas.ariaLabel': 'ノードキャンバス',
-    'toast.queueRefreshFailed': 'キュー更新に失敗: {{message}}',
-    'toast.demoJobMissing': 'デモジョブAPIがみつからないよ',
-    'toast.demoJobAdded': 'デモジョブを追加したよ',
-    'toast.queueFull': '{{code}}: 待機キューが満杯だよ',
-    'toast.demoJobFailed': 'ジョブ追加に失敗したよ: {{reason}}',
-    'toast.cancelAll': '全ジョブをキャンセルしたよ',
-    'toast.exportMissing': 'Export APIが未接続だよ',
-    'toast.exportFailed': 'エクスポートに失敗したよ: {{reason}}',
-    'toast.logsExported': 'ログを {{path}}{{shaSuffix}} にエクスポートしたよ',
-    'toast.logsExportedSha': ' (SHA256: {{sha}})',
-    'toast.crashOn': 'クラッシュダンプを含めるよ',
-    'toast.crashOff': 'クラッシュダンプを除外するよ',
-    'errors.schemaMissing': 'schemaVersion がありません',
-    'errors.jsonLoadFailed': 'JSONの読み込みに失敗しました: {{reason}}',
-    'about.title': 'アバウトとライセンス',
-    'about.ariaLabel': 'アバウトとライセンス',
-    'about.distributionLabel': 'FFmpeg配布形態',
-    'about.licenseLabel': 'ライセンス',
-    'about.pathLabel': 'FFmpegパス',
-    'about.versionLabel': 'FFmpegバージョン',
-    'about.origin.bundled': 'NodeVision同梱 (LGPL)',
-    'about.origin.external': '外部/システムのバイナリ',
-    'about.noticeBundled': 'NodeVisionはLGPL v2.1+準拠でビルドしたFFmpegを同梱しています。下のリンクからライセンス原文と対応するソースコードにアクセスしてください。',
-    'about.noticeExternal': 'このFFmpegはシステムから検出したものです（ライセンス: {{license}}）。再配布ポリシーに合っているかご確認ください。',
-    'about.licenseLinkLabel': 'ライセンス原文',
-    'about.sourceLinkLabel': 'FFmpegソース',
-    'about.versionUnknown': '不明',
-    'about.licenseValue.lgpl': 'LGPL v2.1+',
-    'about.licenseValue.gpl': 'GPL v3+',
-    'about.licenseValue.nonfree': '非フリー構成 (--enable-nonfree)',
-    'about.licenseValue.unknown': 'ライセンス不明',
-    'nodeTemplate.loadMedia.title': 'メディアを読み込み',
-    'nodeTemplate.loadMedia.description': 'ローカルの画像や動画を開く',
-    'nodeTemplate.loadMedia.port.media': 'メディア',
-    'nodeTemplate.trim.title': 'トリム',
-    'nodeTemplate.trim.description': 'IN/OUT間で素材をカット',
-    'nodeTemplate.trim.port.source': 'ソース',
-    'nodeTemplate.trim.port.result': '出力',
-    'nodeTemplate.resize.title': 'リサイズ',
-    'nodeTemplate.resize.description': 'アスペクト比を保ってサイズ変更',
-    'nodeTemplate.resize.port.source': 'ソース',
-    'nodeTemplate.resize.port.resized': 'リサイズ後',
-    'nodeTemplate.overlay.title': 'オーバーレイ',
-    'nodeTemplate.overlay.description': '2つの映像を合成して位置を調整',
-    'nodeTemplate.overlay.port.base': 'ベース',
-    'nodeTemplate.overlay.port.layer': 'レイヤー',
-    'nodeTemplate.overlay.port.composite': '合成結果',
-    'nodeTemplate.text.title': 'テキストオーバーレイ',
-    'nodeTemplate.text.description': '文字や字幕を描画',
-    'nodeTemplate.text.port.background': '背景',
-    'nodeTemplate.text.port.titled': 'テキスト出力',
-    'nodeTemplate.crop.title': 'クロップ',
-    'nodeTemplate.crop.description': '表示範囲をトリミング',
-    'nodeTemplate.crop.port.source': 'ソース',
-    'nodeTemplate.crop.port.cropped': 'クロップ後',
-    'nodeTemplate.speed.title': '再生速度',
-    'nodeTemplate.speed.description': 'スロー/早回しを設定',
-    'nodeTemplate.speed.port.source': 'ソース',
-    'nodeTemplate.speed.port.retimed': '速度変更後',
-    'nodeTemplate.changeFps.title': 'フレームレート変換',
-    'nodeTemplate.changeFps.description': '可変フレームを固定フレームに揃える',
-    'nodeTemplate.changeFps.port.source': 'ソース',
-    'nodeTemplate.changeFps.port.normalized': '正規化後',
-    'nodeTemplate.export.title': 'メディアを書き出し',
-    'nodeTemplate.export.description': '最終結果を書き出す',
-    'nodeTemplate.export.port.program': 'プログラム',
-    'nodeTemplate.export.port.delivery': '書き出し結果',
-    'demo.jobName': 'FFmpeg 合成'
-  }
-} as const;
+import { UI_TRANSLATIONS } from './renderer/i18n';
+
+
 
 type SupportedLocale = keyof typeof UI_TRANSLATIONS;
-const DEFAULT_LOCALE: SupportedLocale = 'en-US';
+const DEFAULT_LOCALE: SupportedLocale = 'ja-JP';
 
 type TypescriptModule = typeof import('typescript');
 
@@ -363,6 +70,32 @@ const indentRendererScript = (source: string): string =>
     .map(line => (line ? `      ${line}` : ''))
     .join('\n');
 
+const buildInlineBundle = (moduleDir: string, extension: '.js' | '.ts'): string => {
+  const ts = extension === '.ts' ? loadTypescriptModule() : null;
+  const moduleEntries = fs
+    .readdirSync(moduleDir)
+    .filter(file => file.endsWith(extension) && !file.endsWith('.d.ts'))
+    .sort()
+    .map(file => {
+      const moduleId = `./${path.basename(file, extension)}`;
+      const absolutePath = path.join(moduleDir, file);
+      let code = fs.readFileSync(absolutePath, 'utf8');
+      if (extension === '.ts' && ts) {
+        code = ts.transpileModule(code, {
+          compilerOptions: {
+            module: ts.ModuleKind.CommonJS,
+            target: ts.ScriptTarget.ES2020
+          }
+        }).outputText;
+      }
+      const body = stripSourceMapComment(code);
+      return `  '${moduleId}': function (exports, require, module) {\n${body}\n  }`;
+    })
+    .join(',\n');
+
+  return stripSourceMapComment(`(function(){\n  const modules = {\n${moduleEntries}\n  };\n  const cache = {};\n  const require = id => {\n    if (!modules[id]) {\n      throw new Error('Renderer module not found: ' + id);\n    }\n    if (cache[id]) {\n      return cache[id].exports;\n    }\n    const module = { exports: {} };\n    cache[id] = module;\n    modules[id](module.exports, require, module);\n    return module.exports;\n  };\n  require('./app');\n})();`);
+};
+
 const loadRendererBundle = (): string => {
   if (rendererScriptCache) {
     return rendererScriptCache;
@@ -373,7 +106,7 @@ const loadRendererBundle = (): string => {
     path.resolve(__dirname, '..', 'dist', 'renderer', 'app.js')
   ]);
   if (jsPath) {
-    rendererScriptCache = stripSourceMapComment(fs.readFileSync(jsPath, 'utf8'));
+    rendererScriptCache = buildInlineBundle(path.dirname(jsPath), '.js');
     return rendererScriptCache;
   }
 
@@ -382,14 +115,7 @@ const loadRendererBundle = (): string => {
     path.resolve(__dirname, '..', 'src', 'renderer', 'app.ts')
   ]);
   if (tsPath) {
-    const ts = loadTypescriptModule();
-    const output = ts.transpileModule(fs.readFileSync(tsPath, 'utf8'), {
-      compilerOptions: {
-        module: ts.ModuleKind.None,
-        target: ts.ScriptTarget.ES2020
-      }
-    }).outputText;
-    rendererScriptCache = stripSourceMapComment(output);
+    rendererScriptCache = buildInlineBundle(path.dirname(tsPath), '.ts');
     return rendererScriptCache;
   }
 
@@ -436,11 +162,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         display: flex;
         flex-direction: column;
         min-height: 100vh;
+        background: #101114;
+        color: #f2f3f7;
       }
       header {
         padding: 16px 24px;
-        background: #12131a;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, #1e2026, #17191f);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         display: flex;
         flex-wrap: wrap;
         gap: 16px;
@@ -463,12 +191,12 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         min-height: 0;
       }
       .sidebar {
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        border-right: 1px solid rgba(255, 255, 255, 0.04);
         padding: 20px;
         display: flex;
         flex-direction: column;
         gap: 20px;
-        background: radial-gradient(circle at top, rgba(21, 113, 255, 0.2), transparent 65%);
+        background: linear-gradient(180deg, #141518, #101113);
       }
       .canvas-wrap {
         position: relative;
@@ -477,9 +205,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       #canvas {
         position: absolute;
         inset: 0;
-        background-color: #0f1117;
-        background-image: linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
-          linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-color: #16171c;
+        background-image: linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px),
+          linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
         background-size: 8px 8px;
         cursor: grab;
         transform-origin: 0 0;
@@ -502,41 +230,45 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .node {
         position: absolute;
         border-radius: 18px;
-        padding: 14px 18px 16px;
-        min-width: 220px;
-        background: linear-gradient(150deg, rgba(19, 23, 32, 0.96), rgba(12, 15, 23, 0.96));
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(12px);
-        color: #f8fafc;
+        padding: 0 0 14px;
+        min-width: 240px;
+        background: linear-gradient(180deg, #fafafa, #e6e6ea);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 12px 34px rgba(78, 86, 107, 0.35);
+        color: #2b2c31;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        transition: border 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+        gap: 10px;
+        overflow: hidden;
+        transition: border 160ms ease, box-shadow 160ms ease, transform 160ms ease;
       }
       .node-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 12px;
+        padding: 12px 18px 6px;
+        background: linear-gradient(180deg, #fefefe, #ececef);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
       }
       .node-title {
         margin: 0;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 600;
         letter-spacing: 0.01em;
+        color: #1f1f24;
       }
       .node-meta {
         margin: 0;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(48, 48, 60, 0.5);
       }
       .node-description {
         margin: 0;
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.7);
+        color: rgba(48, 48, 60, 0.7);
       }
       .node-chip {
         display: inline-flex;
@@ -544,17 +276,18 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         padding: 2px 10px;
         border-radius: 999px;
         font-size: 11px;
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.85);
+        background: rgba(97, 97, 110, 0.15);
+        color: rgba(48, 48, 60, 0.85);
       }
       .node.selected {
-        border-color: #4e9eff;
-        box-shadow: 0 0 0 2px rgba(78, 158, 255, 0.35);
+        border-color: #7dc3ff;
+        box-shadow: 0 0 0 2px rgba(125, 195, 255, 0.35);
       }
       .node-ports {
         display: flex;
-        gap: 14px;
-        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 4px 18px 0;
       }
       button, .pill-button {
         border: none;
@@ -753,28 +486,26 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .ports {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
         flex: 1;
       }
-      .ports.inputs {
-        align-items: flex-start;
-      }
+      .ports.inputs,
       .ports.outputs {
-        align-items: flex-end;
+        align-items: stretch;
       }
       .port {
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 6px 12px;
-        background: rgba(7, 10, 16, 0.85);
-        color: inherit;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 8px 14px;
+        background: linear-gradient(180deg, #dedee3, #cdced6);
+        color: #2b2c33;
         font-size: 13px;
-        display: inline-flex;
+        display: flex;
         align-items: center;
         gap: 10px;
         min-width: 140px;
         justify-content: space-between;
-        transition: border 120ms ease, box-shadow 120ms ease, background 120ms ease;
+        transition: border 160ms ease, box-shadow 160ms ease, background 160ms ease;
       }
       .port.input {
         flex-direction: row;
@@ -796,10 +527,11 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .port-label {
         font-weight: 600;
         font-size: 13px;
+        color: #232329;
       }
       .port-type {
         font-size: 11px;
-        opacity: 0.7;
+        color: rgba(34, 34, 40, 0.6);
         display: block;
       }
       .port:focus-visible {
@@ -807,49 +539,43 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         outline-offset: 2px;
       }
       .port-dot {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         border-radius: 999px;
-        border: 2px solid rgba(255, 255, 255, 0.8);
-        background: #05070d;
-        box-shadow: 0 0 8px rgba(78, 158, 255, 0.5);
+        border: 2px solid rgba(66, 66, 88, 0.4);
+        background: rgba(66, 66, 88, 0.2);
+        box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.15);
         flex-shrink: 0;
       }
-      .port.input .port-dot {
-        border-color: #f472b6;
-      }
-      .port.output .port-dot {
-        border-color: #38bdf8;
-      }
       .port-connected {
-        border-color: rgba(78, 158, 255, 0.5);
-        box-shadow: 0 0 0 2px rgba(78, 158, 255, 0.15);
+        border-color: rgba(143, 160, 228, 0.8);
+        box-shadow: 0 0 0 2px rgba(143, 160, 228, 0.25);
       }
       .port-connected .port-dot {
-        background: rgba(78, 158, 255, 0.8);
+        background: rgba(143, 160, 228, 0.6);
       }
       .port-pending {
-        border-color: rgba(255, 209, 102, 0.8);
-        box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.35);
+        border-color: rgba(255, 209, 102, 0.9);
+        box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.4);
       }
       .port-drop-target {
-        border-color: rgba(126, 255, 178, 0.9);
-        box-shadow: 0 0 0 2px rgba(126, 255, 178, 0.35), 0 0 18px rgba(126, 255, 178, 0.35);
+        border-color: rgba(126, 194, 255, 0.85);
+        box-shadow: 0 0 0 2px rgba(126, 194, 255, 0.35), 0 0 18px rgba(126, 194, 255, 0.25);
       }
       .port-drop-target .port-dot {
-        border-color: #7effb2;
-        background: rgba(126, 255, 178, 0.25);
+        border-color: rgba(126, 194, 255, 0.9);
+        background: rgba(126, 194, 255, 0.35);
       }
       .port-placeholder {
         font-size: 12px;
-        opacity: 0.6;
+        color: rgba(47, 48, 55, 0.5);
       }
       #connection-layer path {
         fill: none;
-        stroke: rgba(119, 196, 255, 0.85);
-        stroke-width: 3px;
+        stroke: rgba(186, 199, 227, 0.9);
+        stroke-width: 4px;
         stroke-linecap: round;
-        filter: drop-shadow(0 0 6px rgba(78, 158, 255, 0.4));
+        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
       }
       #connection-layer .connection-preview {
         stroke: rgba(255, 209, 102, 0.9);

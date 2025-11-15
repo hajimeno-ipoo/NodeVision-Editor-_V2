@@ -41,6 +41,7 @@ const createSettings = (): NodeVisionSettings => {
     tempRoot: path.join(os.tmpdir(), 'nodevision-temp'),
     ffmpegPath: null,
     ffprobePath: null,
+    locale: 'ja-JP',
     http: {
       enabled: false,
       tokenLabel: 'default',
@@ -52,7 +53,9 @@ const createSettings = (): NodeVisionSettings => {
       container: 'mp4'
     },
     diagnostics: {
-      lastTokenPreview: null
+      lastTokenPreview: null,
+      collectCrashDumps: false,
+      lastLogExportPath: null
     },
     createdAt: timestamp,
     updatedAt: timestamp

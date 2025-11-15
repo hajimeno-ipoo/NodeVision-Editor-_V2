@@ -1,0 +1,1 @@
+NodeVision desktop settings file lives under ~/.nodevision/settings.json (user confirmed actual path on macOS).

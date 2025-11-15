@@ -1,100 +1,34 @@
 /// <reference lib="dom" />
 
-type RendererPayload = import('../ui-template').RendererPayload;
-type QueueSnapshot = import('../types').QueueSnapshot;
-type QueueWarning = import('../types').QueueWarning;
-type QueueLimits = import('../types').QueueLimits;
-type DiagnosticsSnapshot = import('../types').DiagnosticsSnapshot;
-
-type RendererNode = RendererPayload['nodes'][number];
-type RendererConnection = RendererPayload['connections'][number];
-type NodeTemplate = RendererPayload['templates'][number];
-type NodePort = RendererNode['inputs'][number] | RendererNode['outputs'][number];
-type PortDirection = 'input' | 'output';
-type JobSnapshot = QueueSnapshot['active'][number];
-type JobHistoryEntry = QueueSnapshot['history'][number];
-type TemplateVars = Record<string, string | number | boolean | null | undefined>;
-type Point = { x: number; y: number };
-type SerializedNode = Partial<RendererNode> & { id: string; typeId: string; position?: Partial<Point> };
-
-interface RendererBootstrapWindow extends Window {
-  __NODEVISION_BOOTSTRAP__?: RendererPayload;
-  __NODEVISION_TRANSLATIONS__?: Record<string, Record<string, string>>;
-  __NODEVISION_SUPPORTED_LOCALES__?: string[];
-  __NODEVISION_FALLBACK_LOCALE__?: string;
-}
-
-interface PendingConnection {
-  fromNodeId: string;
-  fromPortId: string;
-}
-
-interface DraggingConnection extends PendingConnection {
-  cursor: { x: number; y: number };
-}
-
-interface HistoryEntry {
-  nodes: RendererNode[];
-  connections: RendererConnection[];
-}
-
-interface RendererQueueState {
-  active: QueueSnapshot['active'];
-  queued: QueueSnapshot['queued'];
-  history: QueueSnapshot['history'];
-  warnings: QueueWarning[];
-  limits: QueueLimits;
-}
-
-interface RendererDiagnostics extends DiagnosticsSnapshot {
-  lastExportSha: string | null;
-}
-
-interface RendererState {
-  locale: string;
-  nodes: RendererNode[];
-  selection: Set<string>;
-  clipboard: RendererNode[];
-  zoom: number;
-  history: HistoryEntry[];
-  historyIndex: number;
-  autosaveTimer: number | null;
-  lastAutosave: Date | null;
-  isRunning: boolean;
-  readonly: boolean;
-  queue: RendererQueueState;
-  diagnostics: RendererDiagnostics;
-  connections: RendererConnection[];
-  pendingConnection: PendingConnection | null;
-  draggingConnection: DraggingConnection | null;
-}
-
-interface ExportLogsResult {
-  ok: boolean;
-  diagnostics?: DiagnosticsSnapshot;
-  result?: { outputPath?: string | null; sha256?: string | null };
-  message?: string;
-}
-
-interface EnqueueJobResult {
-  ok: boolean;
-  code?: string;
-  max?: number;
-  error?: string;
-  message?: string;
-}
-
-interface NodevisionApi {
-  getQueueSnapshot?: () => Promise<QueueSnapshot>;
-  enqueueDemoJob?: (payload: { name: string }) => Promise<EnqueueJobResult>;
-  cancelAllJobs?: () => Promise<void>;
-  exportLogs?: (password: string | null) => Promise<ExportLogsResult>;
-  setCrashDumpConsent?: (enabled: boolean) => Promise<{ collectCrashDumps: boolean }>;
-}
+import { captureDomElements } from './dom';
+import {
+  cloneConnection,
+  clonePorts,
+  createInitialState,
+  deepClone
+} from './state';
+import type {
+  RendererBootstrapWindow,
+  RendererState,
+  RendererNode,
+  RendererConnection,
+  NodeTemplate,
+  NodePort,
+  PortDirection,
+  JobSnapshot,
+  JobHistoryEntry,
+  HistoryEntry,
+  RendererQueueState,
+  TemplateVars,
+  Point,
+  SerializedNode,
+  RendererDom,
+  NodevisionApi
+} from './types';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
-  const nodevision = rendererWindow.nodevision as unknown as NodevisionApi | undefined;
+  const nodevision = (window as unknown as { nodevision?: NodevisionApi }).nodevision;
   const SNAP = 4;
   const SCHEMA = '1.0.7';
   const LOCALE_STORAGE_KEY = 'nodevision.locale';
@@ -112,13 +46,7 @@ interface NodevisionApi {
     return;
   }
 
-  const getElement = <T extends Element>(id: string): T => {
-    const element = document.getElementById(id);
-    if (!element) {
-      throw new Error(`NodeVision renderer missing #${id}`);
-    }
-    return element as unknown as T;
-  };
+  const elements: RendererDom = captureDomElements();
 
   const getErrorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -143,7 +71,7 @@ interface NodevisionApi {
     if (configured && TRANSLATIONS[configured]) {
       return configured;
     }
-    const candidates = [];
+    const candidates: string[] = [];
     if (navigator?.language) {
       candidates.push(navigator.language);
     }
@@ -163,6 +91,7 @@ interface NodevisionApi {
 
   const createId = (base: string): string =>
     (crypto?.randomUUID ? crypto.randomUUID() : `${base}-${Date.now()}-${Math.floor(Math.random() * 9999)}`);
+
   const cssEscape = (value: string | number): string => {
     if (window.CSS?.escape) {
       return window.CSS.escape(String(value));
@@ -170,101 +99,9 @@ interface NodevisionApi {
     return String(value).replace(/([^a-zA-Z0-9_-])/g, '\\$1');
   };
 
-  const elements = {
-    statusList: getElement<HTMLUListElement>('status-list'),
-    canvas: getElement<HTMLElement>('canvas'),
-    nodeLayer: getElement<HTMLElement>('node-layer'),
-    connectionLayer: getElement<SVGSVGElement>('connection-layer'),
-    searchInput: getElement<HTMLInputElement>('node-search'),
-    suggestions: getElement<HTMLUListElement>('search-suggestions'),
-    autosave: getElement<HTMLElement>('autosave-indicator'),
-    undo: getElement<HTMLButtonElement>('btn-undo'),
-    redo: getElement<HTMLButtonElement>('btn-redo'),
-    json: getElement<HTMLTextAreaElement>('project-json'),
-    export: getElement<HTMLButtonElement>('btn-export'),
-    load: getElement<HTMLButtonElement>('btn-load'),
-    runningToggle: getElement<HTMLInputElement>('running-toggle'),
-    localeSelect: getElement<HTMLSelectElement>('locale-select'),
-    readonlyBanner: getElement<HTMLElement>('readonly-banner'),
-    queueRunning: getElement<HTMLElement>('queue-running'),
-    queueQueued: getElement<HTMLElement>('queue-queued'),
-    queueHistory: getElement<HTMLElement>('queue-history'),
-    queueWarnings: getElement<HTMLElement>('queue-warnings'),
-    crashConsent: getElement<HTMLInputElement>('crash-consent'),
-    logPassword: getElement<HTMLInputElement>('log-password'),
-    exportLogs: getElement<HTMLButtonElement>('btn-export-logs'),
-    exportStatus: getElement<HTMLElement>('export-status'),
-    inspectHistory: getElement<HTMLElement>('inspect-history'),
-    connectionsList: getElement<HTMLUListElement>('connection-list'),
-    connectionHint: getElement<HTMLElement>('connection-pending'),
-    demoJob: getElement<HTMLButtonElement>('btn-demo-job'),
-    cancelAll: getElement<HTMLButtonElement>('btn-cancel-all'),
-    toast: getElement<HTMLElement>('toast'),
-    aboutDistribution: getElement<HTMLElement>('about-distribution'),
-    aboutLicense: getElement<HTMLElement>('about-license'),
-    aboutPath: getElement<HTMLElement>('about-path'),
-    aboutVersion: getElement<HTMLElement>('about-version'),
-    aboutNotice: getElement<HTMLElement>('about-notice'),
-    aboutLicenseLink: getElement<HTMLAnchorElement>('about-license-link'),
-    aboutSourceLink: getElement<HTMLAnchorElement>('about-source-link')
-  } as const;
+  const state: RendererState = createInitialState(BOOTSTRAP, detectLocale());
 
-  const deepClone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
-
-  const clonePorts = (ports: NodePort[] | undefined): NodePort[] => (Array.isArray(ports) ? ports.map(port => ({ ...port })) : []);
-
-  const cloneNode = (node: RendererNode): RendererNode => {
-    const copy = deepClone(node);
-    copy.inputs = clonePorts(copy.inputs);
-    copy.outputs = clonePorts(copy.outputs);
-    return copy;
-  };
-
-  const cloneConnection = (connection: RendererConnection): RendererConnection => {
-    const copy = deepClone(connection);
-    if (!copy.id) {
-      copy.id = createId('connection');
-    }
-    return copy;
-  };
-
-  const DEFAULT_QUEUE_LIMITS: QueueLimits = {
-    maxParallelJobs: 1,
-    maxQueueLength: 4,
-    queueTimeoutMs: 180_000
-  };
-
-  const state: RendererState = {
-    locale: detectLocale(),
-    nodes: (BOOTSTRAP.nodes ?? []).map(cloneNode),
-    selection: new Set<string>(),
-    clipboard: [] as RendererNode[],
-    zoom: 1,
-    history: [] as HistoryEntry[],
-    historyIndex: -1,
-    autosaveTimer: null,
-    lastAutosave: null,
-    isRunning: false,
-    readonly: false,
-    queue: {
-      active: BOOTSTRAP.queue?.active ?? [],
-      queued: BOOTSTRAP.queue?.queued ?? [],
-      history: BOOTSTRAP.queue?.history ?? [],
-      warnings: [...(BOOTSTRAP.queue?.warnings ?? [])],
-      limits: BOOTSTRAP.queue?.limits ?? DEFAULT_QUEUE_LIMITS
-    },
-    diagnostics: {
-      collectCrashDumps: BOOTSTRAP.diagnostics?.collectCrashDumps ?? false,
-      lastTokenPreview: BOOTSTRAP.diagnostics?.lastTokenPreview ?? null,
-      lastLogExportPath: BOOTSTRAP.diagnostics?.lastLogExportPath ?? null,
-      lastExportSha: BOOTSTRAP.diagnostics?.lastExportSha ?? null,
-      inspectHistory: BOOTSTRAP.diagnostics?.inspectHistory ?? []
-    },
-    connections: (BOOTSTRAP.connections ?? []).map(cloneConnection),
-    pendingConnection: null,
-    draggingConnection: null
-  };
-      let activeConnectionDrag: {
+  let activeConnectionDrag: {
         portEl: HTMLElement;
         pointerId: number;
         origin: Point;
@@ -350,39 +187,39 @@ interface NodevisionApi {
         document.querySelectorAll('[data-i18n-key]').forEach(node => {
           const key = node.getAttribute('data-i18n-key');
           if (!key) return;
-      node.textContent = t(key);
-      applyI18nAttributes(node);
-    });
-    document.querySelectorAll('[data-i18n-html]').forEach(node => {
-      const key = node.getAttribute('data-i18n-html');
-      if (!key) return;
-      node.innerHTML = t(key);
-      applyI18nAttributes(node);
-    });
-    document
-      .querySelectorAll('[data-i18n-attr-placeholder], [data-i18n-attr-aria-label], [data-i18n-attr-title]')
-      .forEach(applyI18nAttributes);
-  };
+          node.textContent = t(key);
+          applyI18nAttributes(node);
+        });
+        document.querySelectorAll('[data-i18n-html]').forEach(node => {
+          const key = node.getAttribute('data-i18n-html');
+          if (!key) return;
+          node.innerHTML = t(key);
+          applyI18nAttributes(node);
+        });
+        document
+          .querySelectorAll('[data-i18n-attr-placeholder], [data-i18n-attr-aria-label], [data-i18n-attr-title]')
+          .forEach(applyI18nAttributes);
+      };
 
       const templates: NodeTemplate[] = BOOTSTRAP.templates ?? [];
-  applyTranslations();
+      applyTranslations();
 
       const describeStatus = (status: string): string => {
         switch (status) {
-      case 'running':
-        return t('queue.status.running');
-      case 'queued':
-        return t('queue.status.queued');
-      case 'coolingDown':
-        return t('queue.status.coolingDown');
-      case 'failed':
-        return t('queue.status.failed');
-      case 'canceled':
-        return t('queue.status.canceled');
-      default:
-        return status;
-    }
-  };
+          case 'running':
+            return t('queue.status.running');
+          case 'queued':
+            return t('queue.status.queued');
+          case 'coolingDown':
+            return t('queue.status.coolingDown');
+          case 'failed':
+            return t('queue.status.failed');
+          case 'canceled':
+            return t('queue.status.canceled');
+          default:
+            return status;
+        }
+      };
 
       const escapeHtml = (value: unknown): string =>
         String(value ?? '')
@@ -847,6 +684,9 @@ interface NodevisionApi {
     return elements.nodeLayer.querySelector<HTMLElement>(selector);
   };
 
+  const findIncomingConnection = (nodeId: string, portId: string): RendererConnection | undefined =>
+    state.connections.find(connection => connection.toNodeId === nodeId && connection.toPortId === portId);
+
   const renderConnectionPaths = (): void => {
     if (!elements.connectionLayer) return;
     const rect = elements.canvas.getBoundingClientRect();
@@ -941,6 +781,7 @@ interface NodevisionApi {
         node.position.x = snap(current.x - offset.x);
         node.position.y = snap(current.y - offset.y);
         el.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
+        renderConnectionPaths();
       };
       const up = (): void => {
         window.removeEventListener('pointermove', move);
@@ -981,6 +822,19 @@ interface NodevisionApi {
         handlePortActivation(portEl);
       });
       portEl.addEventListener('pointerdown', (event: PointerEvent) => {
+        if (state.readonly) return;
+        const direction = portEl.getAttribute('data-direction');
+        if (direction === 'input') {
+          const nodeId = portEl.getAttribute('data-node-id');
+          const portId = portEl.getAttribute('data-port-id');
+          if (nodeId && portId) {
+            const existing = findIncomingConnection(nodeId, portId);
+            if (existing) {
+              startRewireFromInput(existing, event);
+              return;
+            }
+          }
+        }
         startConnectionDrag(portEl, event);
       });
       portEl.addEventListener('pointerenter', () => {
@@ -1007,7 +861,7 @@ interface NodevisionApi {
 
   const updatePendingHint = (): void => {
     if (!state.pendingConnection) {
-      elements.connectionHint.textContent = '';
+      elements.connectionHint.textContent = t('connections.ready');
       return;
     }
     const pending = state.pendingConnection;
@@ -1086,7 +940,8 @@ interface NodevisionApi {
     if (activeConnectionDrag.started && dropTargetPort) {
       handlePortActivation(dropTargetPort);
     } else if (activeConnectionDrag.started) {
-      clearPendingConnection();
+      const shouldDetach = Boolean(state.pendingConnection?.detachedConnectionId);
+      clearPendingConnection(shouldDetach ? { detachExisting: true } : undefined);
     }
     endConnectionDrag();
   };
@@ -1102,7 +957,11 @@ interface NodevisionApi {
     renderConnectionPaths();
   };
 
-  const startConnectionDrag = (portEl: HTMLElement, event: PointerEvent): void => {
+  const startConnectionDrag = (
+    portEl: HTMLElement,
+    event: PointerEvent,
+    options?: { forceStart?: boolean; cursorOverride?: Point }
+  ): void => {
     if (state.readonly) return;
     if (portEl.getAttribute('data-direction') !== 'output') return;
     if (typeof event.button === 'number' && event.button !== 0) {
@@ -1114,18 +973,82 @@ interface NodevisionApi {
       portEl,
       pointerId: typeof event.pointerId === 'number' ? event.pointerId : 1,
       origin: { x: event.clientX, y: event.clientY },
-      started: false
+      started: !!options?.forceStart
     };
+    if (activeConnectionDrag.started) {
+      const nodeId = portEl.getAttribute('data-node-id');
+      const portId = portEl.getAttribute('data-port-id');
+      if (nodeId && portId) {
+        state.draggingConnection = {
+          fromNodeId: nodeId,
+          fromPortId: portId,
+          cursor: options?.cursorOverride ?? getRelativePoint(event)
+        };
+        renderConnectionPaths();
+      }
+    }
     window.addEventListener('pointermove', handleConnectionDragMove);
     window.addEventListener('pointerup', handleConnectionDragUp);
   };
 
-  const clearPendingConnection = (): void => {
+  const startRewireFromInput = (connection: RendererConnection, event: PointerEvent): void => {
+    if (typeof event.button === 'number' && event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const fromEl = findPortElement(connection.fromNodeId, connection.fromPortId, 'output');
+    if (!fromEl) {
+      state.connections = [connection, ...state.connections];
+      renderConnections();
+      return;
+    }
+    state.connections = state.connections.filter(conn => conn.id !== connection.id);
+    renderConnections();
+    const cursorPoint = getRelativePoint(event);
+    state.pendingConnection = {
+      fromNodeId: connection.fromNodeId,
+      fromPortId: connection.fromPortId,
+      detachedConnectionId: connection.id
+    };
+    updatePendingHint();
+    renderNodes();
+    state.draggingConnection = {
+      fromNodeId: connection.fromNodeId,
+      fromPortId: connection.fromPortId,
+      cursor: cursorPoint
+    };
+    startConnectionDrag(fromEl, event, { forceStart: true, cursorOverride: cursorPoint });
+  };
+
+  const clearPendingConnection = (options?: { detachExisting?: boolean }): void => {
     if (!state.pendingConnection) return;
+    const pending = state.pendingConnection;
+    const detach = options?.detachExisting ?? false;
+    let removed = false;
+    if (detach) {
+      let nextConnections: RendererConnection[];
+      if (pending.detachedConnectionId) {
+        nextConnections = state.connections.filter(connection => connection.id !== pending.detachedConnectionId);
+      } else {
+        nextConnections = state.connections.filter(
+          connection => !(connection.fromNodeId === pending.fromNodeId && connection.fromPortId === pending.fromPortId)
+        );
+      }
+      removed = nextConnections.length !== state.connections.length;
+      state.connections = nextConnections;
+      if (!removed && pending.detachedConnectionId) {
+        removed = true;
+      }
+    }
     state.pendingConnection = null;
     updatePendingHint();
     endConnectionDrag();
-    renderNodes();
+    if (removed) {
+      commitState();
+    } else {
+      renderNodes();
+    }
   };
 
   const handlePortActivation = (portEl: HTMLElement): void => {
