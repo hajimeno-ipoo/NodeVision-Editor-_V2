@@ -19,6 +19,13 @@ export type TemplateVars = Record<string, string | number | boolean | null | und
 export type Point = { x: number; y: number };
 export type SerializedNode = Partial<RendererNode> & { id: string; typeId: string; position?: Partial<Point> };
 
+export interface StoredWorkflow {
+  id: string;
+  name: string;
+  updatedAt: string;
+  data: string;
+}
+
 export interface PendingConnection {
   fromNodeId: string;
   fromPortId: string;
@@ -92,6 +99,12 @@ export interface RendererState {
   nodeSizes: Map<string, NodeSize>;
   nodeChrome: Map<string, number>;
   resizing: NodeResizeSession | null;
+  workflows: StoredWorkflow[];
+  activeWorkflowId: string | null;
+  workflowName: string;
+  workflowDirty: boolean;
+  workflowSearch: string;
+  workflowMenuOpen?: boolean;
 }
 
 export interface HistoryEntry {
@@ -149,6 +162,21 @@ export interface RendererDom {
   aboutNotice: HTMLElement;
   aboutLicenseLink: HTMLAnchorElement;
   aboutSourceLink: HTMLAnchorElement;
+  workflowToggle: HTMLButtonElement;
+  workflowMenu: HTMLElement;
+  workflowNameLabel: HTMLElement;
+  workflowMenuRename: HTMLButtonElement;
+  workflowMenuSaveAs: HTMLButtonElement;
+  workflowMenuClear: HTMLButtonElement;
+  workflowMenuBrowse: HTMLButtonElement;
+  workflowSearch: HTMLInputElement;
+  workflowList: HTMLUListElement;
+  workflowEmpty: HTMLElement;
+  workflowCreate: HTMLButtonElement;
+  workflowNameDialog: HTMLElement;
+  workflowNameInput: HTMLInputElement;
+  workflowNameConfirm: HTMLButtonElement;
+  workflowNameCancel: HTMLButtonElement;
 }
 
 export interface ExportLogsResult {

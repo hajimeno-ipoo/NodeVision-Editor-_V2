@@ -1,0 +1,4 @@
+## Workflow UI logic (2025-11-16)
+- Renderer now wires the workflow dropdown + sidebar: toggle button, menu actions (rename/duplicate/save/save as/clear/delete/browse), and outside-click/Escape close behavior are implemented.
+- Sidebar workflow list/search/save button are hooked up to renderer state, including filtering, load-on-click, and save-current behavior; localStorage hydration runs on bootstrap.
+- Workflow name label is sourced from i18n (`workflow.unsaved`) and updates when locale changes; menu state integrates with sidebar controller so the "Browse workflows" action opens the workflows panel.

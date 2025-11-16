@@ -87,6 +87,12 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
     mediaPreviews: new Map<string, NodeMediaPreview>(),
     nodeSizes,
     nodeChrome: new Map<string, number>(),
-    resizing: null
+    resizing: null,
+    workflows: [],
+    activeWorkflowId: null,
+    workflowName: 'Unsaved Workflow',
+    workflowDirty: false,
+    workflowSearch: '',
+    workflowMenuOpen: false
   };
 };

@@ -57,5 +57,20 @@ export const captureDomElements = (): RendererDom => ({
   aboutVersion: getElement<HTMLElement>('about-version'),
   aboutNotice: getElement<HTMLElement>('about-notice'),
   aboutLicenseLink: getElement<HTMLAnchorElement>('about-license-link'),
-  aboutSourceLink: getElement<HTMLAnchorElement>('about-source-link')
+  aboutSourceLink: getElement<HTMLAnchorElement>('about-source-link'),
+  workflowToggle: getElement<HTMLButtonElement>('workflow-toggle'),
+  workflowMenu: getElement<HTMLElement>('workflow-menu'),
+  workflowNameLabel: getElement<HTMLElement>('workflow-name-label'),
+  workflowMenuRename: getElement<HTMLButtonElement>('workflow-menu-rename'),
+  workflowMenuSaveAs: getElement<HTMLButtonElement>('workflow-menu-save-as'),
+  workflowMenuClear: getElement<HTMLButtonElement>('workflow-menu-clear'),
+  workflowMenuBrowse: getElement<HTMLButtonElement>('workflow-menu-browse'),
+  workflowSearch: getElement<HTMLInputElement>('workflow-search'),
+  workflowList: getElement<HTMLUListElement>('workflow-list'),
+  workflowEmpty: getElement<HTMLElement>('workflow-empty'),
+  workflowCreate: getElement<HTMLButtonElement>('workflow-create'),
+  workflowNameDialog: getElement<HTMLElement>('workflow-name-dialog'),
+  workflowNameInput: getElement<HTMLInputElement>('workflow-name-input'),
+  workflowNameConfirm: getElement<HTMLButtonElement>('workflow-name-confirm'),
+  workflowNameCancel: getElement<HTMLButtonElement>('workflow-name-cancel')
 });

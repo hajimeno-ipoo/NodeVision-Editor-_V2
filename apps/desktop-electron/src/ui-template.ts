@@ -789,6 +789,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(255, 149, 0, 0.18);
         color: #7d3a00;
       }
+      #status-list {
+        display: none;
+      }
       /* Load node styles */
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media {
         padding: 0 18px 10px;
@@ -926,6 +929,115 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 8px;
         flex-wrap: wrap;
         align-items: center;
+      }
+      .workflow-dropdown {
+        position: relative;
+      }
+      #workflow-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(5, 9, 20, 0.7);
+        color: #f5f7ff;
+      }
+      #workflow-toggle span.chevron {
+        font-size: 10px;
+        opacity: 0.7;
+      }
+      #workflow-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        min-width: 220px;
+        background: rgba(8, 11, 19, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+        padding: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 2px;
+        z-index: 30;
+      }
+      #workflow-menu[data-open='true'] {
+        display: flex;
+      }
+      #workflow-menu button {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        color: #f5f7ff;
+        display: flex;
+        justify-content: flex-start;
+        gap: 8px;
+        font-size: 13px;
+      }
+      #workflow-menu button:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .workflow-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .workflow-panel header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      #workflow-create {
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+      }
+      #workflow-search {
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(12, 15, 23, 0.85);
+        color: inherit;
+      }
+      #workflow-empty {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      #workflow-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #workflow-list button {
+        width: 100%;
+        text-align: left;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(16, 19, 28, 0.8);
+        padding: 10px 12px;
+        color: inherit;
+      }
+      #workflow-list button.active {
+        border-color: rgba(255, 255, 255, 0.35);
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .workflow-item-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .workflow-item-meta {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
       }
       .toolbar-group {
         display: inline-flex;
@@ -1415,6 +1527,62 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(78, 158, 255, 0.18);
         font-size: 13px;
       }
+      #workflow-name-dialog {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 15, 0.76);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      #workflow-name-dialog[data-open='true'] {
+        display: flex;
+      }
+      .workflow-dialog-card {
+        width: min(360px, calc(100vw - 48px));
+        background: rgba(10, 14, 22, 0.95);
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 20px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .workflow-dialog-card h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+      #workflow-name-input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(3, 6, 14, 0.9);
+        color: inherit;
+        font-size: 14px;
+      }
+      #workflow-name-input[data-invalid='true'] {
+        border-color: rgba(255, 109, 122, 0.9);
+        box-shadow: 0 0 0 1px rgba(255, 109, 122, 0.4);
+      }
+      .workflow-dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      .workflow-dialog-actions button {
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+      }
+      .workflow-dialog-actions button.primary {
+        background: rgba(99, 132, 255, 0.35);
+        border-color: rgba(99, 132, 255, 0.55);
+      }
       @media (max-width: 1100px) {
         main {
           --sidebar-collapsed-width: 56px;
@@ -1441,6 +1609,18 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
     <header>
       <ul id="status-list"></ul>
       <div class="toolbar">
+        <div class="workflow-dropdown">
+          <button type="button" id="workflow-toggle" aria-haspopup="true" aria-expanded="false">
+            <span id="workflow-name-label">Unsaved Workflow</span>
+            <span class="chevron">▾</span>
+          </button>
+          <div id="workflow-menu" role="menu" aria-hidden="true">
+            <button type="button" id="workflow-menu-rename" data-workflow-action="rename" data-i18n-key="workflow.menu.rename">Rename</button>
+            <button type="button" id="workflow-menu-save-as" data-workflow-action="saveAs" data-i18n-key="workflow.menu.saveAs">Save as</button>
+            <button type="button" id="workflow-menu-clear" data-workflow-action="clear" data-i18n-key="workflow.menu.clear">Clear workflow</button>
+            <button type="button" id="workflow-menu-browse" data-workflow-action="browse" data-i18n-key="workflow.menu.openList">Browse workflows</button>
+          </div>
+        </div>
         <div class="toolbar-group align-controls">
           <button type="button" data-align="left" data-i18n-key="toolbar.alignLeft">Align left</button>
           <button type="button" data-align="top" data-i18n-key="toolbar.alignTop">Align top</button>
@@ -1479,6 +1659,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           <button type="button" class="sidebar-icon" data-panel="panel-queue" aria-controls="panel-queue" aria-expanded="false">
             <span aria-hidden="true">🗂️</span>
             <span class="sr-only">Queue</span>
+          </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-workflows" aria-controls="panel-workflows" aria-expanded="false">
+            <span aria-hidden="true">🗃️</span>
+            <span class="sr-only">Workflows</span>
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-connections" aria-controls="panel-connections" aria-expanded="false">
             <span aria-hidden="true">🔌</span>
@@ -1554,6 +1738,26 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
                   <div id="queue-history"></div>
                 </div>
               </div>
+            </div>
+          </div>
+          <div id="panel-workflows" class="sidebar-panel" role="region" aria-hidden="true">
+            <div class="workflow-panel">
+              <header>
+                <strong data-i18n-key="workflows.title">Workflows</strong>
+                <button type="button" id="workflow-create" data-i18n-key="workflows.saveCurrent">Save current workflow</button>
+              </header>
+              <label class="search-box">
+                <span style="font-size:12px; color: rgba(255,255,255,0.7);" data-i18n-key="workflows.searchLabel">Search workflows</span>
+                <input
+                  type="search"
+                  id="workflow-search"
+                  placeholder="Search workflows…"
+                  autocomplete="off"
+                  data-i18n-attr-placeholder="workflows.searchPlaceholder"
+                />
+              </label>
+              <div id="workflow-empty" data-i18n-key="workflows.empty">No saved workflows yet</div>
+              <ul id="workflow-list"></ul>
             </div>
           </div>
           <div id="panel-connections" class="sidebar-panel" role="region" aria-hidden="true">
@@ -1727,6 +1931,21 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       </div>
     </section>
     <div id="toast" role="status" aria-live="assertive"></div>
+    <div id="workflow-name-dialog" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="workflow-dialog-card" role="document">
+        <h3 id="workflow-name-title" data-i18n-key="workflow.modal.title">Workflow name</h3>
+        <input
+          type="text"
+          id="workflow-name-input"
+          autocomplete="off"
+          data-i18n-attr-placeholder="workflow.modal.placeholder"
+        />
+        <div class="workflow-dialog-actions">
+          <button type="button" id="workflow-name-cancel" data-i18n-key="workflow.modal.cancel">Cancel</button>
+          <button type="button" class="primary" id="workflow-name-confirm" data-i18n-key="workflow.modal.confirm">Save</button>
+        </div>
+      </div>
+    </div>
 ${scriptTags}
   </body>
 </html>`;

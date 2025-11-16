@@ -29,10 +29,12 @@ import type {
 } from './types';
 import { createNodeRenderers } from './nodes';
 import type { NodeRendererModule } from './nodes/types';
+import type { StoredWorkflow } from './types';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
   const nodevision = (window as unknown as { nodevision?: NodevisionApi }).nodevision;
+  const WORKFLOW_STORAGE_KEY = 'nodevision.workflows.v1';
   const SNAP = 4;
   const DRAG_THRESHOLD = 3;
   const SCHEMA = '1.0.7';
@@ -67,6 +69,7 @@ import type { NodeRendererModule } from './nodes/types';
 
 
   const elements: RendererDom = captureDomElements();
+  let unsavedWorkflowLabel = 'Unsaved Workflow';
 
   const getErrorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -246,6 +249,8 @@ import type { NodeRendererModule } from './nodes/types';
       const getTemplateByType = (typeId: string): NodeTemplate | undefined =>
         templates.find(template => template.typeId === typeId);
   applyTranslations();
+  syncUnsavedWorkflowLabel();
+  hydrateStoredWorkflows();
 
       const describeStatus = (status: string): string => {
         switch (status) {
@@ -264,13 +269,301 @@ import type { NodeRendererModule } from './nodes/types';
         }
       };
 
-      const escapeHtml = (value: unknown): string =>
-        String(value ?? '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
+  const escapeHtml = (value: unknown): string =>
+    String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  let openSidebarPanel: ((panelId: string | null) => void) | null = null;
+  let workflowNameDialogResolver: ((value: string | null) => void) | null = null;
+
+  function getWorkflowDisplayName(): string {
+    return state.workflowName || unsavedWorkflowLabel;
+  }
+
+  function formatWorkflowTimestamp(value: string): string {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function updateWorkflowNameUi(): void {
+    const label = getWorkflowDisplayName();
+    elements.workflowNameLabel.textContent = state.workflowDirty ? label + ' *' : label;
+  }
+
+  function syncUnsavedWorkflowLabel(): void {
+    const previousLabel = unsavedWorkflowLabel;
+    const translated = t('workflow.unsaved');
+    unsavedWorkflowLabel = translated;
+    if (!state.activeWorkflowId && (!state.workflowName || state.workflowName === previousLabel)) {
+      state.workflowName = translated;
+    }
+    updateWorkflowNameUi();
+  }
+
+  function markWorkflowDirty(): void {
+    if (!state.workflowDirty) {
+      state.workflowDirty = true;
+      updateWorkflowNameUi();
+    }
+  }
+
+  function setUnsavedWorkflow(options: { dirty?: boolean } = {}): void {
+    state.activeWorkflowId = null;
+    state.workflowName = unsavedWorkflowLabel;
+    if (typeof options.dirty === 'boolean') {
+      state.workflowDirty = options.dirty;
+    }
+    updateWorkflowNameUi();
+  }
+
+  function readStoredWorkflows(): StoredWorkflow[] {
+    try {
+      if (typeof localStorage === 'undefined') {
+        return [];
+      }
+      const raw = localStorage.getItem(WORKFLOW_STORAGE_KEY);
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed
+        .filter(item => item && typeof item.id === 'string' && typeof item.name === 'string' && typeof item.data === 'string')
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+          data: item.data,
+          updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : new Date().toISOString()
+        }));
+    } catch (error) {
+      console.warn('[NodeVision] Failed to load workflows', error);
+      return [];
+    }
+  }
+
+  function persistWorkflows(): void {
+    try {
+      if (typeof localStorage === 'undefined') {
+        return;
+      }
+      localStorage.setItem(WORKFLOW_STORAGE_KEY, JSON.stringify(state.workflows));
+    } catch (error) {
+      console.warn('[NodeVision] Failed to persist workflows', error);
+    }
+  }
+
+  function sortWorkflows(): void {
+    state.workflows.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  function renderWorkflowList(): void {
+    if (!elements.workflowList) return;
+    if (elements.workflowSearch) {
+      elements.workflowSearch.value = state.workflowSearch;
+    }
+    const term = state.workflowSearch.trim().toLowerCase();
+    const filtered = state.workflows.filter(workflow => workflow.name.toLowerCase().includes(term));
+    elements.workflowList.innerHTML = '';
+    if (!filtered.length) {
+      elements.workflowEmpty.style.display = 'block';
+      return;
+    }
+    elements.workflowEmpty.style.display = 'none';
+    filtered.forEach(workflow => {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.workflowId = workflow.id;
+      button.classList.toggle('active', state.activeWorkflowId === workflow.id);
+      button.innerHTML =
+        '<span class="workflow-item-name">' +
+        escapeHtml(workflow.name) +
+        '</span><br /><span class="workflow-item-meta">' +
+        escapeHtml(formatWorkflowTimestamp(workflow.updatedAt)) +
+        '</span>';
+      li.appendChild(button);
+      elements.workflowList.appendChild(li);
+    });
+  }
+
+  function hydrateStoredWorkflows(): void {
+    state.workflows = readStoredWorkflows();
+    sortWorkflows();
+    renderWorkflowList();
+  }
+
+  function toggleWorkflowMenu(force?: boolean): void {
+    const next = typeof force === 'boolean' ? force : !state.workflowMenuOpen;
+    state.workflowMenuOpen = next;
+    elements.workflowMenu.dataset.open = next ? 'true' : 'false';
+    elements.workflowMenu.setAttribute('aria-hidden', next ? 'false' : 'true');
+    elements.workflowToggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+  }
+
+  function closeWorkflowMenu(): void {
+    if (state.workflowMenuOpen) {
+      toggleWorkflowMenu(false);
+    }
+  }
+
+  function openWorkflowBrowserPanel(): void {
+    openSidebarPanel?.('panel-workflows');
+  }
+
+  function setWorkflowNameDialogVisibility(open: boolean): void {
+    elements.workflowNameDialog.dataset.open = open ? 'true' : 'false';
+    elements.workflowNameDialog.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('modal-open', open);
+  }
+
+  const closeWorkflowNameDialog = (result: string | null): void => {
+    if (!workflowNameDialogResolver) {
+      return;
+    }
+    setWorkflowNameDialogVisibility(false);
+    workflowNameDialogResolver(result);
+    workflowNameDialogResolver = null;
+  };
+
+  const promptWorkflowName = (initial?: string): Promise<string | null> => {
+    if (workflowNameDialogResolver) {
+      workflowNameDialogResolver(null);
+    }
+    elements.workflowNameInput.value = initial ?? getWorkflowDisplayName();
+    elements.workflowNameInput.dataset.invalid = 'false';
+    setWorkflowNameDialogVisibility(true);
+    setTimeout(() => {
+      elements.workflowNameInput.focus();
+      elements.workflowNameInput.select();
+    }, 0);
+    return new Promise(resolve => {
+      workflowNameDialogResolver = resolve;
+    });
+  };
+
+  const submitWorkflowNameDialog = (): void => {
+    const value = elements.workflowNameInput.value.trim();
+    if (!value) {
+      elements.workflowNameInput.dataset.invalid = 'true';
+      elements.workflowNameInput.focus();
+      return;
+    }
+    elements.workflowNameInput.dataset.invalid = 'false';
+    closeWorkflowNameDialog(value);
+  };
+
+  const cancelWorkflowNameDialog = (): void => {
+    closeWorkflowNameDialog(null);
+  };
+
+  function persistWorkflowsAndRender(): void {
+    sortWorkflows();
+    persistWorkflows();
+    renderWorkflowList();
+  }
+
+  function handleWorkflowSave(): void {
+    if (!state.activeWorkflowId) {
+      void handleWorkflowSaveAs();
+      return;
+    }
+    const existing = findWorkflowById(state.activeWorkflowId);
+    if (!existing) {
+      handleWorkflowSaveAs();
+      return;
+    }
+    const updated: StoredWorkflow = {
+      ...existing,
+      data: getSerializedProjectJson(),
+      updatedAt: new Date().toISOString()
+    };
+    persistWorkflowRecord(updated);
+    state.workflowName = updated.name;
+    state.workflowDirty = false;
+    updateWorkflowNameUi();
+    renderWorkflowList();
+    closeWorkflowMenu();
+  }
+
+  async function handleWorkflowSaveAs(): Promise<void> {
+    const name = await promptWorkflowName(state.workflowName);
+    if (!name) return;
+    const entry: StoredWorkflow = {
+      id: createId('workflow'),
+      name,
+      data: getSerializedProjectJson(),
+      updatedAt: new Date().toISOString()
+    };
+    persistWorkflowRecord(entry);
+    state.activeWorkflowId = entry.id;
+    state.workflowName = entry.name;
+    state.workflowDirty = false;
+    updateWorkflowNameUi();
+    renderWorkflowList();
+    closeWorkflowMenu();
+  }
+
+  async function handleWorkflowRename(): Promise<void> {
+    const workflow = findWorkflowById(state.activeWorkflowId);
+    if (!workflow) {
+      await handleWorkflowSaveAs();
+      return;
+    }
+    const name = await promptWorkflowName(workflow.name);
+    if (!name) return;
+    workflow.name = name;
+    workflow.updatedAt = new Date().toISOString();
+    persistWorkflowRecord(workflow);
+    state.workflowName = name;
+    state.workflowDirty = false;
+    updateWorkflowNameUi();
+    renderWorkflowList();
+    closeWorkflowMenu();
+  }
+
+  function handleWorkflowClear(): void {
+    if (!window.confirm(t('workflow.confirmClear'))) {
+      return;
+    }
+    const blank = {
+      schemaVersion: SCHEMA,
+      nodes: [],
+      connections: []
+    };
+    applyProjectJson(JSON.stringify(blank), { markDirty: false });
+    setUnsavedWorkflow({ dirty: false });
+    closeWorkflowMenu();
+  }
+
+  function handleWorkflowMenuAction(action: string): void {
+    switch (action) {
+      case 'rename':
+        void handleWorkflowRename();
+        break;
+      case 'saveAs':
+        void handleWorkflowSaveAs();
+        break;
+      case 'clear':
+        handleWorkflowClear();
+        break;
+      case 'browse':
+        closeWorkflowMenu();
+        openWorkflowBrowserPanel();
+        break;
+      default:
+        break;
+    }
+  }
 
       const formatTimestamp = (milliseconds: number | undefined): string => {
         if (typeof milliseconds !== 'number' || Number.isNaN(milliseconds)) {
@@ -673,6 +966,7 @@ import type { NodeRendererModule } from './nodes/types';
       mainEl.classList.toggle('sidebar-open', Boolean(panelId));
       activePanelId = panelId;
     };
+    openSidebarPanel = setActivePanel;
     buttons.forEach(button => {
       button.addEventListener('click', () => {
         const panelId = button.dataset.panel;
@@ -2197,13 +2491,16 @@ import type { NodeRendererModule } from './nodes/types';
     commitState();
   };
 
-  const commitState = (): void => {
+  const commitState = (options: { skipDirtyFlag?: boolean } = {}): void => {
     renderNodes();
     renderConnections();
     updateSelectionUi();
     updateJsonPreview();
     pushHistory();
     scheduleAutosave();
+    if (!options.skipDirtyFlag) {
+      markWorkflowDirty();
+    }
   };
 
   const serializeProject = () => ({
@@ -2404,6 +2701,35 @@ import type { NodeRendererModule } from './nodes/types';
     URL.revokeObjectURL(url);
   };
 
+  const getSerializedProjectJson = (): string => JSON.stringify(serializeProject());
+
+  const findWorkflowById = (id: string | null): StoredWorkflow | undefined =>
+    id ? state.workflows.find(workflow => workflow.id === id) : undefined;
+
+  const persistWorkflowRecord = (workflow: StoredWorkflow): void => {
+    const index = state.workflows.findIndex(item => item.id === workflow.id);
+    if (index >= 0) {
+      state.workflows[index] = workflow;
+    } else {
+      state.workflows.push(workflow);
+    }
+    persistWorkflowsAndRender();
+  };
+
+  const loadWorkflowEntry = (workflow: StoredWorkflow): void => {
+    try {
+      applyProjectJson(workflow.data, { markDirty: false });
+      state.activeWorkflowId = workflow.id;
+      state.workflowName = workflow.name;
+      state.workflowDirty = false;
+      updateWorkflowNameUi();
+      renderWorkflowList();
+      closeWorkflowMenu();
+    } catch (error) {
+      alert(t('errors.jsonLoadFailed', { reason: getErrorMessage(error) }));
+    }
+  };
+
   const buildNodeFromSerialized = (node: SerializedNode): RendererNode => {
     const template = templates.find(item => item.typeId === node.typeId);
     const templateTokens = (template as { searchTokens?: string[] } | undefined)?.searchTokens ?? [];
@@ -2424,23 +2750,30 @@ import type { NodeRendererModule } from './nodes/types';
     } as RendererNode;
   };
 
+  const applyProjectJson = (json: string, options: { markDirty?: boolean } = {}): void => {
+    const parsed = JSON.parse(json);
+    if (!parsed.schemaVersion) {
+      throw new Error(t('errors.schemaMissing'));
+    }
+    state.readonly = parsed.schemaVersion !== SCHEMA;
+    cleanupAllMediaPreviews();
+    state.nodes = (parsed.nodes ?? []).map(buildNodeFromSerialized);
+    state.connections = (parsed.connections ?? []).map(cloneConnection);
+    state.pendingConnection = null;
+    state.selection.clear();
+    updateReadonlyUi();
+    renderNodes();
+    renderConnections();
+    updatePendingHint();
+    commitState({ skipDirtyFlag: true });
+    state.workflowDirty = options.markDirty ?? false;
+    updateWorkflowNameUi();
+  };
+
   const loadFromTextarea = (): void => {
     try {
-      const parsed = JSON.parse(elements.json.value);
-      if (!parsed.schemaVersion) {
-        throw new Error(t('errors.schemaMissing'));
-      }
-      state.readonly = parsed.schemaVersion !== SCHEMA;
-      cleanupAllMediaPreviews();
-      state.nodes = (parsed.nodes ?? []).map(buildNodeFromSerialized);
-      state.connections = (parsed.connections ?? []).map(cloneConnection);
-      state.pendingConnection = null;
-      state.selection.clear();
-      updateReadonlyUi();
-      renderNodes();
-      renderConnections();
-      updatePendingHint();
-      commitState();
+      applyProjectJson(elements.json.value, { markDirty: true });
+      setUnsavedWorkflow({ dirty: true });
     } catch (error) {
       alert(t('errors.jsonLoadFailed', { reason: getErrorMessage(error) }));
     }
@@ -2456,6 +2789,16 @@ import type { NodeRendererModule } from './nodes/types';
   };
 
   const handleKeydown = (event: KeyboardEvent): void => {
+    if (workflowNameDialogResolver) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelWorkflowNameDialog();
+      } else if (event.key === 'Enter' && event.target === elements.workflowNameInput) {
+        event.preventDefault();
+        submitWorkflowNameDialog();
+      }
+      return;
+    }
     const modifier = event.metaKey || event.ctrlKey;
     if (modifier && event.key.toLowerCase() === 'c') {
       event.preventDefault();
@@ -2490,6 +2833,9 @@ import type { NodeRendererModule } from './nodes/types';
     } else if (event.key === 'Escape' && zoomMenuOpen) {
       event.preventDefault();
       closeZoomMenu();
+    } else if (event.key === 'Escape' && state.workflowMenuOpen) {
+      event.preventDefault();
+      closeWorkflowMenu();
     } else if (event.key === 'Escape' && state.pendingConnection) {
       event.preventDefault();
       clearPendingConnection();
@@ -2586,6 +2932,82 @@ import type { NodeRendererModule } from './nodes/types';
     });
   });
 
+  elements.workflowToggle.addEventListener('click', event => {
+    event.preventDefault();
+    toggleWorkflowMenu();
+  });
+
+  const workflowMenuButtons: Array<{ button: HTMLButtonElement; action: string }> = [
+    { button: elements.workflowMenuRename, action: 'rename' },
+    { button: elements.workflowMenuSaveAs, action: 'saveAs' },
+    { button: elements.workflowMenuClear, action: 'clear' },
+    { button: elements.workflowMenuBrowse, action: 'browse' }
+  ];
+  workflowMenuButtons.forEach(entry => {
+    entry.button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleWorkflowMenuAction(entry.action);
+    });
+  });
+
+  elements.workflowSearch.addEventListener('input', event => {
+    const target = event.target as HTMLInputElement;
+    state.workflowSearch = target.value;
+    renderWorkflowList();
+  });
+
+  elements.workflowList.addEventListener('click', event => {
+    const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>('button[data-workflow-id]');
+    if (!button) {
+      return;
+    }
+    event.preventDefault();
+    const workflow = findWorkflowById(button.dataset.workflowId ?? null);
+    if (workflow) {
+      loadWorkflowEntry(workflow);
+    }
+  });
+
+  elements.workflowCreate.addEventListener('click', () => {
+    if (state.activeWorkflowId) {
+      handleWorkflowSave();
+    } else {
+      void handleWorkflowSaveAs();
+    }
+  });
+
+  elements.workflowNameConfirm.addEventListener('click', submitWorkflowNameDialog);
+  elements.workflowNameCancel.addEventListener('click', cancelWorkflowNameDialog);
+  elements.workflowNameDialog.addEventListener('click', event => {
+    if (event.target === elements.workflowNameDialog) {
+      cancelWorkflowNameDialog();
+    }
+  });
+  elements.workflowNameInput.addEventListener('input', () => {
+    elements.workflowNameInput.dataset.invalid = 'false';
+  });
+  elements.workflowNameInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      submitWorkflowNameDialog();
+    }
+  });
+
+  document.addEventListener('pointerdown', event => {
+    if (!state.workflowMenuOpen) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+    if (target.closest('.workflow-dropdown')) {
+      return;
+    }
+    closeWorkflowMenu();
+  });
+
   elements.localeSelect.value = state.locale;
   elements.localeSelect.addEventListener('change', event => {
     const target = event.target as HTMLSelectElement;
@@ -2631,10 +3053,12 @@ import type { NodeRendererModule } from './nodes/types';
 
   const refreshLocaleDependentViews = (): void => {
     applyTranslations();
+    syncUnsavedWorkflowLabel();
     renderStatus();
     renderAbout();
     renderNodes();
     renderConnections();
+    renderWorkflowList();
     updatePendingHint();
     updateSuggestions(elements.searchInput.value ?? '');
     updateJsonPreview();
