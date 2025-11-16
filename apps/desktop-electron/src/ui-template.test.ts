@@ -1,8 +1,8 @@
 import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 
-import { buildRendererHtml, type RendererPayload } from './ui-template';
 import type { BootStatus, QueueWarning } from './types';
+import { buildRendererHtml, type RendererPayload } from './ui-template';
 
 const now = new Date().toISOString();
 
@@ -75,8 +75,8 @@ const ensurePointerEventPolyfill = (dom: JSDOM) => {
       this.pointerId = params.pointerId ?? 1;
     }
   }
-  // @ts-expect-error jsdom does not define PointerEvent by default
-  dom.window.PointerEvent = PointerEventPolyfill;
+  (dom.window as typeof dom.window & { PointerEvent: typeof PointerEventPolyfill }).PointerEvent =
+    PointerEventPolyfill as unknown as typeof dom.window.PointerEvent;
 };
 
 const stubRect = (el: Element | null, rect: { left: number; top: number; width: number; height: number }) => {
@@ -94,7 +94,7 @@ const stubRect = (el: Element | null, rect: { left: number; top: number; width: 
   });
 };
 
-const MEDIA_NODES = [
+const MEDIA_NODES: RendererPayload['nodes'] = [
   {
     id: 'n1',
     typeId: 'loadImage',
@@ -119,7 +119,7 @@ const MEDIA_NODES = [
     outputs: [{ id: 'result', label: 'Result', direction: 'output', dataType: 'video' }],
     searchTokens: ['trim']
   }
-] as const;
+];
 
 describe('ui-template queue warnings', () => {
   it('renders provided warnings list', async () => {
@@ -294,8 +294,10 @@ describe('ui-template connections layer', () => {
     const input = doc.querySelector('.port[data-node-id="n2"][data-port-id="source"]');
     stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
     stubRect(input, { left: 420, top: 260, width: 24, height: 24 });
-    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
-    stubRect(input?.querySelector('.port-dot'), { left: 426, top: 266, width: 12, height: 12 });
+    const outputDot = output?.querySelector('.port-dot') ?? null;
+    const inputDot = input?.querySelector('.port-dot') ?? null;
+    stubRect(outputDot, { left: 126, top: 246, width: 12, height: 12 });
+    stubRect(inputDot, { left: 426, top: 266, width: 12, height: 12 });
 
     const checkbox = doc.querySelector<HTMLInputElement>('input[data-connection-check="c-highlight"]');
     checkbox!.checked = true;
@@ -319,8 +321,10 @@ describe('ui-template connections layer', () => {
     const input = doc.querySelector('.port[data-node-id="n2"][data-port-id="source"]');
     stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
     stubRect(input, { left: 420, top: 260, width: 24, height: 24 });
-    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
-    stubRect(input?.querySelector('.port-dot'), { left: 426, top: 266, width: 12, height: 12 });
+    const dragOutputDot = output?.querySelector('.port-dot') ?? null;
+    const dragInputDot = input?.querySelector('.port-dot') ?? null;
+    stubRect(dragOutputDot, { left: 126, top: 246, width: 12, height: 12 });
+    stubRect(dragInputDot, { left: 426, top: 266, width: 12, height: 12 });
 
     output?.dispatchEvent(
       new dom.window.PointerEvent('pointerdown', { pointerId: 5, button: 0, clientX: 136, clientY: 252, bubbles: true })
@@ -350,7 +354,8 @@ describe('ui-template connections layer', () => {
     const output = doc.querySelector<HTMLElement>('.port[data-node-id="n1"][data-port-id="media"]');
     const input = doc.querySelector<HTMLElement>('.port[data-node-id="n2"][data-port-id="source"]');
     stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
-    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+    const detachOutputDot = output?.querySelector('.port-dot') ?? null;
+    stubRect(detachOutputDot, { left: 126, top: 246, width: 12, height: 12 });
     stubRect(input, { left: 420, top: 260, width: 24, height: 24 });
 
     input?.dispatchEvent(
@@ -418,7 +423,7 @@ describe('ui-template connections layer', () => {
   });
 
   it('rewires a connection by dragging from an input to another node', async () => {
-    const nodes = [
+    const nodes: RendererPayload['nodes'] = [
       ...MEDIA_NODES,
       {
         id: 'n3',
@@ -432,7 +437,7 @@ describe('ui-template connections layer', () => {
         outputs: [],
         searchTokens: ['resize']
       }
-    ] as const;
+    ];
     const dom = renderDom({
       ...basePayload,
       nodes,
@@ -447,7 +452,8 @@ describe('ui-template connections layer', () => {
     const sourceInput = doc.querySelector<HTMLElement>('.port[data-node-id="n2"][data-port-id="source"]');
     const newInput = doc.querySelector<HTMLElement>('.port[data-node-id="n3"][data-port-id="source"]');
     stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
-    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+    const rewireOutputDot = output?.querySelector('.port-dot') ?? null;
+    stubRect(rewireOutputDot, { left: 126, top: 246, width: 12, height: 12 });
     stubRect(sourceInput, { left: 360, top: 240, width: 24, height: 24 });
     stubRect(newInput, { left: 620, top: 240, width: 24, height: 24 });
 
@@ -481,7 +487,8 @@ describe('ui-template connections layer', () => {
     stubRect(canvas, { left: 0, top: 0, width: 900, height: 600 });
     const output = doc.querySelector<HTMLElement>('.port[data-node-id="n1"][data-port-id="media"]');
     stubRect(output, { left: 120, top: 240, width: 24, height: 24 });
-    stubRect(output?.querySelector('.port-dot'), { left: 126, top: 246, width: 12, height: 12 });
+    const cancelOutputDot = output?.querySelector('.port-dot') ?? null;
+    stubRect(cancelOutputDot, { left: 126, top: 246, width: 12, height: 12 });
 
     output?.dispatchEvent(
       new dom.window.PointerEvent('pointerdown', { pointerId: 12, button: 0, clientX: 136, clientY: 252, bubbles: true })
