@@ -93,6 +93,8 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
     workflowName: 'Unsaved Workflow',
     workflowDirty: false,
     workflowSearch: '',
-    workflowMenuOpen: false
+    workflowMenuOpen: false,
+    workflowContextMenuOpen: false,
+    workflowContextTargetId: null
   };
 };

@@ -105,6 +105,8 @@ export interface RendererState {
   workflowDirty: boolean;
   workflowSearch: string;
   workflowMenuOpen?: boolean;
+  workflowContextMenuOpen?: boolean;
+  workflowContextTargetId: string | null;
 }
 
 export interface HistoryEntry {
@@ -173,6 +175,8 @@ export interface RendererDom {
   workflowList: HTMLUListElement;
   workflowEmpty: HTMLElement;
   workflowCreate: HTMLButtonElement;
+  workflowContextMenu: HTMLElement;
+  workflowContextDelete: HTMLButtonElement;
   workflowNameDialog: HTMLElement;
   workflowNameInput: HTMLInputElement;
   workflowNameConfirm: HTMLButtonElement;

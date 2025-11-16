@@ -69,6 +69,8 @@ export const captureDomElements = (): RendererDom => ({
   workflowList: getElement<HTMLUListElement>('workflow-list'),
   workflowEmpty: getElement<HTMLElement>('workflow-empty'),
   workflowCreate: getElement<HTMLButtonElement>('workflow-create'),
+  workflowContextMenu: getElement<HTMLElement>('workflow-context-menu'),
+  workflowContextDelete: getElement<HTMLButtonElement>('workflow-context-delete'),
   workflowNameDialog: getElement<HTMLElement>('workflow-name-dialog'),
   workflowNameInput: getElement<HTMLInputElement>('workflow-name-input'),
   workflowNameConfirm: getElement<HTMLButtonElement>('workflow-name-confirm'),

@@ -1039,6 +1039,35 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 11px;
         color: rgba(255, 255, 255, 0.6);
       }
+      #workflow-context-menu {
+        position: fixed;
+        min-width: 180px;
+        background: rgba(5, 8, 15, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 6px;
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+        z-index: 90;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      #workflow-context-menu[data-open='true'] {
+        display: flex;
+      }
+      #workflow-context-menu button {
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: transparent;
+        color: #f5f7ff;
+        text-align: left;
+        font-size: 13px;
+      }
+      #workflow-context-menu button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
       .toolbar-group {
         display: inline-flex;
         gap: 4px;
@@ -1931,6 +1960,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       </div>
     </section>
     <div id="toast" role="status" aria-live="assertive"></div>
+    <div id="workflow-context-menu" role="menu" aria-hidden="true">
+      <button type="button" id="workflow-context-delete" data-i18n-key="workflow.context.delete">Delete workflow</button>
+    </div>
     <div id="workflow-name-dialog" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="workflow-dialog-card" role="document">
         <h3 id="workflow-name-title" data-i18n-key="workflow.modal.title">Workflow name</h3>

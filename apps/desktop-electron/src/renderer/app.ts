@@ -416,6 +416,36 @@ import type { StoredWorkflow } from './types';
     }
   }
 
+  function closeWorkflowContextMenu(): void {
+    if (!state.workflowContextMenuOpen) {
+      state.workflowContextTargetId = null;
+      return;
+    }
+    state.workflowContextMenuOpen = false;
+    state.workflowContextTargetId = null;
+    elements.workflowContextMenu.dataset.open = 'false';
+    elements.workflowContextMenu.setAttribute('aria-hidden', 'true');
+  }
+
+  function positionWorkflowContextMenu(clientX: number, clientY: number): void {
+    const padding = 12;
+    const width = 200;
+    const height = 80;
+    const left = Math.max(padding, Math.min(window.innerWidth - width, clientX));
+    const top = Math.max(padding, Math.min(window.innerHeight - height, clientY));
+    elements.workflowContextMenu.style.left = `${left}px`;
+    elements.workflowContextMenu.style.top = `${top}px`;
+  }
+
+  function openWorkflowContextMenu(workflowId: string, clientX: number, clientY: number): void {
+    closeWorkflowContextMenu();
+    state.workflowContextTargetId = workflowId;
+    state.workflowContextMenuOpen = true;
+    positionWorkflowContextMenu(clientX, clientY);
+    elements.workflowContextMenu.dataset.open = 'true';
+    elements.workflowContextMenu.setAttribute('aria-hidden', 'false');
+  }
+
   function openWorkflowBrowserPanel(): void {
     openSidebarPanel?.('panel-workflows');
   }
@@ -464,6 +494,25 @@ import type { StoredWorkflow } from './types';
 
   const cancelWorkflowNameDialog = (): void => {
     closeWorkflowNameDialog(null);
+  };
+
+  const deleteWorkflowById = (workflowId: string | null): void => {
+    if (!workflowId) {
+      return;
+    }
+    const current = findWorkflowById(workflowId);
+    if (!current) {
+      return;
+    }
+    if (!window.confirm(t('workflow.confirmDelete', { name: current.name }))) {
+      return;
+    }
+    state.workflows = state.workflows.filter(workflow => workflow.id !== workflowId);
+    persistWorkflowsAndRender();
+    if (state.activeWorkflowId === workflowId) {
+      setUnsavedWorkflow({ dirty: true });
+    }
+    closeWorkflowContextMenu();
   };
 
   function persistWorkflowsAndRender(): void {
@@ -2793,10 +2842,15 @@ import type { StoredWorkflow } from './types';
       if (event.key === 'Escape') {
         event.preventDefault();
         cancelWorkflowNameDialog();
-      } else if (event.key === 'Enter' && event.target === elements.workflowNameInput) {
+      } else if (event.key === 'Enter' && event.target === elements.workflowNameInput && !event.isComposing) {
         event.preventDefault();
         submitWorkflowNameDialog();
       }
+      return;
+    }
+    if (state.workflowContextMenuOpen && event.key === 'Escape') {
+      event.preventDefault();
+      closeWorkflowContextMenu();
       return;
     }
     const modifier = event.metaKey || event.ctrlKey;
@@ -2968,6 +3022,18 @@ import type { StoredWorkflow } from './types';
       loadWorkflowEntry(workflow);
     }
   });
+  elements.workflowList.addEventListener('contextmenu', event => {
+    const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>('button[data-workflow-id]');
+    if (!button) {
+      return;
+    }
+    event.preventDefault();
+    const workflowId = button.dataset.workflowId;
+    if (!workflowId) {
+      return;
+    }
+    openWorkflowContextMenu(workflowId, event.clientX, event.clientY);
+  });
 
   elements.workflowCreate.addEventListener('click', () => {
     if (state.activeWorkflowId) {
@@ -2988,24 +3054,27 @@ import type { StoredWorkflow } from './types';
     elements.workflowNameInput.dataset.invalid = 'false';
   });
   elements.workflowNameInput.addEventListener('keydown', event => {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.isComposing) {
       event.preventDefault();
       submitWorkflowNameDialog();
     }
   });
+  elements.workflowContextDelete.addEventListener('click', () => {
+    deleteWorkflowById(state.workflowContextTargetId);
+  });
 
   document.addEventListener('pointerdown', event => {
-    if (!state.workflowMenuOpen) {
-      return;
-    }
     const target = event.target as HTMLElement | null;
-    if (!target) {
-      return;
+    if (state.workflowMenuOpen) {
+      if (!target || !target.closest('.workflow-dropdown')) {
+        closeWorkflowMenu();
+      }
     }
-    if (target.closest('.workflow-dropdown')) {
-      return;
+    if (state.workflowContextMenuOpen) {
+      if (!target || !elements.workflowContextMenu.contains(target)) {
+        closeWorkflowContextMenu();
+      }
     }
-    closeWorkflowMenu();
   });
 
   elements.localeSelect.value = state.locale;
