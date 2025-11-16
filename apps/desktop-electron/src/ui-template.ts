@@ -72,13 +72,31 @@ const indentRendererScript = (source: string): string =>
 
 const buildInlineBundle = (moduleDir: string, extension: '.js' | '.ts'): string => {
   const ts = extension === '.ts' ? loadTypescriptModule() : null;
-  const moduleEntries = fs
-    .readdirSync(moduleDir)
-    .filter(file => file.endsWith(extension) && !file.endsWith('.d.ts'))
-    .sort()
-    .map(file => {
-      const moduleId = `./${path.basename(file, extension)}`;
-      const absolutePath = path.join(moduleDir, file);
+
+  const normalizeModuleId = (relativeDir: string, fileBase: string): string => {
+    const segments = relativeDir ? relativeDir.split(path.sep) : [];
+    segments.push(fileBase);
+    return `./${segments.join('/')}`;
+  };
+
+  const collectModules = (relativeDir = ''): Array<{ id: string; code: string }> => {
+    const absoluteDir = relativeDir ? path.join(moduleDir, relativeDir) : moduleDir;
+    const entries = fs.readdirSync(absoluteDir, { withFileTypes: true });
+    const modules: Array<{ id: string; code: string }> = [];
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        modules.push(...collectModules(path.join(relativeDir, entry.name)));
+        continue;
+      }
+      if (!entry.isFile()) {
+        continue;
+      }
+      if (!entry.name.endsWith(extension) || entry.name.endsWith('.d.ts')) {
+        continue;
+      }
+      const fileBase = entry.name.slice(0, -extension.length);
+      const moduleId = normalizeModuleId(relativeDir, fileBase);
+      const absolutePath = path.join(absoluteDir, entry.name);
       let code = fs.readFileSync(absolutePath, 'utf8');
       if (extension === '.ts' && ts) {
         code = ts.transpileModule(code, {
@@ -88,12 +106,73 @@ const buildInlineBundle = (moduleDir: string, extension: '.js' | '.ts'): string 
           }
         }).outputText;
       }
-      const body = stripSourceMapComment(code);
-      return `  '${moduleId}': function (exports, require, module) {\n${body}\n  }`;
-    })
+      const cleaned = stripSourceMapComment(code);
+      modules.push({ id: moduleId, code: cleaned });
+    }
+    return modules;
+  };
+
+  const moduleEntries = collectModules()
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(({ id, code }) => `  '${id}': function (exports, require, module) {\n${code}\n  }`)
     .join(',\n');
 
-  return stripSourceMapComment(`(function(){\n  const modules = {\n${moduleEntries}\n  };\n  const cache = {};\n  const require = id => {\n    if (!modules[id]) {\n      throw new Error('Renderer module not found: ' + id);\n    }\n    if (cache[id]) {\n      return cache[id].exports;\n    }\n    const module = { exports: {} };\n    cache[id] = module;\n    modules[id](module.exports, require, module);\n    return module.exports;\n  };\n  require('./app');\n})();`);
+  const runtime = `(function(){
+  const modules = {
+${moduleEntries}
+  };
+  const cache = {};
+  const splitPath = value => {
+    let input = value;
+    if (input.startsWith('./')) {
+      input = input.slice(2);
+    }
+    return input.split('/').filter(Boolean);
+  };
+  const normalize = (from, request) => {
+    const base = splitPath(from);
+    if (base.length) {
+      base.pop();
+    }
+    const segments = splitPath(request);
+    for (const segment of segments) {
+      if (!segment || segment === '.') continue;
+      if (segment === '..') {
+        base.pop();
+      } else {
+        base.push(segment);
+      }
+    }
+    return './' + base.join('/');
+  };
+  const resolveId = id => {
+    if (modules[id]) {
+      return id;
+    }
+    const indexId = id.endsWith('/index') ? null : id + '/index';
+    if (indexId && modules[indexId]) {
+      return indexId;
+    }
+    return null;
+  };
+  const require = (request, from = './') => {
+    const target = request.startsWith('.') ? normalize(from, request) : request;
+    const id = resolveId(target);
+    if (!id) {
+      throw new Error('Renderer module not found: ' + target);
+    }
+    if (cache[id]) {
+      return cache[id].exports;
+    }
+    const module = { exports: {} };
+    cache[id] = module;
+    const localRequire = child => require(child, id);
+    modules[id](module.exports, localRequire, module);
+    return module.exports;
+  };
+  require('./app', './app');
+})();`;
+  return stripSourceMapComment(runtime);
 };
 
 const loadRendererBundle = (): string => {
@@ -346,12 +425,46 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         padding: 12px 18px 6px;
         background: linear-gradient(180deg, #fefefe, #ececef);
         border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        position: relative;
       }
       .node-header-main {
         display: flex;
         flex-direction: column;
         gap: 2px;
         flex: 1;
+      }
+      button.node-delete-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        background: #ff5662;
+        color: transparent;
+        font-size: 0;
+        line-height: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: none;
+        transition: none;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+      button.node-delete-btn:hover {
+        background: #ff5662;
+      }
+      button.node-delete-btn:focus-visible {
+        outline: 1px solid rgba(255, 255, 255, 0.8);
+        outline-offset: 2px;
+      }
+      button.node-delete-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
       .node-title {
         margin: 0;
@@ -442,7 +555,70 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 10px;
         padding: 4px 18px 0;
       }
-      .node-media {
+      .node-info {
+        margin: 6px 18px 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.7);
+        color: #1f1f24;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .node-info-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .node-info-chip {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        background: rgba(0, 0, 0, 0.08);
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .node-info-desc {
+        margin: 4px 0 8px;
+        color: rgba(31, 31, 36, 0.75);
+      }
+      .node-info-tip {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: rgba(31, 31, 36, 0.8);
+      }
+      .node-status-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .node-status {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        padding: 6px 8px;
+        font-size: 11px;
+      }
+      .node-status-ok {
+        background: rgba(52, 199, 89, 0.18);
+        color: #116229;
+      }
+      .node-status-warn {
+        background: rgba(255, 149, 0, 0.18);
+        color: #7d3a00;
+      }
+      /* Load node styles */
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media {
         padding: 0 18px 10px;
         display: flex;
         flex-direction: column;
@@ -453,7 +629,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         min-height: 240px;
         --preview-size: 320px;
       }
-      .node-media-upload {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload {
         position: relative;
         display: inline-flex;
         align-items: center;
@@ -468,35 +644,35 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         cursor: pointer;
         overflow: hidden;
       }
-      .node-media-upload.disabled {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload.disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
-      .node-media-upload span {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload span {
         pointer-events: none;
       }
-      .node-media-upload input[type="file"] {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload input[type="file"] {
         position: absolute;
         inset: 0;
         opacity: 0;
         cursor: pointer;
       }
-      .node-media-upload input[type="file"]:disabled {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload input[type="file"]:disabled {
         cursor: not-allowed;
       }
-      .node-media-empty {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-empty {
         margin: 0;
         font-size: 12px;
         color: rgba(48, 48, 60, 0.6);
         text-align: center;
         padding: 6px 0 2px;
       }
-      .node-media-frame {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-frame {
         width: 100%;
         display: flex;
         justify-content: center;
       }
-      .node-media-preview {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-preview {
         border: none;
         border-radius: 0;
         overflow: visible;
@@ -507,8 +683,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         height: var(--preview-height, 240px);
         max-width: 100%;
       }
-      .node-media-preview img,
-      .node-media-preview video {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-preview img,
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-preview video {
         width: 100%;
         height: 100%;
         object-fit: contain;
@@ -516,13 +692,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         border-radius: 0;
         box-shadow: none;
       }
-      .node-media-toolbar {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-toolbar {
         display: grid;
         grid-template-columns: auto 1fr auto;
         gap: 8px;
         align-items: center;
       }
-      .node-media-arrow {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-arrow {
         border-radius: 999px;
         width: 32px;
         height: 28px;
@@ -532,7 +708,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 14px;
         font-weight: 600;
       }
-      .node-media-filename {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-filename {
         border: 1px solid rgba(0, 0, 0, 0.15);
         border-radius: 999px;
         padding: 4px 12px;
@@ -542,7 +718,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .node-media-aspect {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-aspect {
         margin: 10px 0 0;
         font-size: 13px;
         text-align: center;

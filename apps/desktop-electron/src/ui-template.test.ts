@@ -184,6 +184,15 @@ describe('load media node UI', () => {
     dom.window.close();
   });
 
+  it('renders delete actions for nodes', async () => {
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const deleteBtn = dom.window.document.querySelector<HTMLButtonElement>('.node-delete-btn');
+    expect(deleteBtn).toBeTruthy();
+    expect(deleteBtn?.getAttribute('aria-label')).toBe('ノードを削除');
+    dom.window.close();
+  });
+
   it('sets accept attribute based on node type', async () => {
     const nodes = [
       ...MEDIA_NODES,
@@ -206,6 +215,27 @@ describe('load media node UI', () => {
     const videoInput = dom.window.document.querySelector<HTMLInputElement>('.node[data-id="n3"] .node-media-upload input');
     expect(imageInput?.accept).toBe('image/*');
     expect(videoInput?.accept).toBe('video/*');
+    dom.window.close();
+  });
+
+  it('exposes node type metadata for styling hooks', async () => {
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const nodeEl = dom.window.document.querySelector('.node[data-id="n1"]');
+    expect(nodeEl?.getAttribute('data-type-id')).toBe('loadImage');
+    expect(nodeEl?.classList.contains('node-type-loadimage')).toBe(true);
+    dom.window.close();
+  });
+
+  it('renders node info cards with input status for downstream nodes', async () => {
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const info = dom.window.document.querySelector('.node[data-id="n2"] .node-info');
+    expect(info).toBeTruthy();
+    expect(info?.textContent).toContain('IN/OUT間で素材をカット');
+    const status = info?.querySelector('.node-status');
+    expect(status?.textContent).toContain('ソース');
+    expect(status?.textContent).toContain('未接続');
     dom.window.close();
   });
 });

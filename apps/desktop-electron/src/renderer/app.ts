@@ -26,6 +26,8 @@ import type {
   NodevisionApi,
   NodeSize
 } from './types';
+import { createNodeRenderers } from './nodes';
+import type { NodeRendererModule } from './nodes/types';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
@@ -44,20 +46,7 @@ import type {
   const NODE_MIN_HEIGHT = MIN_PREVIEW_HEIGHT + MIN_NODE_CHROME;
   const NODE_MAX_HEIGHT = 720;
   const MAX_CHROME_SYNC_ATTEMPTS = 2;
-  type LoadNodeKind = 'image' | 'video' | 'any';
-  const LOAD_NODE_TYPES = new Set(['loadImage', 'loadVideo', 'loadMedia']);
-  const IMAGE_LOAD_TYPES = new Set(['loadImage', 'loadMedia']);
   const LOCALE_STORAGE_KEY = 'nodevision.locale';
-  const isLoadNodeType = (typeId: string): boolean => LOAD_NODE_TYPES.has(typeId);
-  const getLoadNodeKindFromType = (typeId: string): LoadNodeKind => {
-    if (typeId === 'loadVideo') {
-      return 'video';
-    }
-    if (IMAGE_LOAD_TYPES.has(typeId)) {
-      return 'image';
-    }
-    return 'any';
-  };
   const TRANSLATIONS: Record<string, Record<string, string>> = rendererWindow.__NODEVISION_TRANSLATIONS__ ?? {};
   const SUPPORTED_LOCALES: string[] = Array.isArray(rendererWindow.__NODEVISION_SUPPORTED_LOCALES__) && rendererWindow.__NODEVISION_SUPPORTED_LOCALES__.length
     ? rendererWindow.__NODEVISION_SUPPORTED_LOCALES__!
@@ -126,32 +115,10 @@ import type {
   };
 
   const state: RendererState = createInitialState(BOOTSTRAP, detectLocale());
-
-  const getLoadNodeKindById = (nodeId: string): LoadNodeKind => {
-    const node = state.nodes.find(item => item.id === nodeId);
-    return node ? getLoadNodeKindFromType(node.typeId) : 'any';
-  };
-
-  let measurementContainer: HTMLElement | null = null;
-  const getMeasurementContainer = (): HTMLElement | null => {
-    if (!document?.body) {
-      return null;
-    }
-    if (measurementContainer && document.body.contains(measurementContainer)) {
-      return measurementContainer;
-    }
-    measurementContainer = document.createElement('div');
-    measurementContainer.id = 'nodevision-media-measurements';
-    measurementContainer.style.position = 'fixed';
-    measurementContainer.style.width = '1px';
-    measurementContainer.style.height = '1px';
-    measurementContainer.style.overflow = 'hidden';
-    measurementContainer.style.pointerEvents = 'none';
-    measurementContainer.style.opacity = '0';
-    measurementContainer.style.zIndex = '-1';
-    document.body.appendChild(measurementContainer);
-    return measurementContainer;
-  };
+  const nodeRendererByType = new Map<string, NodeRendererModule>();
+  const getNodeRenderer = (typeId: string): NodeRendererModule | undefined => nodeRendererByType.get(typeId);
+  const toNodeTypeClass = (typeId: string): string =>
+    'node-type-' + typeId.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
 
   let activeConnectionDrag: {
         portEl: HTMLElement;
@@ -254,6 +221,8 @@ import type {
       };
 
       const templates: NodeTemplate[] = BOOTSTRAP.templates ?? [];
+      const getTemplateByType = (typeId: string): NodeTemplate | undefined =>
+        templates.find(template => template.typeId === typeId);
       applyTranslations();
 
       const describeStatus = (status: string): string => {
@@ -311,21 +280,6 @@ import type {
         }
     elements.toast.classList.add('visible');
     setTimeout(() => elements.toast.classList.remove('visible'), 3000);
-  };
-
-  const inferMediaKind = (file: File): 'image' | 'video' => {
-    if (file.type?.startsWith('video/')) {
-      return 'video';
-    }
-    if (file.type?.startsWith('image/')) {
-      return 'image';
-    }
-    const ext = file.name?.split('.').pop()?.toLowerCase() ?? '';
-    const videoExts = new Set(['mp4', 'mov', 'm4v', 'mkv', 'webm', 'avi', 'flv']);
-    if (videoExts.has(ext)) {
-      return 'video';
-    }
-    return 'image';
   };
 
   const cleanupMediaPreview = (nodeId: string): void => {
@@ -474,157 +428,6 @@ import type {
       height
     });
     renderNodes();
-  };
-
-  const loadImageDimensionsFromUrl = (nodeId: string, url: string): void => {
-    const img = new Image();
-    img.decoding = 'async';
-    img.onload = () => {
-      updateMediaPreviewDimensions(nodeId, img.naturalWidth || img.width, img.naturalHeight || img.height);
-      img.src = '';
-    };
-    img.onerror = () => {
-      updateMediaPreviewDimensions(nodeId, null, null);
-    };
-    img.src = url;
-  };
-
-  const measureImageDimensions = (nodeId: string, file: File, url: string): void => {
-    if (typeof window.createImageBitmap === 'function') {
-      void window
-        .createImageBitmap(file)
-        .then(bitmap => {
-          updateMediaPreviewDimensions(nodeId, bitmap.width, bitmap.height);
-          if (typeof bitmap.close === 'function') {
-            bitmap.close();
-          }
-        })
-        .catch(() => {
-          loadImageDimensionsFromUrl(nodeId, url);
-        });
-      return;
-    }
-    loadImageDimensionsFromUrl(nodeId, url);
-  };
-
-  const measureVideoDimensions = (nodeId: string, url: string): void => {
-    const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.muted = true;
-    video.playsInline = true;
-    video.controls = false;
-    video.setAttribute('aria-hidden', 'true');
-    video.style.position = 'fixed';
-    video.style.left = '-9999px';
-    video.style.top = '-9999px';
-    video.style.width = '1px';
-    video.style.height = '1px';
-    video.style.pointerEvents = 'none';
-
-    const container = getMeasurementContainer();
-    if (container) {
-      container.appendChild(video);
-    }
-
-    const cleanup = (warn?: string): void => {
-      video.onloadedmetadata = null;
-      video.onerror = null;
-      try {
-        video.pause();
-      } catch (error) {
-        console.warn('[NodeVision] video pause failed', error);
-      }
-      video.removeAttribute('src');
-      try {
-        video.load();
-      } catch (error) {
-        console.warn('[NodeVision] video load reset failed', error);
-      }
-      if (video.parentNode) {
-        video.parentNode.removeChild(video);
-      }
-      if (warn) {
-        console.warn('[NodeVision]', warn);
-      }
-    };
-
-    video.onloadedmetadata = () => {
-      updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null);
-      cleanup();
-    };
-
-    video.onerror = () => {
-      updateMediaPreviewDimensions(nodeId, null, null);
-      cleanup('Failed to read video metadata for preview');
-    };
-
-    try {
-      video.src = url;
-      video.load();
-    } catch (error) {
-      cleanup('Unable to schedule video metadata probe');
-    }
-  };
-
-  const ingestMediaFile = (nodeId: string, file: File): void => {
-    const mode = getLoadNodeKindById(nodeId);
-    const kind = inferMediaKind(file);
-    if (mode === 'image' && kind !== 'image') {
-      showToast(t('toast.mediaWrongTypeImage'), 'error');
-      return;
-    }
-    if (mode === 'video' && kind !== 'video') {
-      showToast(t('toast.mediaWrongTypeVideo'), 'error');
-      return;
-    }
-    if (typeof URL?.createObjectURL !== 'function') {
-      console.error('[NodeVision] URL.createObjectURL unavailable for media preview');
-      showToast(t('toast.mediaFailed'), 'error');
-      return;
-    }
-    cleanupMediaPreview(nodeId);
-    let objectUrl: string;
-    try {
-      objectUrl = URL.createObjectURL(file);
-    } catch (error) {
-      console.error('[NodeVision] failed to create preview URL', error);
-      showToast(t('toast.mediaFailed'), 'error');
-      return;
-    }
-    const fallbackType = file.name?.split('.').pop()?.toUpperCase() ?? '';
-    const resolvedType = file.type || fallbackType;
-    state.mediaPreviews.set(nodeId, {
-      url: objectUrl,
-      name: file.name || 'media',
-      size: file.size ?? 0,
-      type: resolvedType,
-      kind,
-      width: null,
-      height: null
-    });
-    renderNodes();
-    if (kind === 'image') {
-      measureImageDimensions(nodeId, file, objectUrl);
-    } else {
-      measureVideoDimensions(nodeId, objectUrl);
-    }
-    if (file.name) {
-      showToast(t('toast.mediaSelected', { name: file.name }));
-    }
-  };
-
-  const handleMediaInputChange = (nodeId: string, input: HTMLInputElement): void => {
-    if (state.readonly) {
-      input.value = '';
-      return;
-    }
-    const file = input.files?.[0];
-    if (!file) {
-      input.value = '';
-      return;
-    }
-    ingestMediaFile(nodeId, file);
-    input.value = '';
   };
 
   const renderQueue = (): void => {
@@ -1029,6 +832,42 @@ import type {
     renderConnectionPaths();
   };
 
+  const removeNodeById = (nodeId: string): void => {
+    const index = state.nodes.findIndex(node => node.id === nodeId);
+    if (index < 0) {
+      return;
+    }
+    if (state.readonly) {
+      return;
+    }
+    const targetNode = state.nodes[index];
+    const renderer = getNodeRenderer(targetNode.typeId);
+    renderer?.onBeforeNodeRemove?.(nodeId);
+    if (state.resizing?.nodeId === nodeId) {
+      cancelResize();
+    }
+    cleanupMediaPreview(nodeId);
+    state.nodeSizes.delete(nodeId);
+    state.nodeChrome.delete(nodeId);
+    state.selection.delete(nodeId);
+    if (state.pressedNodeId === nodeId) {
+      setPressedNode(null);
+    }
+    if (state.pendingConnection && state.pendingConnection.fromNodeId === nodeId) {
+      state.pendingConnection = null;
+      updatePendingHint();
+    }
+    state.connections = state.connections.filter(connection => {
+      if (connection.fromNodeId === nodeId || connection.toNodeId === nodeId) {
+        state.highlightedConnections.delete(connection.id);
+        return false;
+      }
+      return true;
+    });
+    state.nodes.splice(index, 1);
+    commitState();
+  };
+
   const describePort = (node: RendererNode, port: NodePort, direction: PortDirection): string =>
     t('ports.portLabel', {
       direction: t(direction === 'input' ? 'ports.direction.input' : 'ports.direction.output'),
@@ -1228,73 +1067,6 @@ import type {
       )
       .join('');
 
-  const buildLoadNodeMediaSection = (node: RendererNode): string => {
-    const nodeId = node.id;
-    const preview = state.mediaPreviews.get(nodeId);
-    const nodeSize = state.nodeSizes.get(nodeId) ?? { width: NODE_MIN_WIDTH, height: NODE_MIN_HEIGHT };
-    const chrome = getNodeChromePadding(nodeId);
-    const nodeKind = getLoadNodeKindFromType(node.typeId);
-    const ratio = getPreviewAspectRatio(nodeId);
-    const heightLimit = Math.max(MIN_PREVIEW_HEIGHT, nodeSize.height - chrome);
-    const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
-    let previewWidth = widthLimit;
-    let previewHeight = previewWidth / ratio;
-    if (previewHeight > heightLimit) {
-      previewHeight = heightLimit;
-      previewWidth = Math.min(widthLimit, previewHeight * ratio);
-    }
-    previewWidth = Math.max(MIN_PREVIEW_WIDTH, previewWidth);
-    previewHeight = Math.max(MIN_PREVIEW_HEIGHT, Math.min(heightLimit, previewHeight));
-    const inlineStyle = ` style="--preview-width:${previewWidth}px;--preview-height:${previewHeight}px"`;
-    const acceptAttr = nodeKind === 'image' ? 'image/*' : nodeKind === 'video' ? 'video/*' : 'image/*,video/*';
-    const uploadControl = `
-      <label class="node-media-upload${state.readonly ? ' disabled' : ''}">
-        <span>${escapeHtml(t('nodes.load.selectButton'))}</span>
-        <input type="file" accept="${acceptAttr}" ${state.readonly ? 'disabled' : ''} data-media-input="${escapeHtml(
-          nodeId
-        )}" />
-      </label>
-    `;
-    const fileLabel = escapeHtml(preview?.name ?? t('nodes.load.noFile'));
-    const aspectText =
-      preview?.width && preview?.height
-        ? `${preview.width} × ${preview.height}`
-        : t('nodes.load.aspectUnknown');
-    const aspectHtml = `<p class="node-media-aspect">${escapeHtml(aspectText)}</p>`;
-
-    const toolbar = `
-      <div class="node-media-toolbar">
-        <button type="button" class="node-media-arrow" disabled aria-hidden="true">◀</button>
-        <span class="node-media-filename" title="${fileLabel}">${fileLabel}</span>
-        <button type="button" class="node-media-arrow" disabled aria-hidden="true">▶</button>
-      </div>
-    `;
-
-    if (!preview) {
-      return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}"${inlineStyle}>
-        ${toolbar}
-        ${uploadControl}
-        <p class="node-media-empty">${escapeHtml(t('nodes.load.empty'))}</p>
-        ${aspectHtml}
-      </div>`;
-    }
-    const kind = preview.kind === 'video' ? 'video' : 'image';
-    const mediaTag =
-      kind === 'video'
-        ? `<video src="${preview.url}" controls playsinline preload="metadata" muted></video>`
-        : `<img src="${preview.url}" alt="${escapeHtml(preview.name)}" />`;
-    return `<div class="node-media" data-node-id="${escapeHtml(nodeId)}"${inlineStyle}>
-      ${toolbar}
-      ${uploadControl}
-      <div class="node-media-frame">
-        <div class="node-media-preview" data-kind="${kind}">
-          ${mediaTag}
-        </div>
-      </div>
-      ${aspectHtml}
-    </div>`;
-  };
-
   const startResize = (node: RendererNode, handle: ResizeHandle, element: HTMLElement, event: PointerEvent): void => {
     if (state.readonly) return;
     event.preventDefault();
@@ -1402,6 +1174,9 @@ import type {
       const el = document.createElement('div');
       el.className = 'node';
       el.dataset.id = node.id;
+      el.dataset.typeId = node.typeId;
+      el.setAttribute('data-type-id', node.typeId);
+      el.classList.add(toNodeTypeClass(node.typeId));
       el.tabIndex = 0;
       el.setAttribute('role', 'group');
       el.setAttribute('aria-label', t('nodes.ariaLabel', { title: localizedTitle }));
@@ -1414,8 +1189,16 @@ import type {
       const nodeSize = ensureNodeSize(node);
       const nodeWidth = nodeSize.width;
       const nodeHeight = nodeSize.height;
+      const deleteButton = `<button type="button" class="node-delete-btn${state.readonly ? ' disabled' : ''}" data-remove-node="${escapeHtml(
+        node.id
+      )}" data-node-interactive="true" aria-label="${escapeHtml(
+        t('nodes.delete')
+      )}" ${state.readonly ? 'disabled' : ''}></button>`;
+      const renderer = getNodeRenderer(node.typeId);
+      const extension = renderer?.render(node) ?? null;
       const htmlParts = [
         '<header class="node-header">',
+        deleteButton,
         '<div class="node-header-main">',
         '<p class="node-title">', escapeHtml(localizedTitle), '</p>',
         '<p class="node-meta">', escapeHtml(metaText), '</p>',
@@ -1428,8 +1211,8 @@ import type {
         outputsGroup,
         '</div>'
       ];
-      if (isLoadNodeType(node.typeId)) {
-        htmlParts.push(buildLoadNodeMediaSection(node));
+      if (extension?.afterPortsHtml) {
+        htmlParts.push(extension.afterPortsHtml);
       }
       htmlParts.push(buildResizeHandles(node.id));
       el.innerHTML = htmlParts.join('');
@@ -1444,11 +1227,12 @@ import type {
       }
       attachNodeEvents(el, node);
       attachPortEvents(el);
-      if (isLoadNodeType(node.typeId)) {
-        el.querySelectorAll<HTMLInputElement>('input[data-media-input]').forEach(input => {
-          input.addEventListener('change', () => handleMediaInputChange(node.id, input));
-        });
-      }
+      const deleteButtonEl = el.querySelector<HTMLButtonElement>('[data-remove-node]');
+      deleteButtonEl?.addEventListener('click', event => {
+        event.stopPropagation();
+        event.preventDefault();
+        removeNodeById(node.id);
+      });
       el.querySelectorAll<HTMLElement>('[data-resize-handle]').forEach(handle => {
         handle.addEventListener('pointerdown', event => {
           const direction = (handle.getAttribute('data-resize-handle') as ResizeHandle) ?? 'se';
@@ -1456,6 +1240,7 @@ import type {
         });
       });
       host.appendChild(el);
+      extension?.afterRender?.(el);
     });
     const needsSync = !suppressChromeMeasurement && syncNodeChromePadding();
     suppressChromeMeasurement = false;
@@ -1465,6 +1250,29 @@ import type {
     }
     renderConnectionPaths();
     applyNodeHighlightClasses();
+  };
+
+  const initializeNodeRenderers = (): void => {
+    nodeRendererByType.clear();
+    const modules = createNodeRenderers({
+      state,
+      t,
+      escapeHtml,
+      showToast,
+      renderNodes,
+      cleanupMediaPreview,
+      updateMediaPreviewDimensions,
+      getNodeChromePadding,
+      getPreviewWidthForNodeWidth,
+      getPreviewAspectRatio,
+      minPreviewHeight: MIN_PREVIEW_HEIGHT,
+      getTemplateByType
+    });
+    modules.forEach(module => {
+      module.typeIds.forEach(typeId => {
+        nodeRendererByType.set(typeId, module);
+      });
+    });
   };
 
   const attachNodeEvents = (el: HTMLElement, node: RendererNode): void => {
@@ -2248,6 +2056,7 @@ import type {
   setupSidebarPanels();
   renderStatus();
   renderAbout();
+  initializeNodeRenderers();
   renderNodes();
   renderConnections();
   updatePendingHint();
