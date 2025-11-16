@@ -71,6 +71,7 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
     zoom: 1,
     viewport: { x: 0, y: 0 },
     activeTool: 'select',
+    canvasControlsPosition: null,
     history: [] as HistoryEntry[],
     historyIndex: -1,
     autosaveTimer: null,

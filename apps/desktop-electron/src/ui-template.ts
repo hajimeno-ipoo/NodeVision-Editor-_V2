@@ -553,7 +553,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         cursor: move;
       }
       .canvas-controls {
-        position: absolute;
+        position: fixed;
         left: 24px;
         bottom: 24px;
         display: inline-flex;
@@ -566,6 +566,11 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
         backdrop-filter: blur(14px);
         z-index: 10;
+        cursor: grab;
+        touch-action: none;
+      }
+      .canvas-controls.is-dragging {
+        cursor: grabbing;
       }
       .canvas-tool {
         width: 60px;
@@ -578,6 +583,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         align-items: center;
         justify-content: center;
         font-size: 20px;
+        cursor: pointer;
         transition: background 180ms ease, color 180ms ease, border 180ms ease, transform 180ms ease;
       }
       .canvas-tool:hover,
@@ -2038,6 +2044,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         </div>
         <div
           class="canvas-controls"
+          id="canvas-controls"
           role="toolbar"
           aria-label="Canvas controls"
           data-i18n-attr-aria-label="canvas.controls"

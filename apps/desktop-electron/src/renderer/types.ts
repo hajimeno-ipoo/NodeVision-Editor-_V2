@@ -77,6 +77,7 @@ export interface RendererState {
   zoom: number;
   viewport: Point;
   activeTool: CanvasTool;
+  canvasControlsPosition: Point | null;
   history: HistoryEntry[];
   historyIndex: number;
   autosaveTimer: number | null;
@@ -110,6 +111,7 @@ export interface HistoryEntry {
 }
 
 export interface RendererDom {
+  canvasControls: HTMLElement;
   statusList: HTMLUListElement;
   canvas: HTMLElement;
   canvasGrid: HTMLElement;

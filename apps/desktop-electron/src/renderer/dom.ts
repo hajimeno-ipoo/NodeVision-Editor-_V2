@@ -9,6 +9,7 @@ const getElement = <T extends Element>(id: string): T => {
 };
 
 export const captureDomElements = (): RendererDom => ({
+  canvasControls: getElement<HTMLElement>('canvas-controls'),
   statusList: getElement<HTMLUListElement>('status-list'),
   canvas: getElement<HTMLElement>('canvas'),
   canvasGrid: getElement<HTMLElement>('canvas-grid'),

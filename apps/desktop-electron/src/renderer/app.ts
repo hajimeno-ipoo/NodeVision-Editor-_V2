@@ -53,6 +53,8 @@ import type { StoredWorkflow } from './types';
   const GRID_MAJOR_FACTOR = 4;
   const SELECTION_PADDING = 6;
   const LOCALE_STORAGE_KEY = 'nodevision.locale';
+  const CANVAS_CONTROLS_POSITION_KEY = 'nodevision.canvasControls.position';
+  const CANVAS_CONTROLS_MARGIN = 12;
   const TRANSLATIONS: Record<string, Record<string, string>> = rendererWindow.__NODEVISION_TRANSLATIONS__ ?? {};
   const SUPPORTED_LOCALES: string[] = Array.isArray(rendererWindow.__NODEVISION_SUPPORTED_LOCALES__) && rendererWindow.__NODEVISION_SUPPORTED_LOCALES__.length
     ? rendererWindow.__NODEVISION_SUPPORTED_LOCALES__!
@@ -128,12 +130,182 @@ import type { StoredWorkflow } from './types';
   const toNodeTypeClass = (typeId: string): string =>
     'node-type-' + typeId.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
 
+  const readCanvasControlsPosition = (): Point | null => {
+    try {
+      if (typeof localStorage === 'undefined') {
+        return null;
+      }
+      const raw = localStorage.getItem(CANVAS_CONTROLS_POSITION_KEY);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+        return { x: parsed.x, y: parsed.y };
+      }
+    } catch (error) {
+      console.warn('[NodeVision] failed to read canvas controls position', error);
+    }
+    return null;
+  };
+
+  const persistCanvasControlsPosition = (pos: Point | null): void => {
+    try {
+      if (typeof localStorage === 'undefined') {
+        return;
+      }
+      if (!pos) {
+        localStorage.removeItem(CANVAS_CONTROLS_POSITION_KEY);
+        return;
+      }
+      localStorage.setItem(CANVAS_CONTROLS_POSITION_KEY, JSON.stringify(pos));
+    } catch (error) {
+      console.warn('[NodeVision] failed to persist canvas controls position', error);
+    }
+  };
+
+  const clampCanvasControlsPosition = (pos: Point, dims?: { width: number; height: number }): Point => {
+    const rect = dims ?? elements.canvasControls.getBoundingClientRect();
+    const width = Math.max(rect.width, 1);
+    const height = Math.max(rect.height, 1);
+    const maxX = Math.max(CANVAS_CONTROLS_MARGIN, window.innerWidth - width - CANVAS_CONTROLS_MARGIN);
+    const maxY = Math.max(CANVAS_CONTROLS_MARGIN, window.innerHeight - height - CANVAS_CONTROLS_MARGIN);
+    return {
+      x: Math.min(Math.max(pos.x, CANVAS_CONTROLS_MARGIN), maxX),
+      y: Math.min(Math.max(pos.y, CANVAS_CONTROLS_MARGIN), maxY)
+    };
+  };
+
+  const applyCanvasControlsPosition = (pos: Point | null): void => {
+    if (!pos) {
+      elements.canvasControls.style.left = '';
+      elements.canvasControls.style.top = '';
+      elements.canvasControls.style.bottom = '';
+      elements.canvasControls.style.right = '';
+      state.canvasControlsPosition = null;
+      return;
+    }
+    const clamped = clampCanvasControlsPosition(pos);
+    elements.canvasControls.style.left = `${Math.round(clamped.x)}px`;
+    elements.canvasControls.style.top = `${Math.round(clamped.y)}px`;
+    elements.canvasControls.style.bottom = 'auto';
+    elements.canvasControls.style.right = 'auto';
+    state.canvasControlsPosition = { x: Math.round(clamped.x), y: Math.round(clamped.y) };
+  };
+
+  const storedControlsPosition = readCanvasControlsPosition();
+  if (storedControlsPosition) {
+    applyCanvasControlsPosition(storedControlsPosition);
+  }
+
+  const startCanvasControlsDrag = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement | null;
+    if (target && (target.closest('button') || target.closest('input') || target.closest('select'))) {
+      if (!event.altKey) {
+        return;
+      }
+    }
+    const rect = elements.canvasControls.getBoundingClientRect();
+    canvasControlsDragSession = {
+      pointerId: event.pointerId ?? 1,
+      offset: { x: event.clientX - rect.left, y: event.clientY - rect.top },
+      width: rect.width,
+      height: rect.height
+    };
+    elements.canvasControls.classList.add('is-dragging');
+    elements.canvasControls.style.left = `${rect.left}px`;
+    elements.canvasControls.style.top = `${rect.top}px`;
+    elements.canvasControls.style.bottom = 'auto';
+    elements.canvasControls.style.right = 'auto';
+    state.canvasControlsPosition = { x: rect.left, y: rect.top };
+    window.addEventListener('pointermove', handleCanvasControlsPointerMove);
+    window.addEventListener('pointerup', handleCanvasControlsPointerUp);
+    window.addEventListener('pointercancel', handleCanvasControlsPointerCancel);
+    try {
+      elements.canvasControls.setPointerCapture(event.pointerId ?? 1);
+    } catch {
+      /* ignore */
+    }
+    event.preventDefault();
+  };
+
+  const updateCanvasControlsPositionFromEvent = (event: PointerEvent): void => {
+    if (!canvasControlsDragSession) return;
+    const { offset, width, height } = canvasControlsDragSession;
+    const next = {
+      x: event.clientX - offset.x,
+      y: event.clientY - offset.y
+    };
+    const clamped = clampCanvasControlsPosition(next, { width, height });
+    elements.canvasControls.style.left = `${Math.round(clamped.x)}px`;
+    elements.canvasControls.style.top = `${Math.round(clamped.y)}px`;
+    state.canvasControlsPosition = { x: Math.round(clamped.x), y: Math.round(clamped.y) };
+  };
+
+  const stopCanvasControlsDrag = (persist: boolean, event?: PointerEvent): void => {
+    if (!canvasControlsDragSession) return;
+    window.removeEventListener('pointermove', handleCanvasControlsPointerMove);
+    window.removeEventListener('pointerup', handleCanvasControlsPointerUp);
+    window.removeEventListener('pointercancel', handleCanvasControlsPointerCancel);
+    if (persist) {
+      persistCanvasControlsPosition(state.canvasControlsPosition ?? null);
+    }
+    elements.canvasControls.classList.remove('is-dragging');
+    if (event) {
+      try {
+        elements.canvasControls.releasePointerCapture(event.pointerId ?? canvasControlsDragSession.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    canvasControlsDragSession = null;
+  };
+
+  const handleCanvasControlsPointerMove = (event: PointerEvent): void => {
+    if (!canvasControlsDragSession || (event.pointerId ?? 1) !== canvasControlsDragSession.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    updateCanvasControlsPositionFromEvent(event);
+  };
+
+  const handleCanvasControlsPointerUp = (event: PointerEvent): void => {
+    if (!canvasControlsDragSession || (event.pointerId ?? 1) !== canvasControlsDragSession.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    stopCanvasControlsDrag(true, event);
+  };
+
+  const handleCanvasControlsPointerCancel = (event: PointerEvent): void => {
+    if (!canvasControlsDragSession || (event.pointerId ?? 1) !== canvasControlsDragSession.pointerId) {
+      return;
+    }
+    stopCanvasControlsDrag(false, event);
+  };
+
+  const handleCanvasControlsResize = (): void => {
+    if (!state.canvasControlsPosition) {
+      return;
+    }
+    applyCanvasControlsPosition(state.canvasControlsPosition);
+    persistCanvasControlsPosition(state.canvasControlsPosition);
+  };
+
+  const isEventInsideCanvas = (event: WheelEvent | PointerEvent): boolean => {
+    const rect = elements.canvas.getBoundingClientRect();
+    return event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+  };
+
   const MIN_ZOOM = 0.25;
   const MAX_ZOOM = 3;
   const ZOOM_STEP = 0.1;
 
   type PanSession = { pointerId: number; start: Point; startViewport: Point };
   let panSession: PanSession | null = null;
+  type CanvasControlsDragSession = { pointerId: number; offset: Point; width: number; height: number };
+  let canvasControlsDragSession: CanvasControlsDragSession | null = null;
   let zoomMenuOpen = false;
 
   let activeConnectionDrag: {
@@ -3002,18 +3174,23 @@ import type { StoredWorkflow } from './types';
     startPanSession(event);
   });
 
-  elements.canvas.addEventListener(
-    'wheel',
-    event => {
-      if (event.ctrlKey || event.metaKey || event.altKey) {
-        event.preventDefault();
-        const anchor = { clientX: event.clientX, clientY: event.clientY };
-        const direction = event.deltaY < 0 ? 1 : -1;
-        stepZoom(direction as 1 | -1, anchor);
-      }
-    },
-    { passive: false }
-  );
+  const handleCanvasWheel = (event: WheelEvent): void => {
+    if (!(event.ctrlKey || event.metaKey || event.altKey)) {
+      return;
+    }
+    if (!isEventInsideCanvas(event)) {
+      return;
+    }
+    event.preventDefault();
+    const anchor = { clientX: event.clientX, clientY: event.clientY };
+    const direction = event.deltaY < 0 ? 1 : -1;
+    stepZoom(direction as 1 | -1, anchor);
+  };
+
+  window.addEventListener('wheel', handleCanvasWheel, { passive: false });
+
+  elements.canvasControls.addEventListener('pointerdown', startCanvasControlsDrag);
+  window.addEventListener('resize', handleCanvasControlsResize);
 
   elements.toolSelect.addEventListener('click', () => setActiveTool('select'));
   elements.toolPan.addEventListener('click', () => setActiveTool('pan'));
