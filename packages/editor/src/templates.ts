@@ -28,6 +28,19 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     ]
   },
   {
+    typeId: 'mediaPreview',
+    nodeVersion: '1.0.0',
+    title: 'Media Preview',
+    category: 'Viewer',
+    description: 'Display a connected image or video inside the canvas',
+    keywords: ['preview', 'monitor', 'viewer', 'display'],
+    width: 320,
+    height: 260,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ]
+  },
+  {
     typeId: 'trim',
     nodeVersion: '1.0.0',
     title: 'Trim',

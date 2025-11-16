@@ -927,6 +927,8 @@ import type { StoredWorkflow } from './types';
     }
   };
 
+  const getMediaPreview = (nodeId: string) => state.mediaPreviews.get(nodeId);
+
   const cleanupAllMediaPreviews = (): void => {
     state.mediaPreviews.forEach(preview => {
       if (typeof URL?.revokeObjectURL === 'function') {
@@ -2454,7 +2456,8 @@ import type { StoredWorkflow } from './types';
       getPreviewWidthForNodeWidth,
       getPreviewAspectRatio,
       minPreviewHeight: MIN_PREVIEW_HEIGHT,
-      getTemplateByType
+      getTemplateByType,
+      getMediaPreview
     });
     modules.forEach(module => {
       module.typeIds.forEach(typeId => {

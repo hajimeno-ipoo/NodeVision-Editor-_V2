@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_NODE_TEMPLATES } from './templates';
 
-const REQUIRED_MEDIA_NODES = ['overlay', 'text', 'crop', 'speed', 'changeFps'];
+const REQUIRED_MEDIA_NODES = ['overlay', 'text', 'crop', 'speed', 'changeFps', 'mediaPreview'];
 
 describe('DEFAULT_NODE_TEMPLATES', () => {
   it('exposes all media/preview nodes with typeId + nodeVersion', () => {

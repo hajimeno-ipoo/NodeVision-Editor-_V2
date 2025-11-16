@@ -1,4 +1,4 @@
-import type { RendererNode, RendererState, TemplateVars, NodeTemplate } from '../types';
+import type { RendererNode, RendererState, TemplateVars, NodeTemplate, NodeMediaPreview } from '../types';
 
 export interface NodeRendererView {
   afterPortsHtml?: string;
@@ -25,4 +25,5 @@ export interface NodeRendererContext {
   getPreviewAspectRatio: (nodeId: string) => number;
   minPreviewHeight: number;
   getTemplateByType: (typeId: string) => NodeTemplate | undefined;
+  getMediaPreview: (nodeId: string) => NodeMediaPreview | undefined;
 }

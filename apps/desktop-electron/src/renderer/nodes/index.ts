@@ -8,6 +8,7 @@ import { createCropNodeRenderer } from './crop';
 import { createSpeedNodeRenderer } from './speed';
 import { createChangeFpsNodeRenderer } from './change-fps';
 import { createExportNodeRenderer } from './export-node';
+import { createMediaPreviewNodeRenderer } from './media-preview';
 
 export const createNodeRenderers = (context: NodeRendererContext): NodeRendererModule[] => [
   createLoadNodeRenderer(context),
@@ -18,5 +19,6 @@ export const createNodeRenderers = (context: NodeRendererContext): NodeRendererM
   createCropNodeRenderer(context),
   createSpeedNodeRenderer(context),
   createChangeFpsNodeRenderer(context),
-  createExportNodeRenderer(context)
+  createExportNodeRenderer(context),
+  createMediaPreviewNodeRenderer(context)
 ];

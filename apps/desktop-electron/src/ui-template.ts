@@ -957,7 +957,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         display: none;
       }
       /* Load node styles */
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media {
         padding: 0 18px 10px;
         display: flex;
         flex-direction: column;
@@ -999,19 +999,19 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload input[type="file"]:disabled {
         cursor: not-allowed;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-empty {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-empty {
         margin: 0;
         font-size: 12px;
         color: rgba(48, 48, 60, 0.6);
         text-align: center;
         padding: 6px 0 2px;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-frame {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-frame {
         width: 100%;
         display: flex;
         justify-content: center;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-preview {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-preview {
         border: none;
         border-radius: 0;
         overflow: visible;
@@ -1022,8 +1022,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         height: var(--preview-height, 240px);
         max-width: 100%;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-preview img,
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-preview video {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-preview img,
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-preview video {
         width: 100%;
         height: 100%;
         object-fit: contain;
@@ -1031,7 +1031,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         border-radius: 0;
         box-shadow: none;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-toolbar {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-toolbar {
         display: grid;
         grid-template-columns: auto 1fr auto;
         gap: 8px;
@@ -1047,7 +1047,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 14px;
         font-weight: 600;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-filename {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-filename {
         border: 1px solid rgba(0, 0, 0, 0.15);
         border-radius: 999px;
         padding: 4px 12px;
@@ -1057,7 +1057,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-aspect {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-aspect {
         margin: 10px 0 0;
         font-size: 13px;
         text-align: center;
