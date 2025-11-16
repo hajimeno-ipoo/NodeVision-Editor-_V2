@@ -644,10 +644,59 @@ import type { StoredWorkflow } from './types';
     closeWorkflowMenu();
   }
 
+  function handleWorkflowFileLoad(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.position = 'fixed';
+    input.style.left = '-1000px';
+    const cleanup = (): void => {
+      input.remove();
+    };
+    input.addEventListener(
+      'change',
+      () => {
+        const file = input.files && input.files[0];
+        if (!file) {
+          cleanup();
+          return;
+        }
+        const reader = new FileReader();
+        reader.addEventListener('error', () => {
+          alert(t('errors.jsonLoadFailed', { reason: reader.error?.message ?? 'unknown' }));
+          cleanup();
+        });
+        reader.addEventListener('load', () => {
+          try {
+            const text = typeof reader.result === 'string' ? reader.result : '';
+            elements.json.value = text;
+            loadFromTextarea();
+          } catch (error) {
+            alert(t('errors.jsonLoadFailed', { reason: getErrorMessage(error) }));
+          } finally {
+            cleanup();
+          }
+        });
+        reader.readAsText(file, 'utf-8');
+      },
+      { once: true }
+    );
+    document.body.appendChild(input);
+    input.click();
+  }
+
   function handleWorkflowMenuAction(action: string): void {
     switch (action) {
       case 'rename':
         void handleWorkflowRename();
+        break;
+      case 'fileSave':
+        serializeAndDownload();
+        closeWorkflowMenu();
+        break;
+      case 'fileLoad':
+        closeWorkflowMenu();
+        handleWorkflowFileLoad();
         break;
       case 'saveAs':
         void handleWorkflowSaveAs();
@@ -1954,12 +2003,12 @@ import type { StoredWorkflow } from './types';
     }
     event.preventDefault();
     stopDragSessionListeners();
+    if (dragSession.anchorNodeId) {
+      setPressedNode(null);
+    }
     if (dragSession.dragging && dragSession.moved) {
       suppressChromeMeasurement = true;
       commitState();
-    }
-    if (dragSession.anchorNodeId) {
-      setPressedNode(null);
     }
     document.body?.classList.remove('node-dragging');
     dragSession = null;
@@ -2923,7 +2972,7 @@ import type { StoredWorkflow } from './types';
       stepZoom(-1, anchor);
     } else if (event.key === '1' && !event.shiftKey && !modifier) {
       setZoom(1);
-    } else if (event.key === '1' && event.shiftKey) {
+    } else if ((event.key === '1' || event.key === '!') && event.shiftKey) {
       fitSelection();
     } else if (!modifier && !event.altKey && event.key === '.') {
       event.preventDefault();
@@ -3043,6 +3092,8 @@ import type { StoredWorkflow } from './types';
 
   const workflowMenuButtons: Array<{ button: HTMLButtonElement; action: string }> = [
     { button: elements.workflowMenuRename, action: 'rename' },
+    { button: elements.workflowMenuFileSave, action: 'fileSave' },
+    { button: elements.workflowMenuFileLoad, action: 'fileLoad' },
     { button: elements.workflowMenuSaveAs, action: 'saveAs' },
     { button: elements.workflowMenuClear, action: 'clear' },
     { button: elements.workflowMenuBrowse, action: 'browse' }
@@ -3136,8 +3187,6 @@ import type { StoredWorkflow } from './types';
     }
   });
 
-  elements.export.addEventListener('click', serializeAndDownload);
-  elements.load.addEventListener('click', loadFromTextarea);
   elements.undo.addEventListener('click', undo);
   elements.redo.addEventListener('click', redo);
   elements.runningToggle.addEventListener('change', event => {

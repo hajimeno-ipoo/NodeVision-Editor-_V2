@@ -133,8 +133,6 @@ export interface RendererDom {
   undo: HTMLButtonElement;
   redo: HTMLButtonElement;
   json: HTMLTextAreaElement;
-  export: HTMLButtonElement;
-  load: HTMLButtonElement;
   runningToggle: HTMLInputElement;
   localeSelect: HTMLSelectElement;
   readonlyBanner: HTMLElement;
@@ -163,6 +161,8 @@ export interface RendererDom {
   workflowMenu: HTMLElement;
   workflowNameLabel: HTMLElement;
   workflowMenuRename: HTMLButtonElement;
+  workflowMenuFileSave: HTMLButtonElement;
+  workflowMenuFileLoad: HTMLButtonElement;
   workflowMenuSaveAs: HTMLButtonElement;
   workflowMenuClear: HTMLButtonElement;
   workflowMenuBrowse: HTMLButtonElement;

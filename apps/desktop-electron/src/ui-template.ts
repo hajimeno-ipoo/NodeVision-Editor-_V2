@@ -295,18 +295,33 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         padding: 12px 0;
       }
       .sidebar-icon {
-        width: 44px;
-        height: 44px;
+        width: 48px;
+        height: 48px;
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(0, 0, 0, 0.25);
         color: rgba(255, 255, 255, 0.85);
-        font-size: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: border 150ms ease, background 150ms ease, transform 150ms ease;
+      }
+      .sidebar-icon-symbol {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sidebar-icon-symbol svg {
+        width: 100%;
+        height: 100%;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
       .sidebar-icon:focus-visible {
         outline: 2px solid #7dc3ff;
@@ -459,7 +474,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         height: 36px;
         border-radius: 50%;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: transparent;
+        background: rgba(7, 9, 15, 0.85);
         color: #f5f7ff;
         display: inline-flex;
         align-items: center;
@@ -467,15 +482,26 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 16px;
         transition: background 180ms ease, color 180ms ease, border 180ms ease, transform 180ms ease;
       }
-      .canvas-tool.active {
-        background: #f4f5ff;
-        color: #161720;
-        border-color: transparent;
-        box-shadow: 0 6px 20px rgba(15, 16, 24, 0.4);
+      .canvas-tool:hover,
+      .canvas-tool:focus-visible {
+        background: rgba(255, 223, 107, 0.18);
+        border-color: rgba(255, 223, 107, 0.35);
+        color: #ffe089;
       }
       .canvas-tool:focus-visible {
         outline: 2px solid #6ea8ff;
         outline-offset: 2px;
+      }
+      .canvas-tool:active {
+        background: rgba(255, 223, 107, 0.28);
+        border-color: rgba(255, 223, 107, 0.55);
+        color: #fff2c1;
+      }
+      .canvas-tool.active {
+        background: rgba(255, 223, 107, 0.28);
+        border-color: rgba(255, 223, 107, 0.55);
+        color: #fff2c1;
+        box-shadow: 0 6px 20px rgba(15, 16, 24, 0.4);
       }
       .canvas-controls-divider {
         width: 1px;
@@ -494,17 +520,26 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         color: #f5f7ff;
         padding: 0 16px;
         font-size: 15px;
-        transition: border 150ms ease, background 150ms ease;
+        transition: border 150ms ease, background 150ms ease, color 150ms ease;
+        outline: none;
       }
-      #zoom-display[aria-expanded='true'] {
-        background: rgba(34, 37, 51, 0.95);
-        border-color: rgba(255, 255, 255, 0.2);
+      #zoom-display[aria-expanded='true'],
+      #zoom-display:hover,
+      #zoom-display:focus-visible {
+        background: rgba(255, 223, 107, 0.18);
+        border-color: rgba(255, 223, 107, 0.35);
+        color: #ffe089;
+      }
+      #zoom-display:active {
+        background: rgba(255, 223, 107, 0.28);
+        border-color: rgba(255, 223, 107, 0.55);
+        color: #fff2c1;
       }
       #zoom-menu {
         position: absolute;
         right: 0;
         bottom: calc(100% + 8px);
-        width: 220px;
+        width: 260px;
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(8, 11, 19, 0.98);
@@ -518,17 +553,28 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         display: flex;
       }
       #zoom-menu button {
-        width: 100%;
         border-radius: 10px;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(19, 22, 33, 0.95);
         color: #f5f7ff;
+        transition: background 160ms ease, border 160ms ease, color 160ms ease;
+        outline: none;
+        width: 100%;
         padding: 9px 12px;
         font-size: 15px;
         text-align: left;
+        white-space: nowrap;
       }
-      #zoom-menu button:hover {
-        background: rgba(255, 255, 255, 0.1);
+      #zoom-menu button:hover,
+      #zoom-menu button:focus-visible {
+        background: rgba(255, 223, 107, 0.18);
+        border-color: rgba(255, 223, 107, 0.35);
+        color: #ffe089;
+      }
+      #zoom-menu button:active {
+        background: rgba(255, 223, 107, 0.28);
+        border-color: rgba(255, 223, 107, 0.55);
+        color: #fff2c1;
       }
       #zoom-menu hr {
         border: none;
@@ -1516,22 +1562,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         color: rgba(255, 255, 255, 0.8);
       }
       #json-panel {
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 16px 24px;
-        background: #0f1117;
-        display: grid;
-        grid-template-columns: 1fr 300px;
-        gap: 16px;
+        display: none;
       }
       #project-json {
-        width: 100%;
-        min-height: 160px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(5, 7, 12, 0.9);
-        color: #e8ecff;
-        padding: 12px;
-        font-family: 'JetBrains Mono', 'SFMono-Regular', monospace;
+        display: none;
       }
       .readonly-banner {
         display: none;
@@ -1645,6 +1679,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           </button>
           <div id="workflow-menu" role="menu" aria-hidden="true">
             <button type="button" id="workflow-menu-rename" data-workflow-action="rename" data-i18n-key="workflow.menu.rename">Rename</button>
+            <button type="button" id="workflow-menu-file-save" data-workflow-action="fileSave" data-i18n-key="workflow.menu.fileSave">File save</button>
+            <button type="button" id="workflow-menu-file-load" data-workflow-action="fileLoad" data-i18n-key="workflow.menu.fileLoad">File load</button>
             <button type="button" id="workflow-menu-save-as" data-workflow-action="saveAs" data-i18n-key="workflow.menu.saveAs">Save as</button>
             <button type="button" id="workflow-menu-clear" data-workflow-action="clear" data-i18n-key="workflow.menu.clear">Clear workflow</button>
             <button type="button" id="workflow-menu-browse" data-workflow-action="browse" data-i18n-key="workflow.menu.openList">Browse workflows</button>
@@ -1678,32 +1714,78 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       <section class="sidebar" aria-label="Node search and help" data-i18n-attr-aria-label="sidebar.ariaLabel">
         <div class="sidebar-icons" role="tablist">
           <button type="button" class="sidebar-icon" data-panel="panel-search" aria-controls="panel-search" aria-expanded="false">
-            <span aria-hidden="true">🔍</span>
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="11" cy="11" r="6" />
+                <line x1="16" y1="16" x2="21" y2="21" />
+              </svg>
+            </span>
             <span class="sr-only">Search</span>
           </button>
-          <button type="button" class="sidebar-icon" data-panel="panel-help" aria-controls="panel-help" aria-expanded="false">
-            <span aria-hidden="true">❓</span>
-            <span class="sr-only">Help</span>
-          </button>
           <button type="button" class="sidebar-icon" data-panel="panel-queue" aria-controls="panel-queue" aria-expanded="false">
-            <span aria-hidden="true">🗂️</span>
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M19 12a7 7 0 1 1-2.05-4.95" />
+                <polyline points="19 5 19 9 15 9" />
+              </svg>
+            </span>
             <span class="sr-only">Queue</span>
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-workflows" aria-controls="panel-workflows" aria-expanded="false">
-            <span aria-hidden="true">🗃️</span>
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="8" cy="7" r="2.4" />
+                <circle cx="16" cy="7" r="2.4" />
+                <circle cx="8" cy="17" r="2.4" />
+                <circle cx="16" cy="17" r="2.4" />
+                <path d="M10.4 7h3.2" />
+                <path d="M8 9.4v5.2" />
+                <path d="M16 9.4v5.2" />
+                <path d="M10.4 17h3.2" />
+              </svg>
+            </span>
             <span class="sr-only">Workflows</span>
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-connections" aria-controls="panel-connections" aria-expanded="false">
-            <span aria-hidden="true">🔌</span>
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M7 12h4" />
+                <path d="M17 12h-4" />
+                <path d="M11 9V6.5a2.5 2.5 0 0 1 5 0V9" />
+                <path d="M13 15v2.5a2.5 2.5 0 0 1-5 0V15" />
+              </svg>
+            </span>
             <span class="sr-only">Connections</span>
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-diagnostics" aria-controls="panel-diagnostics" aria-expanded="false">
-            <span aria-hidden="true">📋</span>
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <rect x="6" y="5" width="12" height="15" rx="2" />
+                <path d="M9 3h6v3H9z" />
+                <path d="M9 13l2.5 2.5L15 11" />
+              </svg>
+            </span>
             <span class="sr-only">Diagnostics</span>
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-about" aria-controls="panel-about" aria-expanded="false">
-            <span aria-hidden="true">ℹ️</span>
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none" />
+                <line x1="12" y1="11" x2="12" y2="17" />
+              </svg>
+            </span>
             <span class="sr-only">About</span>
+          </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-help" aria-controls="panel-help" aria-expanded="false">
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9 10a3 3 0 0 1 5.7-1.2c.5 1.08.2 2.1-.7 2.8-.8.6-1.5 1.1-1.5 2.4" />
+                <circle cx="12" cy="17" r="0.7" fill="currentColor" stroke="none" />
+              </svg>
+            </span>
+            <span class="sr-only">Help</span>
           </button>
         </div>
         <div class="sidebar-panel-container" id="sidebar-panels" data-state="closed">
@@ -1735,11 +1817,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
                 <tr><td>Ctrl/Cmd + D</td><td data-i18n-key="help.duplicate">Duplicate</td></tr>
                 <tr><td>1</td><td data-i18n-key="help.zoomReset">Zoom 100%</td></tr>
                 <tr><td>Shift + 1</td><td data-i18n-key="help.fitSelection">Fit selection</td></tr>
+                <tr><td>⌥+= / ⌥+Shift+=</td><td data-i18n-key="help.zoomOut">Canvas zoom out</td></tr>
+                <tr><td>⌥+〜 / ⌥+Shift+；</td><td data-i18n-key="help.zoomIn">Canvas zoom in</td></tr>
               </table>
-            </div>
-            <div class="help-card">
-              <strong data-i18n-key="help.guideTitle">Guided actions</strong>
-              <p data-i18n-html="help.guideHtml">• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.</p>
             </div>
           </div>
           <div id="panel-queue" class="sidebar-panel" role="region" aria-hidden="true">
@@ -1944,20 +2024,14 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         </div>
       </section>
     </main>
-    <section id="json-panel">
-      <div>
-        <div class="banner" style="margin-bottom:10px;" data-i18n-key="json.banner">Manage JSON saves and loads here. schemaVersion=1.0.7 is preserved.</div>
-        <textarea
-          id="project-json"
-          spellcheck="false"
-          aria-label="JSON for save/load"
-          data-i18n-attr-aria-label="json.editorLabel"
-        ></textarea>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <button type="button" id="btn-export" data-i18n-key="json.export">Export JSON</button>
-        <button type="button" id="btn-load" data-i18n-key="json.import">Import JSON</button>
-      </div>
+    <section id="json-panel" hidden aria-hidden="true">
+      <textarea
+        id="project-json"
+        spellcheck="false"
+        aria-label="JSON for save/load"
+        data-i18n-attr-aria-label="json.editorLabel"
+        hidden
+      ></textarea>
     </section>
     <div id="toast" role="status" aria-live="assertive"></div>
     <div id="workflow-context-menu" role="menu" aria-hidden="true">
