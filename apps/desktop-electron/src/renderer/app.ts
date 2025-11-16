@@ -30,6 +30,7 @@ import type {
 import { createNodeRenderers } from './nodes';
 import type { NodeRendererModule } from './nodes/types';
 import type { StoredWorkflow } from './types';
+import { syncPendingPortHighlight } from './ports';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
@@ -1495,6 +1496,7 @@ import type { StoredWorkflow } from './types';
     if (state.pendingConnection && state.pendingConnection.fromNodeId === nodeId) {
       state.pendingConnection = null;
       updatePendingHint();
+      refreshPendingPortUi();
     }
     state.connections = state.connections.filter(connection => {
       if (connection.fromNodeId === nodeId || connection.toNodeId === nodeId) {
@@ -2440,6 +2442,7 @@ import type { StoredWorkflow } from './types';
     }
     renderConnectionPaths();
     applyNodeHighlightClasses();
+    refreshPendingPortUi();
   };
 
   const initializeNodeRenderers = (): void => {
@@ -2586,6 +2589,10 @@ import type { StoredWorkflow } from './types';
     });
   };
 
+  const refreshPendingPortUi = (): void => {
+    syncPendingPortHighlight(elements.nodeLayer, state.pendingConnection);
+  };
+
   const setDropTarget = (target: HTMLElement | null): void => {
     if (dropTargetPort === target) {
       return;
@@ -2609,7 +2616,7 @@ import type { StoredWorkflow } from './types';
     }
     state.pendingConnection = { fromNodeId: nodeId, fromPortId: portId };
     updatePendingHint();
-    renderNodes();
+    refreshPendingPortUi();
   };
 
   const handleConnectionDragMove = (event: PointerEvent): void => {
@@ -2758,10 +2765,9 @@ import type { StoredWorkflow } from './types';
     state.pendingConnection = null;
     updatePendingHint();
     endConnectionDrag();
+    refreshPendingPortUi();
     if (removed) {
       commitState();
-    } else {
-      renderNodes();
     }
   };
 
@@ -2797,7 +2803,7 @@ import type { StoredWorkflow } from './types';
       state.pendingConnection = null;
       updatePendingHint();
       endConnectionDrag();
-      renderNodes();
+      refreshPendingPortUi();
       return;
     }
     const connection = {
@@ -3107,7 +3113,7 @@ import type { StoredWorkflow } from './types';
     if (state.readonly && state.pendingConnection) {
       state.pendingConnection = null;
       updatePendingHint();
-      renderNodes();
+      refreshPendingPortUi();
     }
   };
 
