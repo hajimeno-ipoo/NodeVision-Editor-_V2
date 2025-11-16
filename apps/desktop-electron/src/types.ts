@@ -47,3 +47,10 @@ export interface DiagnosticsSnapshot {
   lastExportSha?: string | null;
   inspectHistory: InspectRequestLog[];
 }
+
+export interface WorkflowRecord {
+  id: string;
+  name: string;
+  data: string;
+  updatedAt: string;
+}

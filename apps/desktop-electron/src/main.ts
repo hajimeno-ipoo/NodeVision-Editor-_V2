@@ -1,3 +1,4 @@
+import { promises as fs } from 'node:fs';
 import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
 
@@ -29,7 +30,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 
 import { buildRendererHtml } from './ui-template';
 import { buildQueueWarnings } from './queue-warnings';
-import type { BootStatus, FFmpegDistributionMetadata, QueueSnapshot } from './types';
+import type { BootStatus, FFmpegDistributionMetadata, QueueSnapshot, WorkflowRecord } from './types';
 
 const preloadPath = path.join(__dirname, 'preload.js');
 const FFMPEG_SOURCE_URL = 'https://ffmpeg.org/download.html#sources';
@@ -39,6 +40,9 @@ const FFMPEG_LICENSE_URLS: Record<BinaryLicense, string> = {
   nonfree: 'https://ffmpeg.org/legal.html',
   unknown: 'https://ffmpeg.org/legal.html'
 };
+const WORKFLOW_STORE_FILE = 'nodevision-workflows.json';
+
+const getWorkflowStorePath = (): string => path.join(app.getPath('userData'), WORKFLOW_STORE_FILE);
 
 const tokenManager = createTokenManager();
 const jobQueue = new JobQueue({ maxQueueLength: 4, queueTimeoutMs: 3 * 60_000 });
@@ -185,6 +189,50 @@ const diagnosticsSnapshot = () => ({
   inspectHistory: inspectHistory.entries()
 });
 
+const sanitizeWorkflowRecords = (value: unknown): WorkflowRecord[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const sanitized: WorkflowRecord[] = [];
+  value.forEach(item => {
+    if (!item || typeof item !== 'object') {
+      return;
+    }
+    const record = item as Record<string, unknown>;
+    const id = typeof record.id === 'string' ? record.id : null;
+    const name = typeof record.name === 'string' ? record.name : null;
+    const data = typeof record.data === 'string' ? record.data : null;
+    if (!id || !name || !data) {
+      return;
+    }
+    const updatedAtRaw = typeof record.updatedAt === 'string' ? record.updatedAt : null;
+    const updatedAt = updatedAtRaw && !Number.isNaN(Date.parse(updatedAtRaw)) ? updatedAtRaw : new Date().toISOString();
+    sanitized.push({ id, name, data, updatedAt });
+  });
+  return sanitized;
+};
+
+const readWorkflowStore = async (): Promise<WorkflowRecord[]> => {
+  try {
+    const filePath = getWorkflowStorePath();
+    const raw = await fs.readFile(filePath, 'utf-8');
+    return sanitizeWorkflowRecords(JSON.parse(raw));
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === 'ENOENT') {
+      return [];
+    }
+    console.warn('[NodeVision] Failed to read workflow store', error);
+    throw error;
+  }
+};
+
+const writeWorkflowStore = async (workflows: WorkflowRecord[]): Promise<void> => {
+  const filePath = getWorkflowStorePath();
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(workflows, null, 2), 'utf-8');
+};
+
 ipcMain.handle('nodevision:queue:snapshot', () => getQueueSnapshot());
 
 ipcMain.handle('nodevision:queue:enqueue', async (_event, payload) => {
@@ -241,6 +289,25 @@ ipcMain.handle('nodevision:logs:export', async (_event, payload) => {
       }
     }));
     return { ok: true, result, diagnostics: diagnosticsSnapshot() };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('nodevision:workflows:load', async () => {
+  try {
+    const workflows = await readWorkflowStore();
+    return { ok: true, workflows };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error), workflows: [] };
+  }
+});
+
+ipcMain.handle('nodevision:workflows:save', async (_event, payload) => {
+  try {
+    const workflows = sanitizeWorkflowRecords(payload?.workflows);
+    await writeWorkflowStore(workflows);
+    return { ok: true };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : String(error) };
   }

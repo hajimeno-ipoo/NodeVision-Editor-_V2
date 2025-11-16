@@ -1,5 +1,5 @@
 import type { RendererPayload } from '../ui-template';
-import type { QueueLimits, QueueSnapshot, QueueWarning, DiagnosticsSnapshot } from '../types';
+import type { QueueLimits, QueueSnapshot, QueueWarning, DiagnosticsSnapshot, WorkflowRecord } from '../types';
 
 export interface RendererBootstrapWindow extends Window {
   __NODEVISION_BOOTSTRAP__?: RendererPayload;
@@ -19,12 +19,7 @@ export type TemplateVars = Record<string, string | number | boolean | null | und
 export type Point = { x: number; y: number };
 export type SerializedNode = Partial<RendererNode> & { id: string; typeId: string; position?: Partial<Point> };
 
-export interface StoredWorkflow {
-  id: string;
-  name: string;
-  updatedAt: string;
-  data: string;
-}
+export type StoredWorkflow = WorkflowRecord;
 
 export interface PendingConnection {
   fromNodeId: string;
@@ -204,6 +199,8 @@ export interface NodevisionApi {
   cancelAllJobs?: () => Promise<void>;
   exportLogs?: (password: string | null) => Promise<ExportLogsResult>;
   setCrashDumpConsent?: (enabled: boolean) => Promise<{ collectCrashDumps: boolean }>;
+  loadWorkflows?: () => Promise<{ ok: boolean; workflows?: StoredWorkflow[]; message?: string }>;
+  saveWorkflows?: (workflows: StoredWorkflow[]) => Promise<{ ok: boolean; message?: string }>;
 }
 
 export type {

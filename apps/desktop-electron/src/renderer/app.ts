@@ -324,7 +324,31 @@ import type { StoredWorkflow } from './types';
     updateWorkflowNameUi();
   }
 
-  function readStoredWorkflows(): StoredWorkflow[] {
+  const sanitizeWorkflowRecords = (records: unknown): StoredWorkflow[] => {
+    if (!Array.isArray(records)) {
+      return [];
+    }
+    return records
+      .map(item => {
+        if (!item || typeof item !== 'object') {
+          return null;
+        }
+        const record = item as Record<string, unknown>;
+        const id = typeof record.id === 'string' ? record.id : null;
+        const name = typeof record.name === 'string' ? record.name : null;
+        const data = typeof record.data === 'string' ? record.data : null;
+        if (!id || !name || !data) {
+          return null;
+        }
+        const updatedAtRaw = typeof record.updatedAt === 'string' ? record.updatedAt : null;
+        const parsed = updatedAtRaw ? new Date(updatedAtRaw) : null;
+        const updatedAt = parsed && !Number.isNaN(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+        return { id, name, data, updatedAt } as StoredWorkflow;
+      })
+      .filter((workflow): workflow is StoredWorkflow => Boolean(workflow));
+  };
+
+  function readStoredWorkflowsFallback(): StoredWorkflow[] {
     try {
       if (typeof localStorage === 'undefined') {
         return [];
@@ -334,24 +358,14 @@ import type { StoredWorkflow } from './types';
         return [];
       }
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-      return parsed
-        .filter(item => item && typeof item.id === 'string' && typeof item.name === 'string' && typeof item.data === 'string')
-        .map(item => ({
-          id: item.id,
-          name: item.name,
-          data: item.data,
-          updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : new Date().toISOString()
-        }));
+      return sanitizeWorkflowRecords(parsed);
     } catch (error) {
       console.warn('[NodeVision] Failed to load workflows', error);
       return [];
     }
   }
 
-  function persistWorkflows(): void {
+  function persistWorkflowsLocal(): void {
     try {
       if (typeof localStorage === 'undefined') {
         return;
@@ -360,6 +374,21 @@ import type { StoredWorkflow } from './types';
     } catch (error) {
       console.warn('[NodeVision] Failed to persist workflows', error);
     }
+  }
+
+  function persistWorkflows(): void {
+    if (nodevision?.saveWorkflows) {
+      nodevision
+        .saveWorkflows(state.workflows)
+        .then(result => {
+          if (!result?.ok) {
+            console.warn('[NodeVision] Failed to persist workflows', result?.message ?? 'unknown error');
+          }
+        })
+        .catch(error => console.warn('[NodeVision] Failed to persist workflows', error));
+      return;
+    }
+    persistWorkflowsLocal();
   }
 
   function sortWorkflows(): void {
@@ -397,7 +426,28 @@ import type { StoredWorkflow } from './types';
   }
 
   function hydrateStoredWorkflows(): void {
-    state.workflows = readStoredWorkflows();
+    if (nodevision?.loadWorkflows) {
+      nodevision
+        .loadWorkflows()
+        .then(response => {
+          if (!response?.ok) {
+            console.warn('[NodeVision] Failed to load workflows via bridge', response?.message ?? 'unknown error');
+            state.workflows = readStoredWorkflowsFallback();
+          } else {
+            state.workflows = sanitizeWorkflowRecords(response.workflows ?? []);
+          }
+          sortWorkflows();
+          renderWorkflowList();
+        })
+        .catch(error => {
+          console.warn('[NodeVision] Failed to load workflows via bridge', error);
+          state.workflows = readStoredWorkflowsFallback();
+          sortWorkflows();
+          renderWorkflowList();
+        });
+      return;
+    }
+    state.workflows = readStoredWorkflowsFallback();
     sortWorkflows();
     renderWorkflowList();
   }
