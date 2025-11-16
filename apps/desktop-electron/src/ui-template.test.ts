@@ -166,6 +166,29 @@ describe('ui-template i18n', () => {
   });
 });
 
+describe('canvas controls', () => {
+  it('renders pan/select tools and zoom dropdown with defaults', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+    const grid = dom.window.document.getElementById('canvas-grid');
+    expect(grid?.getAttribute('aria-hidden')).toBe('true');
+    const selectBtn = dom.window.document.getElementById('tool-select');
+    expect(selectBtn?.getAttribute('data-i18n-attr-title')).toBe('canvas.toolSelectTooltip');
+    const panBtn = dom.window.document.getElementById('tool-pan');
+    expect(panBtn?.getAttribute('data-i18n-attr-title')).toBe('canvas.toolPanTooltip');
+    const zoomDisplay = dom.window.document.getElementById('zoom-display');
+    expect(zoomDisplay?.textContent?.trim()).toBe('100%');
+    const zoomMenu = dom.window.document.getElementById('zoom-menu');
+    expect(zoomMenu?.getAttribute('aria-hidden')).toBe('true');
+    const zoomIn = dom.window.document.getElementById('zoom-in');
+    expect(zoomIn?.textContent).toContain('⌥+〜');
+    const zoomInput = dom.window.document.getElementById('zoom-input') as HTMLInputElement | null;
+    expect(zoomInput?.placeholder).toBe('例: 150');
+    dom.window.close();
+  });
+});
+
 describe('load media node UI', () => {
   it('renders picker controls and hidden input', async () => {
     const dom = renderDom({

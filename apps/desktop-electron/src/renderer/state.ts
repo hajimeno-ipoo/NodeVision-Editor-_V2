@@ -69,6 +69,8 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
     selection: new Set<string>(),
     clipboard: [] as RendererNode[],
     zoom: 1,
+    viewport: { x: 0, y: 0 },
+    activeTool: 'select',
     history: [] as HistoryEntry[],
     historyIndex: -1,
     autosaveTimer: null,

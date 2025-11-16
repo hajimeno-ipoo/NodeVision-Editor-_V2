@@ -65,12 +65,16 @@ export interface NodeResizeSession {
   element: HTMLElement;
 }
 
+export type CanvasTool = 'select' | 'pan';
+
 export interface RendererState {
   locale: string;
   nodes: RendererNode[];
   selection: Set<string>;
   clipboard: RendererNode[];
   zoom: number;
+  viewport: Point;
+  activeTool: CanvasTool;
   history: HistoryEntry[];
   historyIndex: number;
   autosaveTimer: number | null;
@@ -98,8 +102,21 @@ export interface HistoryEntry {
 export interface RendererDom {
   statusList: HTMLUListElement;
   canvas: HTMLElement;
+  canvasGrid: HTMLElement;
+  selectionRect: HTMLElement;
+  selectionOutline: HTMLElement;
   nodeLayer: HTMLElement;
   connectionLayer: SVGSVGElement;
+  toolSelect: HTMLButtonElement;
+  toolPan: HTMLButtonElement;
+  fitView: HTMLButtonElement;
+  zoomDisplay: HTMLButtonElement;
+  zoomMenu: HTMLElement;
+  zoomIn: HTMLButtonElement;
+  zoomOut: HTMLButtonElement;
+  zoomFitMenu: HTMLButtonElement;
+  zoomApply: HTMLButtonElement;
+  zoomInput: HTMLInputElement;
   searchInput: HTMLInputElement;
   suggestions: HTMLUListElement;
   autosave: HTMLElement;

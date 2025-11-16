@@ -365,16 +365,46 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .canvas-wrap {
         position: relative;
         overflow: hidden;
+        background-color: #14151b;
+        --grid-minor-size: 8px;
+        --grid-major-size: 32px;
+        --grid-offset-x: 0px;
+        --grid-offset-y: 0px;
+      }
+      #canvas-grid {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-color: #16171c;
+        background-image:
+          linear-gradient(var(--grid-minor-angle-x, 90deg), rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(var(--grid-minor-angle-y, 0deg), rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(var(--grid-major-angle-x, 90deg), rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+          linear-gradient(var(--grid-major-angle-y, 0deg), rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+        background-size:
+          var(--grid-minor-size) var(--grid-minor-size),
+          var(--grid-minor-size) var(--grid-minor-size),
+          var(--grid-major-size) var(--grid-major-size),
+          var(--grid-major-size) var(--grid-major-size);
+        background-position:
+          var(--grid-offset-x) var(--grid-offset-y),
+          var(--grid-offset-x) var(--grid-offset-y),
+          var(--grid-offset-x) var(--grid-offset-y),
+          var(--grid-offset-x) var(--grid-offset-y);
+        z-index: 0;
       }
       #canvas {
         position: absolute;
         inset: 0;
-        background-color: #16171c;
-        background-image: linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px),
-          linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
-        background-size: 8px 8px;
-        cursor: grab;
+        cursor: default;
         transform-origin: 0 0;
+        z-index: 1;
+      }
+      body[data-canvas-tool='pan'] #canvas {
+        cursor: grab;
+      }
+      body[data-canvas-tool='pan'].is-panning #canvas {
+        cursor: grabbing;
       }
       #canvas.zooming {
         cursor: zoom-in;
@@ -391,6 +421,148 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         pointer-events: none;
         overflow: visible;
       }
+      #selection-rect {
+        position: absolute;
+        border: 1px solid rgba(77, 115, 255, 0.9);
+        background: rgba(77, 115, 255, 0.25);
+        border-radius: 10px;
+        pointer-events: none;
+        display: none;
+        z-index: 2;
+      }
+      #selection-outline {
+        position: absolute;
+        border: 2px dashed rgba(255, 255, 255, 0.5);
+        border-radius: 18px;
+        pointer-events: auto;
+        display: none;
+        z-index: 1;
+        cursor: move;
+      }
+      .canvas-controls {
+        position: absolute;
+        left: 24px;
+        bottom: 24px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(7, 9, 15, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        padding: 6px 12px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(14px);
+        z-index: 10;
+      }
+      .canvas-tool {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: transparent;
+        color: #f5f7ff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        transition: background 180ms ease, color 180ms ease, border 180ms ease, transform 180ms ease;
+      }
+      .canvas-tool.active {
+        background: #f4f5ff;
+        color: #161720;
+        border-color: transparent;
+        box-shadow: 0 6px 20px rgba(15, 16, 24, 0.4);
+      }
+      .canvas-tool:focus-visible {
+        outline: 2px solid #6ea8ff;
+        outline-offset: 2px;
+      }
+      .canvas-controls-divider {
+        width: 1px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .zoom-control {
+        position: relative;
+      }
+      #zoom-display {
+        min-width: 76px;
+        height: 36px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(23, 24, 32, 0.75);
+        color: #f5f7ff;
+        padding: 0 16px;
+        font-size: 15px;
+        transition: border 150ms ease, background 150ms ease;
+      }
+      #zoom-display[aria-expanded='true'] {
+        background: rgba(34, 37, 51, 0.95);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      #zoom-menu {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + 8px);
+        width: 220px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(8, 11, 19, 0.98);
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+        padding: 12px;
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #zoom-menu[data-open='true'] {
+        display: flex;
+      }
+      #zoom-menu button {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(19, 22, 33, 0.95);
+        color: #f5f7ff;
+        padding: 9px 12px;
+        font-size: 15px;
+        text-align: left;
+      }
+      #zoom-menu button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      #zoom-menu hr {
+        border: none;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.08);
+        margin: 6px 0;
+      }
+      .zoom-input-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      #zoom-input {
+        flex: 1;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(13, 15, 23, 0.95);
+        color: #f5f7ff;
+        padding: 8px 12px;
+        font-size: 15px;
+      }
+      #zoom-input:focus-visible {
+        outline: 2px solid #6ea8ff;
+        outline-offset: 2px;
+      }
+      #zoom-apply {
+        border-radius: 10px;
+        border: none;
+        padding: 8px 14px;
+        font-size: 15px;
+        background: #4d73ff;
+        color: #fff;
+        box-shadow: 0 6px 14px rgba(77, 115, 255, 0.4);
+      }
       .node {
         position: absolute;
         border-radius: 18px;
@@ -406,6 +578,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 10px;
         overflow: hidden;
         transition: border 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      }
+      body.node-dragging .node {
+        transition: border 160ms ease, box-shadow 160ms ease;
       }
       .node::after {
         content: '';
@@ -758,6 +933,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(255, 255, 255, 0.05);
         padding: 4px;
         border-radius: 999px;
+      }
+      .toolbar-group.align-controls {
+        display: none;
       }
       .locale-group {
         align-items: center;
@@ -1263,7 +1441,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
     <header>
       <ul id="status-list"></ul>
       <div class="toolbar">
-        <div class="toolbar-group">
+        <div class="toolbar-group align-controls">
           <button type="button" data-align="left" data-i18n-key="toolbar.alignLeft">Align left</button>
           <button type="button" data-align="top" data-i18n-key="toolbar.alignTop">Align top</button>
           <button type="button" data-align="center" data-i18n-key="toolbar.alignCenter">Align center</button>
@@ -1451,9 +1629,85 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         </div>
       </section>
       <section class="canvas-wrap">
+        <div id="canvas-grid" aria-hidden="true"></div>
         <div id="canvas" role="region" aria-label="Node canvas" data-i18n-attr-aria-label="canvas.ariaLabel">
           <svg id="connection-layer" aria-hidden="true"></svg>
           <div id="node-layer"></div>
+          <div id="selection-rect" aria-hidden="true"></div>
+          <div id="selection-outline" aria-hidden="true"></div>
+        </div>
+        <div
+          class="canvas-controls"
+          role="toolbar"
+          aria-label="Canvas controls"
+          data-i18n-attr-aria-label="canvas.controls"
+        >
+          <button
+            type="button"
+            id="tool-select"
+            class="canvas-tool active"
+            aria-pressed="true"
+            title="Select tool"
+            data-i18n-attr-title="canvas.toolSelectTooltip"
+            data-i18n-attr-aria-label="canvas.toolSelectTooltip"
+          >
+            <span aria-hidden="true">🖱️</span>
+          </button>
+          <button
+            type="button"
+            id="tool-pan"
+            class="canvas-tool"
+            aria-pressed="false"
+            title="Pan view"
+            data-i18n-attr-title="canvas.toolPanTooltip"
+            data-i18n-attr-aria-label="canvas.toolPanTooltip"
+          >
+            <span aria-hidden="true">✋</span>
+          </button>
+          <button
+            type="button"
+            id="btn-fit-view"
+            class="canvas-tool"
+            title="Fit selection"
+            data-i18n-attr-title="canvas.fitViewTooltip"
+            data-i18n-attr-aria-label="canvas.fitViewTooltip"
+          >
+            <span aria-hidden="true">🎯</span>
+          </button>
+          <span class="canvas-controls-divider" aria-hidden="true"></span>
+          <div class="zoom-control">
+            <button
+              type="button"
+              id="zoom-display"
+              aria-haspopup="true"
+              aria-expanded="false"
+              title="Adjust zoom"
+              data-i18n-attr-title="canvas.zoomDisplayLabel"
+              data-i18n-attr-aria-label="canvas.zoomDisplayLabel"
+            >
+              100%
+            </button>
+            <div id="zoom-menu" role="menu" aria-hidden="true">
+              <button type="button" id="zoom-in" role="menuitem" data-i18n-key="canvas.zoomIn">Zoom in</button>
+              <button type="button" id="zoom-out" role="menuitem" data-i18n-key="canvas.zoomOut">Zoom out</button>
+              <button type="button" id="zoom-fit-menu" role="menuitem" data-i18n-key="canvas.zoomToFit">Zoom to fit</button>
+              <hr />
+              <div class="zoom-input-row">
+                <input
+                  type="number"
+                  id="zoom-input"
+                  inputmode="numeric"
+                  min="25"
+                  max="400"
+                  aria-label="Zoom percent"
+                  data-i18n-attr-aria-label="canvas.zoomInputLabel"
+                  placeholder="230"
+                  data-i18n-attr-placeholder="canvas.zoomInputPlaceholder"
+                />
+                <button type="button" id="zoom-apply" role="menuitem" data-i18n-key="canvas.zoomApply">Apply</button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>

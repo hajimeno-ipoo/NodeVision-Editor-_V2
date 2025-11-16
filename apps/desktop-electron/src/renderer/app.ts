@@ -24,7 +24,8 @@ import type {
   SerializedNode,
   RendererDom,
   NodevisionApi,
-  NodeSize
+  NodeSize,
+  CanvasTool
 } from './types';
 import { createNodeRenderers } from './nodes';
 import type { NodeRendererModule } from './nodes/types';
@@ -46,6 +47,9 @@ import type { NodeRendererModule } from './nodes/types';
   const NODE_MIN_HEIGHT = MIN_PREVIEW_HEIGHT + MIN_NODE_CHROME;
   const NODE_MAX_HEIGHT = 720;
   const MAX_CHROME_SYNC_ATTEMPTS = 2;
+  const GRID_MINOR_BASE = 8;
+  const GRID_MAJOR_FACTOR = 4;
+  const SELECTION_PADDING = 6;
   const LOCALE_STORAGE_KEY = 'nodevision.locale';
   const TRANSLATIONS: Record<string, Record<string, string>> = rendererWindow.__NODEVISION_TRANSLATIONS__ ?? {};
   const SUPPORTED_LOCALES: string[] = Array.isArray(rendererWindow.__NODEVISION_SUPPORTED_LOCALES__) && rendererWindow.__NODEVISION_SUPPORTED_LOCALES__.length
@@ -60,6 +64,7 @@ import type { NodeRendererModule } from './nodes/types';
     console.error('[NodeVision] renderer bootstrap payload is missing');
     return;
   }
+
 
   const elements: RendererDom = captureDomElements();
 
@@ -120,13 +125,30 @@ import type { NodeRendererModule } from './nodes/types';
   const toNodeTypeClass = (typeId: string): string =>
     'node-type-' + typeId.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
 
+  const MIN_ZOOM = 0.25;
+  const MAX_ZOOM = 3;
+  const ZOOM_STEP = 0.1;
+
+  type PanSession = { pointerId: number; start: Point; startViewport: Point };
+  let panSession: PanSession | null = null;
+  let zoomMenuOpen = false;
+
   let activeConnectionDrag: {
         portEl: HTMLElement;
         pointerId: number;
         origin: Point;
         started: boolean;
       } | null = null;
-      let dropTargetPort: HTMLElement | null = null;
+  let dropTargetPort: HTMLElement | null = null;
+  type NormalizedRect = { minX: number; minY: number; maxX: number; maxY: number };
+  type MarqueeSession = {
+    pointerId: number;
+    start: Point;
+    additive: boolean;
+    baseSelection: Set<string>;
+    lastRect: NormalizedRect | null;
+  };
+  let marqueeSession: MarqueeSession | null = null;
 
       const formatTemplate = (template: string, vars: TemplateVars = {}): string => {
         let result = template;
@@ -187,11 +209,11 @@ import type { NodeRendererModule } from './nodes/types';
       const getTemplateTitle = (template: NodeTemplate): string =>
         translateWithFallback(`nodeTemplate.${template.typeId}.title`, template.title);
 
-      const getTemplateDescription = (template: NodeTemplate): string =>
-        translateWithFallback(`nodeTemplate.${template.typeId}.description`, template.description ?? '');
+  const getTemplateDescription = (template: NodeTemplate): string =>
+    translateWithFallback(`nodeTemplate.${template.typeId}.description`, template.description ?? '');
 
-      const applyI18nAttributes = (node: Element | null): void => {
-        if (!node || !node.attributes) return;
+  const applyI18nAttributes = (node: Element | null): void => {
+    if (!node || !node.attributes) return;
         Array.from(node.attributes).forEach(attr => {
           if (!attr.name.startsWith('data-i18n-attr-')) return;
           const target = attr.name.replace('data-i18n-attr-', '');
@@ -215,15 +237,15 @@ import type { NodeRendererModule } from './nodes/types';
           node.innerHTML = t(key);
           applyI18nAttributes(node);
         });
-        document
-          .querySelectorAll('[data-i18n-attr-placeholder], [data-i18n-attr-aria-label], [data-i18n-attr-title]')
-          .forEach(applyI18nAttributes);
-      };
+      document
+        .querySelectorAll('[data-i18n-attr-placeholder], [data-i18n-attr-aria-label], [data-i18n-attr-title]')
+        .forEach(applyI18nAttributes);
+    };
 
       const templates: NodeTemplate[] = BOOTSTRAP.templates ?? [];
       const getTemplateByType = (typeId: string): NodeTemplate | undefined =>
         templates.find(template => template.typeId === typeId);
-      applyTranslations();
+  applyTranslations();
 
       const describeStatus = (status: string): string => {
         switch (status) {
@@ -829,6 +851,7 @@ import type { NodeRendererModule } from './nodes/types';
     document.querySelectorAll<HTMLButtonElement>('[data-align]').forEach(button => {
       button.disabled = state.selection.size === 0 || state.readonly;
     });
+    refreshSelectionOutline();
     renderConnectionPaths();
   };
 
@@ -1055,6 +1078,557 @@ import type { NodeRendererModule } from './nodes/types';
     return false;
   };
 
+  const clampZoom = (value: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+
+  const modulo = (value: number, modulus: number): number => {
+    if (!Number.isFinite(modulus) || modulus === 0) {
+      return 0;
+    }
+    return ((value % modulus) + modulus) % modulus;
+  };
+
+  const updateGridBackdrop = (): void => {
+    const minor = Math.max(1, GRID_MINOR_BASE * state.zoom);
+    const major = Math.max(minor * GRID_MAJOR_FACTOR, minor);
+    elements.canvasGrid.style.setProperty('--grid-minor-size', `${minor}px`);
+    elements.canvasGrid.style.setProperty('--grid-major-size', `${major}px`);
+    const offsetX = modulo(state.viewport.x, minor);
+    const offsetY = modulo(state.viewport.y, minor);
+    elements.canvasGrid.style.setProperty('--grid-offset-x', `${offsetX}px`);
+    elements.canvasGrid.style.setProperty('--grid-offset-y', `${offsetY}px`);
+  };
+
+  const updateCanvasTransform = (): void => {
+    elements.canvas.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.zoom})`;
+    updateGridBackdrop();
+  };
+
+  const updateZoomUi = (): void => {
+    const percent = Math.round(state.zoom * 100);
+    elements.zoomDisplay.textContent = percent + '%';
+    elements.zoomInput.value = String(percent);
+  };
+
+  const openZoomMenu = (): void => {
+    zoomMenuOpen = true;
+    elements.zoomMenu.dataset.open = 'true';
+    elements.zoomMenu.setAttribute('aria-hidden', 'false');
+    elements.zoomDisplay.setAttribute('aria-expanded', 'true');
+    elements.zoomInput.focus();
+    elements.zoomInput.select();
+  };
+
+  const closeZoomMenu = (): void => {
+    if (!zoomMenuOpen) {
+      elements.zoomMenu.dataset.open = 'false';
+      elements.zoomMenu.setAttribute('aria-hidden', 'true');
+      elements.zoomDisplay.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    zoomMenuOpen = false;
+    elements.zoomMenu.dataset.open = 'false';
+    elements.zoomMenu.setAttribute('aria-hidden', 'true');
+    elements.zoomDisplay.setAttribute('aria-expanded', 'false');
+  };
+
+  const toggleZoomMenu = (force?: boolean): void => {
+    if (typeof force === 'boolean') {
+      if (force) {
+        openZoomMenu();
+      } else {
+        closeZoomMenu();
+      }
+      return;
+    }
+    if (zoomMenuOpen) {
+      closeZoomMenu();
+    } else {
+      openZoomMenu();
+    }
+  };
+
+  const setActiveTool = (tool: CanvasTool): void => {
+    state.activeTool = tool;
+    elements.toolSelect.classList.toggle('active', tool === 'select');
+    elements.toolSelect.setAttribute('aria-pressed', tool === 'select' ? 'true' : 'false');
+    elements.toolPan.classList.toggle('active', tool === 'pan');
+    elements.toolPan.setAttribute('aria-pressed', tool === 'pan' ? 'true' : 'false');
+    if (document.body) {
+      document.body.dataset.canvasTool = tool;
+    }
+  };
+
+  const resetViewport = (): void => {
+    state.viewport.x = 0;
+    state.viewport.y = 0;
+    updateCanvasTransform();
+  };
+
+  const getViewportSize = (): { width: number; height: number } => {
+    const wrap = elements.canvas.parentElement;
+    if (!wrap) {
+      return { width: window.innerWidth || 1, height: window.innerHeight || 1 };
+    }
+    const rect = wrap.getBoundingClientRect();
+    return { width: rect.width || 1, height: rect.height || 1 };
+  };
+
+  const getWorldPoint = (event: PointerEvent | MouseEvent): Point => {
+    const rect = elements.canvas.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left) / state.zoom,
+      y: (event.clientY - rect.top) / state.zoom
+    };
+  };
+
+  const getCanvasCenterAnchor = (): { clientX: number; clientY: number } => {
+    const rect = elements.canvas.getBoundingClientRect();
+    return { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
+  };
+
+  const getNodeSizeForSelection = (node: RendererNode): NodeSize => {
+    const stored = state.nodeSizes.get(node.id);
+    if (stored) return stored;
+    return {
+      width: node.width ?? NODE_MIN_WIDTH,
+      height: node.height ?? NODE_MIN_HEIGHT
+    };
+  };
+
+  const refreshSelectionOutline = (): void => {
+    if (!elements.selectionOutline) return;
+    if (!state.selection.size) {
+      elements.selectionOutline.style.display = 'none';
+      return;
+    }
+    const targets = state.nodes.filter(node => state.selection.has(node.id));
+    if (!targets.length) {
+      elements.selectionOutline.style.display = 'none';
+      return;
+    }
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    targets.forEach(node => {
+      const size = getNodeSizeForSelection(node);
+      minX = Math.min(minX, node.position.x);
+      minY = Math.min(minY, node.position.y);
+      maxX = Math.max(maxX, node.position.x + size.width);
+      maxY = Math.max(maxY, node.position.y + size.height);
+    });
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+      elements.selectionOutline.style.display = 'none';
+      return;
+    }
+    const padding = SELECTION_PADDING;
+    elements.selectionOutline.style.display = 'block';
+    elements.selectionOutline.style.transform = `translate(${minX - padding}px, ${minY - padding}px)`;
+    elements.selectionOutline.style.width = `${Math.max(0, maxX - minX + padding * 2)}px`;
+    elements.selectionOutline.style.height = `${Math.max(0, maxY - minY + padding * 2)}px`;
+  };
+
+  const drawSelectionRect = (start: Point, end: Point): NormalizedRect => {
+    const minX = Math.min(start.x, end.x);
+    const minY = Math.min(start.y, end.y);
+    const maxX = Math.max(start.x, end.x);
+    const maxY = Math.max(start.y, end.y);
+    elements.selectionRect.style.display = 'block';
+    elements.selectionRect.style.transform = `translate(${minX}px, ${minY}px)`;
+    elements.selectionRect.style.width = `${Math.max(1, maxX - minX)}px`;
+    elements.selectionRect.style.height = `${Math.max(1, maxY - minY)}px`;
+    return { minX, minY, maxX, maxY };
+  };
+
+  const applyMarqueeSelection = (session: MarqueeSession, rect: NormalizedRect): void => {
+    const nextSelection = session.additive ? new Set(session.baseSelection) : new Set<string>();
+    state.selection.clear();
+    nextSelection.forEach(id => state.selection.add(id));
+    state.nodes.forEach(node => {
+      const size = getNodeSizeForSelection(node);
+      const minX = node.position.x;
+      const minY = node.position.y;
+      const maxX = minX + size.width;
+      const maxY = minY + size.height;
+      const intersects = !(maxX < rect.minX || minX > rect.maxX || maxY < rect.minY || minY > rect.maxY);
+      if (intersects) {
+        state.selection.add(node.id);
+      }
+    });
+    updateSelectionUi();
+  };
+
+  const stopMarqueeTracking = (): void => {
+    window.removeEventListener('pointermove', handleMarqueePointerMove);
+    window.removeEventListener('pointerup', completeMarqueeSelection);
+    window.removeEventListener('pointercancel', cancelMarqueeSelection);
+    elements.selectionRect.style.display = 'none';
+  };
+
+  const handleMarqueePointerMove = (event: PointerEvent): void => {
+    if (!marqueeSession) {
+      return;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    if (pointerId !== marqueeSession.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    const current = getWorldPoint(event);
+    marqueeSession.lastRect = drawSelectionRect(marqueeSession.start, current);
+    applyMarqueeSelection(marqueeSession, marqueeSession.lastRect);
+  };
+
+  const completeMarqueeSelection = (event: PointerEvent): void => {
+    if (!marqueeSession) {
+      return;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    if (pointerId !== marqueeSession.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    if (!marqueeSession.lastRect) {
+      state.selection.clear();
+      if (marqueeSession.additive) {
+        marqueeSession.baseSelection.forEach(id => state.selection.add(id));
+      }
+      updateSelectionUi();
+    }
+    stopMarqueeTracking();
+    marqueeSession = null;
+  };
+
+  const cancelMarqueeSelection = (event: PointerEvent): void => {
+    if (!marqueeSession) {
+      return;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    if (pointerId !== marqueeSession.pointerId) {
+      return;
+    }
+    stopMarqueeTracking();
+    state.selection.clear();
+    marqueeSession.baseSelection.forEach(id => state.selection.add(id));
+    updateSelectionUi();
+    marqueeSession = null;
+  };
+
+  const maybeStartMarquee = (event: PointerEvent): boolean => {
+    if (state.readonly) return false;
+    if (state.activeTool !== 'select') return false;
+    if (event.button !== 0) return false;
+    const target = event.target as HTMLElement | null;
+    if (target && (target.closest('.node') || target.closest('.canvas-controls'))) {
+      return false;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    const worldPoint = getWorldPoint(event);
+    marqueeSession = {
+      pointerId,
+      start: worldPoint,
+      additive: event.shiftKey,
+      baseSelection: new Set(state.selection),
+      lastRect: null
+    };
+    event.preventDefault();
+    elements.selectionRect.style.display = 'block';
+    elements.selectionRect.style.transform = `translate(${worldPoint.x}px, ${worldPoint.y}px)`;
+    elements.selectionRect.style.width = '0px';
+    elements.selectionRect.style.height = '0px';
+    window.addEventListener('pointermove', handleMarqueePointerMove);
+    window.addEventListener('pointerup', completeMarqueeSelection);
+    window.addEventListener('pointercancel', cancelMarqueeSelection);
+    return true;
+  };
+
+  const shouldPanFromEvent = (event: PointerEvent): boolean => {
+    const wantsPan = (state.activeTool === 'pan' && event.button === 0) || event.button === 1;
+    if (!wantsPan) {
+      return false;
+    }
+    if (
+      isInteractiveTarget(event.target) &&
+      !(state.activeTool === 'pan' && event.button === 0) &&
+      event.button !== 1
+    ) {
+      return false;
+    }
+    if (event.target instanceof HTMLElement && event.target.closest('.canvas-controls')) {
+      return false;
+    }
+    return true;
+  };
+
+  const matchesKey = (event: KeyboardEvent, matcher: { codes?: string[]; keys?: string[] }): boolean => {
+    const codes = matcher.codes ?? [];
+    const keys = matcher.keys ?? [];
+    if (codes.some(code => code === event.code)) {
+      return true;
+    }
+    if (keys.some(key => key === event.key)) {
+      return true;
+    }
+    return false;
+  };
+
+  const isZoomInShortcut = (event: KeyboardEvent): boolean =>
+    event.altKey &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    matchesKey(event, {
+      codes: ['Equal', 'NumpadAdd', 'Semicolon'],
+      keys: ['=', '+', '＋']
+    });
+
+  const isZoomOutShortcut = (event: KeyboardEvent): boolean =>
+    event.altKey &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    matchesKey(event, {
+      codes: ['Minus', 'NumpadSubtract', 'Backquote'],
+      keys: ['-', '_', '−', 'ー', 'ｰ', '~', '〜']
+    });
+
+  const handlePanPointerMove = (event: PointerEvent): void => {
+    if (!panSession) {
+      return;
+    }
+    if ((event.pointerId ?? 1) !== panSession.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    const deltaX = event.clientX - panSession.start.x;
+    const deltaY = event.clientY - panSession.start.y;
+    state.viewport.x = panSession.startViewport.x + deltaX;
+    state.viewport.y = panSession.startViewport.y + deltaY;
+    updateCanvasTransform();
+  };
+
+  type ActiveDragSession = {
+    pointerId: number;
+    start: Point;
+    targets: RendererNode[];
+    startPositions: Map<string, { x: number; y: number }>;
+    nodeElementCache: Map<string, HTMLElement>;
+    dragging: boolean;
+    moved: boolean;
+    anchorNodeId: string | null;
+    startBounds: NormalizedRect | null;
+  };
+  let dragSession: ActiveDragSession | null = null;
+
+  const stopDragSessionListeners = (): void => {
+    window.removeEventListener('pointermove', handleSelectionDragMove);
+    window.removeEventListener('pointerup', finishSelectionDrag);
+    window.removeEventListener('pointercancel', cancelSelectionDrag);
+  };
+
+  const beginSelectionDrag = (
+    event: PointerEvent,
+    anchorNode?: RendererNode,
+    anchorEl?: HTMLElement
+  ): boolean => {
+    if (state.readonly) return false;
+    if (event.button !== 0) return false;
+    if (state.activeTool === 'pan') return false;
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    const selectedIds = state.selection.size
+      ? Array.from(state.selection)
+      : anchorNode
+        ? [anchorNode.id]
+        : [];
+    if (!selectedIds.length) {
+      return false;
+    }
+    const dragTargets = state.nodes.filter(node => selectedIds.includes(node.id));
+    if (anchorNode && !dragTargets.some(node => node.id === anchorNode.id)) {
+      dragTargets.push(anchorNode);
+    }
+    if (!dragTargets.length) {
+      return false;
+    }
+    const startPositions = new Map<string, { x: number; y: number }>();
+    dragTargets.forEach(target => {
+      startPositions.set(target.id, { x: target.position.x, y: target.position.y });
+    });
+    const nodeElementCache = new Map<string, HTMLElement>();
+    if (anchorNode && anchorEl) {
+      nodeElementCache.set(anchorNode.id, anchorEl);
+    }
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    dragTargets.forEach(target => {
+      const size = getNodeSizeForSelection(target);
+      minX = Math.min(minX, target.position.x);
+      minY = Math.min(minY, target.position.y);
+      maxX = Math.max(maxX, target.position.x + size.width);
+      maxY = Math.max(maxY, target.position.y + size.height);
+    });
+    const startBounds: NormalizedRect | null =
+      Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(maxX) && Number.isFinite(maxY)
+        ? { minX, minY, maxX, maxY }
+        : null;
+
+    dragSession = {
+      pointerId,
+      start: getWorldPoint(event),
+      targets: dragTargets,
+      startPositions,
+      nodeElementCache,
+      dragging: false,
+      moved: false,
+      anchorNodeId: anchorNode?.id ?? null,
+      startBounds
+    };
+    event.preventDefault();
+    stopDragSessionListeners();
+    window.addEventListener('pointermove', handleSelectionDragMove);
+    window.addEventListener('pointerup', finishSelectionDrag);
+    window.addEventListener('pointercancel', cancelSelectionDrag);
+    if (document.body && !document.body.classList.contains('node-dragging')) {
+      document.body.classList.add('node-dragging');
+    }
+    refreshSelectionOutline();
+    return true;
+  };
+
+  const handleSelectionDragMove = (event: PointerEvent): void => {
+    if (!dragSession) {
+      return;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    if (pointerId !== dragSession.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    const current = getWorldPoint(event);
+    const deltaX = current.x - dragSession.start.x;
+    const deltaY = current.y - dragSession.start.y;
+    if (!dragSession.dragging) {
+      const distance = Math.hypot(deltaX, deltaY);
+      if (distance < DRAG_THRESHOLD) {
+        return;
+      }
+      dragSession.dragging = true;
+    }
+    let anyChanged = false;
+    dragSession.targets.forEach(target => {
+      const startPos = dragSession!.startPositions.get(target.id);
+      if (!startPos) {
+        return;
+      }
+      const nextX = snap(startPos.x + deltaX);
+      const nextY = snap(startPos.y + deltaY);
+      if (nextX === target.position.x && nextY === target.position.y) {
+        return;
+      }
+      target.position.x = nextX;
+      target.position.y = nextY;
+      anyChanged = true;
+      let targetEl = dragSession!.nodeElementCache.get(target.id);
+      if (!targetEl) {
+        const found = elements.nodeLayer.querySelector<HTMLElement>(
+          `.node[data-id="${cssEscape(target.id)}"]`
+        );
+        if (found) {
+          dragSession!.nodeElementCache.set(target.id, found);
+          targetEl = found;
+        }
+      }
+      if (targetEl) {
+        targetEl.style.transform = `translate(${nextX}px, ${nextY}px)`;
+      }
+    });
+    if (anyChanged) {
+      dragSession.moved = true;
+      refreshSelectionOutline();
+      renderConnectionPaths();
+    } else {
+      refreshSelectionOutline();
+    }
+  };
+
+  const finishSelectionDrag = (event: PointerEvent): void => {
+    if (!dragSession) {
+      return;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    if (pointerId !== dragSession.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    stopDragSessionListeners();
+    if (dragSession.dragging && dragSession.moved) {
+      suppressChromeMeasurement = true;
+      commitState();
+    }
+    if (dragSession.anchorNodeId) {
+      setPressedNode(null);
+    }
+    document.body?.classList.remove('node-dragging');
+    dragSession = null;
+  };
+
+  const cancelSelectionDrag = (event: PointerEvent): void => {
+    if (!dragSession) {
+      return;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    if (pointerId !== dragSession.pointerId) {
+      return;
+    }
+    stopDragSessionListeners();
+    if (dragSession.anchorNodeId) {
+      setPressedNode(null);
+    }
+    document.body?.classList.remove('node-dragging');
+    dragSession = null;
+  };
+
+  const endPanSession = (event: PointerEvent): void => {
+    if (!panSession) {
+      return;
+    }
+    if ((event.pointerId ?? 1) !== panSession.pointerId) {
+      return;
+    }
+    window.removeEventListener('pointermove', handlePanPointerMove);
+    window.removeEventListener('pointerup', endPanSession);
+    window.removeEventListener('pointercancel', endPanSession);
+    if (document.body) {
+      document.body.classList.remove('is-panning');
+    }
+    panSession = null;
+  };
+
+  const startPanSession = (event: PointerEvent): boolean => {
+    if (panSession || !shouldPanFromEvent(event)) {
+      return false;
+    }
+    const pointerId = typeof event.pointerId === 'number' ? event.pointerId : 1;
+    panSession = {
+      pointerId,
+      start: { x: event.clientX, y: event.clientY },
+      startViewport: { x: state.viewport.x, y: state.viewport.y }
+    };
+    event.preventDefault();
+    if (document.body) {
+      document.body.classList.add('is-panning');
+    }
+    window.addEventListener('pointermove', handlePanPointerMove);
+    window.addEventListener('pointerup', endPanSession);
+    window.addEventListener('pointercancel', endPanSession);
+    return true;
+  };
+
+  updateCanvasTransform();
+  updateZoomUi();
+  closeZoomMenu();
+  setActiveTool(state.activeTool);
+
   type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se';
 
   const buildResizeHandles = (nodeId: string): string =>
@@ -1277,6 +1851,9 @@ import type { NodeRendererModule } from './nodes/types';
 
   const attachNodeEvents = (el: HTMLElement, node: RendererNode): void => {
     const onPointerDown = (event: PointerEvent): void => {
+      if (startPanSession(event)) {
+        return;
+      }
       if (state.readonly) return;
       if (event.button !== 0) return;
       if (isInteractiveTarget(event.target)) {
@@ -1290,60 +1867,22 @@ import type { NodeRendererModule } from './nodes/types';
           state.selection.add(node.id);
         }
       } else {
-        if (!(state.selection.size === 1 && state.selection.has(node.id))) {
+        if (!state.selection.has(node.id)) {
           state.selection.clear();
           state.selection.add(node.id);
         }
       }
       updateSelectionUi();
       setPressedNode(node.id);
-      event.preventDefault();
-      const rect = elements.canvas.getBoundingClientRect();
-      const start = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      const offset = {
-        x: start.x - node.position.x,
-        y: start.y - node.position.y
-      };
-      let moved = false;
-      let dragging = false;
-      const move = (moveEvent: PointerEvent): void => {
-        const current = { x: moveEvent.clientX - rect.left, y: moveEvent.clientY - rect.top };
-        const deltaX = current.x - start.x;
-        const deltaY = current.y - start.y;
-        if (!dragging) {
-          const distance = Math.hypot(deltaX, deltaY);
-          if (distance < DRAG_THRESHOLD) {
-            return;
-          }
-          dragging = true;
-        }
-        const nextX = snap(current.x - offset.x);
-        const nextY = snap(current.y - offset.y);
-        if (nextX !== node.position.x || nextY !== node.position.y) {
-          node.position.x = nextX;
-          node.position.y = nextY;
-          moved = true;
-          el.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
-          renderConnectionPaths();
-        }
-      };
-      const up = (): void => {
-        setPressedNode(null);
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-        window.removeEventListener('pointercancel', up);
-        if (dragging && moved) {
-          suppressChromeMeasurement = true;
-          commitState();
-        }
-      };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-      window.addEventListener('pointercancel', up);
+      beginSelectionDrag(event, node, el);
     };
 
     el.addEventListener('pointerdown', onPointerDown);
     el.addEventListener('click', event => {
+      if (state.activeTool === 'pan') {
+        event.preventDefault();
+        return;
+      }
       if (state.readonly) return;
       if (isInteractiveTarget(event.target)) {
         return;
@@ -1365,11 +1904,18 @@ import type { NodeRendererModule } from './nodes/types';
   const attachPortEvents = (container: HTMLElement): void => {
     container.querySelectorAll<HTMLElement>('.port').forEach(portEl => {
       portEl.addEventListener('click', (event: MouseEvent) => {
+        if (state.activeTool === 'pan') {
+          event.preventDefault();
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         handlePortActivation(portEl);
       });
       portEl.addEventListener('pointerdown', (event: PointerEvent) => {
+        if (startPanSession(event)) {
+          return;
+        }
         if (state.readonly) return;
         const direction = portEl.getAttribute('data-direction');
         if (direction === 'input') {
@@ -1396,6 +1942,9 @@ import type { NodeRendererModule } from './nodes/types';
         }
       });
       portEl.addEventListener('keydown', (event: KeyboardEvent) => {
+        if (state.activeTool === 'pan') {
+          return;
+        }
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           handlePortActivation(portEl);
@@ -1781,14 +2330,49 @@ import type { NodeRendererModule } from './nodes/types';
     commitState();
   };
 
-  const setZoom = (value: number): void => {
-    state.zoom = Math.min(2, Math.max(0.25, value));
-    elements.canvas.style.transform = `scale(${state.zoom})`;
+  const setZoom = (value: number, anchor?: { clientX: number; clientY: number }): void => {
+    const rect = elements.canvas.getBoundingClientRect();
+    const wrapLeft = rect.left - state.viewport.x;
+    const wrapTop = rect.top - state.viewport.y;
+    const target = clampZoom(value);
+    const previousZoom = state.zoom;
+    if (anchor) {
+      const anchorWorld: Point = {
+        x: (anchor.clientX - rect.left) / previousZoom,
+        y: (anchor.clientY - rect.top) / previousZoom
+      };
+      state.viewport.x = anchor.clientX - wrapLeft - anchorWorld.x * target;
+      state.viewport.y = anchor.clientY - wrapTop - anchorWorld.y * target;
+    }
+    state.zoom = target;
+    updateCanvasTransform();
+    updateZoomUi();
+  };
+
+  const stepZoom = (direction: 1 | -1, anchor?: { clientX: number; clientY: number }): void => {
+    const delta = direction * ZOOM_STEP;
+    setZoom(state.zoom + delta, anchor);
+  };
+
+  const applyZoomInputValue = (): void => {
+    const raw = elements.zoomInput.value.trim();
+    if (!raw.length) {
+      elements.zoomInput.value = String(Math.round(state.zoom * 100));
+      return;
+    }
+    const value = Number(raw);
+    if (!Number.isFinite(value)) {
+      elements.zoomInput.value = String(Math.round(state.zoom * 100));
+      return;
+    }
+    setZoom(value / 100);
+    closeZoomMenu();
   };
 
   const fitSelection = (): void => {
     if (!state.selection.size) {
       setZoom(1);
+      resetViewport();
       return;
     }
     const nodes = state.nodes.filter(node => state.selection.has(node.id));
@@ -1798,10 +2382,14 @@ import type { NodeRendererModule } from './nodes/types';
     const maxY = Math.max(...nodes.map(node => node.position.y + (node.height ?? 120)));
     const boxWidth = maxX - minX + 64;
     const boxHeight = maxY - minY + 64;
-    const viewWidth = elements.canvas.clientWidth || 900;
-    const viewHeight = elements.canvas.clientHeight || 600;
-    const scale = Math.min(viewWidth / boxWidth, viewHeight / boxHeight, 1);
+    const view = getViewportSize();
+    const scale = Math.min(view.width / boxWidth, view.height / boxHeight, 1);
     setZoom(scale);
+    const centerX = minX + boxWidth / 2;
+    const centerY = minY + boxHeight / 2;
+    state.viewport.x = view.width / 2 - centerX * state.zoom;
+    state.viewport.y = view.height / 2 - centerY * state.zoom;
+    updateCanvasTransform();
   };
 
   const serializeAndDownload = (): void => {
@@ -1878,15 +2466,103 @@ import type { NodeRendererModule } from './nodes/types';
     } else if (modifier && event.key.toLowerCase() === 'd') {
       event.preventDefault();
       duplicateSelection();
+    } else if (isZoomInShortcut(event)) {
+      event.preventDefault();
+      const anchor = getCanvasCenterAnchor();
+      stepZoom(1, anchor);
+    } else if (isZoomOutShortcut(event)) {
+      event.preventDefault();
+      const anchor = getCanvasCenterAnchor();
+      stepZoom(-1, anchor);
     } else if (event.key === '1' && !event.shiftKey && !modifier) {
       setZoom(1);
     } else if (event.key === '1' && event.shiftKey) {
       fitSelection();
+    } else if (!modifier && !event.altKey && event.key === '.') {
+      event.preventDefault();
+      fitSelection();
+    } else if (!modifier && !event.altKey && event.key.toLowerCase() === 'h') {
+      event.preventDefault();
+      setActiveTool('pan');
+    } else if (!modifier && !event.altKey && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      setActiveTool('select');
+    } else if (event.key === 'Escape' && zoomMenuOpen) {
+      event.preventDefault();
+      closeZoomMenu();
     } else if (event.key === 'Escape' && state.pendingConnection) {
       event.preventDefault();
       clearPendingConnection();
     }
   };
+
+  elements.canvas.addEventListener('pointerdown', event => {
+    if (maybeStartMarquee(event)) {
+      return;
+    }
+    startPanSession(event);
+  });
+
+  elements.canvas.addEventListener(
+    'wheel',
+    event => {
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        event.preventDefault();
+        const anchor = { clientX: event.clientX, clientY: event.clientY };
+        const direction = event.deltaY < 0 ? 1 : -1;
+        stepZoom(direction as 1 | -1, anchor);
+      }
+    },
+    { passive: false }
+  );
+
+  elements.toolSelect.addEventListener('click', () => setActiveTool('select'));
+  elements.toolPan.addEventListener('click', () => setActiveTool('pan'));
+  elements.fitView.addEventListener('click', () => fitSelection());
+
+  elements.zoomDisplay.addEventListener('click', () => toggleZoomMenu());
+  elements.zoomIn.addEventListener('click', () => {
+    stepZoom(1);
+  });
+  elements.zoomOut.addEventListener('click', () => {
+    stepZoom(-1);
+  });
+  elements.zoomFitMenu.addEventListener('click', () => {
+    fitSelection();
+  });
+  elements.zoomApply.addEventListener('click', () => applyZoomInputValue());
+  elements.zoomInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyZoomInputValue();
+    }
+  });
+
+  document.addEventListener('pointerdown', event => {
+    if (!zoomMenuOpen) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+    if (target === elements.zoomDisplay) {
+      return;
+    }
+    if (target.closest('#zoom-menu')) {
+      return;
+    }
+    closeZoomMenu();
+  });
+
+  elements.selectionOutline.addEventListener('pointerdown', event => {
+    if (!state.selection.size) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    beginSelectionDrag(event);
+  });
 
   elements.searchInput.addEventListener('input', event => {
     const target = event.target as HTMLInputElement;
