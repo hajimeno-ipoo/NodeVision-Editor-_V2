@@ -166,6 +166,75 @@ describe('ui-template i18n', () => {
   });
 });
 
+describe('sidebar icons', () => {
+  it('uses documentation node-search icon asset when available', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const iconImg = dom.window.document.querySelector<HTMLImageElement>(
+      'button[data-panel="panel-search"] .sidebar-icon-symbol img'
+    );
+    expect(iconImg).toBeTruthy();
+    expect(iconImg?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('uses documentation workflow icon asset when available', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const iconImg = dom.window.document.querySelector<HTMLImageElement>(
+      'button[data-panel="panel-workflows"] .sidebar-icon-symbol img'
+    );
+    expect(iconImg).toBeTruthy();
+    expect(iconImg?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('uses documentation connections icon asset when available', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const iconImg = dom.window.document.querySelector<HTMLImageElement>(
+      'button[data-panel="panel-connections"] .sidebar-icon-symbol img'
+    );
+    expect(iconImg).toBeTruthy();
+    expect(iconImg?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('uses documentation help icon asset when available', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const iconImg = dom.window.document.querySelector<HTMLImageElement>(
+      'button[data-panel="panel-help"] .sidebar-icon-symbol img'
+    );
+    expect(iconImg).toBeTruthy();
+    expect(iconImg?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('uses documentation about icon asset when available', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const iconImg = dom.window.document.querySelector<HTMLImageElement>(
+      'button[data-panel="panel-about"] .sidebar-icon-symbol img'
+    );
+    expect(iconImg).toBeTruthy();
+    expect(iconImg?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('enlarges sidebar icon wrappers for readability', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const styleTag = dom.window.document.querySelector('style');
+    const css = styleTag?.textContent ?? '';
+    expect(css).toMatch(/\.sidebar-icon\s*\{[^}]*width:\s*56px/);
+    expect(css).toMatch(/\.sidebar-icon\s*\{[^}]*height:\s*56px/);
+    expect(css).toMatch(/\.sidebar-icon-symbol\s*\{[^}]*width:\s*44px/);
+    expect(css).toMatch(/\.sidebar-icon-symbol\s*\{[^}]*height:\s*44px/);
+    dom.window.close();
+  });
+});
+
 describe('canvas controls', () => {
   it('renders pan/select tools and zoom dropdown with defaults', async () => {
     const dom = renderDom(basePayload);
@@ -185,6 +254,45 @@ describe('canvas controls', () => {
     expect(zoomIn?.textContent).toContain('⌥+〜');
     const zoomInput = dom.window.document.getElementById('zoom-input') as HTMLInputElement | null;
     expect(zoomInput?.placeholder).toBe('例: 150');
+    dom.window.close();
+  });
+
+  it('embeds selection tool icon from documentation asset', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const img = dom.window.document.querySelector<HTMLImageElement>('#tool-select .canvas-tool-icon img');
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('embeds pan tool icon from documentation asset', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const img = dom.window.document.querySelector<HTMLImageElement>('#tool-pan .canvas-tool-icon img');
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('embeds fit view icon from documentation asset', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const img = dom.window.document.querySelector<HTMLImageElement>('#btn-fit-view .canvas-tool-icon img');
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+    dom.window.close();
+  });
+
+  it('applies enlarged canvas tool sizing', async () => {
+    const dom = renderDom(basePayload);
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const styleTag = dom.window.document.querySelector('style');
+    const css = styleTag?.textContent ?? '';
+    expect(css).toMatch(/\.canvas-tool\s*\{[^}]*width:\s*60px/);
+    expect(css).toMatch(/\.canvas-tool\s*\{[^}]*height:\s*60px/);
+    expect(css).toMatch(/\.canvas-tool-icon\s*\{[^}]*width:\s*46px/);
+    expect(css).toMatch(/\.canvas-tool-icon\s*\{[^}]*height:\s*46px/);
     dom.window.close();
   });
 });

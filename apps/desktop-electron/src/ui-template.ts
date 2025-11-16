@@ -41,6 +41,98 @@ const resolveFirstExistingPath = (candidates: string[]): string | null => {
   return null;
 };
 
+const collectAssetCandidates = (relativePath: string[], maxDepth = 6): string[] => {
+  // Walk up the directory tree (src -> app -> repo root) so dev/prod builds can both find shared doc assets.
+  const seen = new Set<string>();
+  let currentDir: string | null = __dirname;
+  for (let depth = 0; depth <= maxDepth && currentDir; depth += 1) {
+    seen.add(path.resolve(currentDir, ...relativePath));
+    const parent = path.dirname(currentDir);
+    if (parent === currentDir) {
+      break;
+    }
+    currentDir = parent;
+  }
+  seen.add(path.resolve(process.cwd(), ...relativePath));
+  return Array.from(seen);
+};
+
+const loadAssetDataUri = (relativePath: string[], mimeType: string): string | null => {
+  const resolvedPath = resolveFirstExistingPath(collectAssetCandidates(relativePath));
+  if (!resolvedPath) {
+    return null;
+  }
+  try {
+    const base64 = fs.readFileSync(resolvedPath).toString('base64');
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    console.warn('[NodeVision] Failed to read asset:', resolvedPath, error);
+    return null;
+  }
+};
+
+const iconSymbolFromAsset = (dataUri: string | null, defaultSvg: string): string =>
+  dataUri
+    ? `<img src="${dataUri}" alt="" decoding="async" draggable="false" loading="lazy" />`
+    : defaultSvg;
+
+const NODE_SEARCH_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'ノード検索.png'], 'image/png');
+const DEFAULT_SEARCH_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="11" cy="11" r="6" />
+                <line x1="16" y1="16" x2="21" y2="21" />
+              </svg>`;
+const NODE_SEARCH_ICON_SYMBOL = iconSymbolFromAsset(NODE_SEARCH_ICON_DATA_URI, DEFAULT_SEARCH_ICON_SYMBOL);
+
+const WORKFLOW_PANEL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'ワークフロー.png'], 'image/png');
+const DEFAULT_WORKFLOW_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="8" cy="7" r="2.4" />
+                <circle cx="16" cy="7" r="2.4" />
+                <circle cx="8" cy="17" r="2.4" />
+                <circle cx="16" cy="17" r="2.4" />
+                <path d="M10.4 7h3.2" />
+                <path d="M8 9.4v5.2" />
+                <path d="M16 9.4v5.2" />
+                <path d="M10.4 17h3.2" />
+              </svg>`;
+const WORKFLOW_PANEL_ICON_SYMBOL = iconSymbolFromAsset(WORKFLOW_PANEL_ICON_DATA_URI, DEFAULT_WORKFLOW_ICON_SYMBOL);
+
+const CONNECTION_PANEL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '接続.png'], 'image/png');
+const DEFAULT_CONNECTION_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
+                <path d="M7 12h4" />
+                <path d="M17 12h-4" />
+                <path d="M11 9V6.5a2.5 2.5 0 0 1 5 0V9" />
+                <path d="M13 15v2.5a2.5 2.5 0 0 1-5 0V15" />
+              </svg>`;
+const CONNECTION_PANEL_ICON_SYMBOL = iconSymbolFromAsset(
+  CONNECTION_PANEL_ICON_DATA_URI,
+  DEFAULT_CONNECTION_ICON_SYMBOL
+);
+
+const HELP_PANEL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'キーボード.png'], 'image/png');
+const DEFAULT_HELP_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9 10a3 3 0 0 1 5.7-1.2c.5 1.08.2 2.1-.7 2.8-.8.6-1.5 1.1-1.5 2.4" />
+                <circle cx="12" cy="17" r="0.7" fill="currentColor" stroke="none" />
+              </svg>`;
+const HELP_PANEL_ICON_SYMBOL = iconSymbolFromAsset(HELP_PANEL_ICON_DATA_URI, DEFAULT_HELP_ICON_SYMBOL);
+
+const ABOUT_PANEL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'インフォメーション.png'], 'image/png');
+const DEFAULT_ABOUT_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none" />
+                <line x1="12" y1="11" x2="12" y2="17" />
+              </svg>`;
+const ABOUT_PANEL_ICON_SYMBOL = iconSymbolFromAsset(ABOUT_PANEL_ICON_DATA_URI, DEFAULT_ABOUT_ICON_SYMBOL);
+
+const SELECT_TOOL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '選択.png'], 'image/png');
+const SELECT_TOOL_ICON_SYMBOL = iconSymbolFromAsset(SELECT_TOOL_ICON_DATA_URI, '🖱️');
+
+const PAN_TOOL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'パン表示.png'], 'image/png');
+const PAN_TOOL_ICON_SYMBOL = iconSymbolFromAsset(PAN_TOOL_ICON_DATA_URI, '✋');
+
+const FIT_TOOL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '中央.png'], 'image/png');
+const FIT_TOOL_ICON_SYMBOL = iconSymbolFromAsset(FIT_TOOL_ICON_DATA_URI, '🎯');
+
 const loadTypescriptModule = (): TypescriptModule => {
   if (cachedTypescript) {
     return cachedTypescript;
@@ -295,9 +387,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         padding: 12px 0;
       }
       .sidebar-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(0, 0, 0, 0.25);
         color: rgba(255, 255, 255, 0.85);
@@ -308,8 +400,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         transition: border 150ms ease, background 150ms ease, transform 150ms ease;
       }
       .sidebar-icon-symbol {
-        width: 28px;
-        height: 28px;
+        width: 44px;
+        height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -322,6 +414,12 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         stroke-width: 1.7;
         stroke-linecap: round;
         stroke-linejoin: round;
+      }
+      .sidebar-icon-symbol img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
       }
       .sidebar-icon:focus-visible {
         outline: 2px solid #7dc3ff;
@@ -470,8 +568,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         z-index: 10;
       }
       .canvas-tool {
-        width: 36px;
-        height: 36px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         border: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(7, 9, 15, 0.85);
@@ -479,7 +577,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
+        font-size: 20px;
         transition: background 180ms ease, color 180ms ease, border 180ms ease, transform 180ms ease;
       }
       .canvas-tool:hover,
@@ -502,6 +600,20 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         border-color: rgba(255, 223, 107, 0.55);
         color: #fff2c1;
         box-shadow: 0 6px 20px rgba(15, 16, 24, 0.4);
+      }
+      .canvas-tool-icon {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      .canvas-tool-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
       }
       .canvas-controls-divider {
         width: 1px;
@@ -1715,10 +1827,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         <div class="sidebar-icons" role="tablist">
           <button type="button" class="sidebar-icon" data-panel="panel-search" aria-controls="panel-search" aria-expanded="false">
             <span aria-hidden="true" class="sidebar-icon-symbol">
-              <svg viewBox="0 0 24 24" role="presentation">
-                <circle cx="11" cy="11" r="6" />
-                <line x1="16" y1="16" x2="21" y2="21" />
-              </svg>
+              ${NODE_SEARCH_ICON_SYMBOL}
             </span>
             <span class="sr-only">Search</span>
           </button>
@@ -1733,27 +1842,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-workflows" aria-controls="panel-workflows" aria-expanded="false">
             <span aria-hidden="true" class="sidebar-icon-symbol">
-              <svg viewBox="0 0 24 24" role="presentation">
-                <circle cx="8" cy="7" r="2.4" />
-                <circle cx="16" cy="7" r="2.4" />
-                <circle cx="8" cy="17" r="2.4" />
-                <circle cx="16" cy="17" r="2.4" />
-                <path d="M10.4 7h3.2" />
-                <path d="M8 9.4v5.2" />
-                <path d="M16 9.4v5.2" />
-                <path d="M10.4 17h3.2" />
-              </svg>
+              ${WORKFLOW_PANEL_ICON_SYMBOL}
             </span>
             <span class="sr-only">Workflows</span>
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-connections" aria-controls="panel-connections" aria-expanded="false">
             <span aria-hidden="true" class="sidebar-icon-symbol">
-              <svg viewBox="0 0 24 24" role="presentation">
-                <path d="M7 12h4" />
-                <path d="M17 12h-4" />
-                <path d="M11 9V6.5a2.5 2.5 0 0 1 5 0V9" />
-                <path d="M13 15v2.5a2.5 2.5 0 0 1-5 0V15" />
-              </svg>
+              ${CONNECTION_PANEL_ICON_SYMBOL}
             </span>
             <span class="sr-only">Connections</span>
           </button>
@@ -1769,21 +1864,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-about" aria-controls="panel-about" aria-expanded="false">
             <span aria-hidden="true" class="sidebar-icon-symbol">
-              <svg viewBox="0 0 24 24" role="presentation">
-                <circle cx="12" cy="12" r="9" />
-                <circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none" />
-                <line x1="12" y1="11" x2="12" y2="17" />
-              </svg>
+              ${ABOUT_PANEL_ICON_SYMBOL}
             </span>
             <span class="sr-only">About</span>
           </button>
           <button type="button" class="sidebar-icon" data-panel="panel-help" aria-controls="panel-help" aria-expanded="false">
             <span aria-hidden="true" class="sidebar-icon-symbol">
-              <svg viewBox="0 0 24 24" role="presentation">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M9 10a3 3 0 0 1 5.7-1.2c.5 1.08.2 2.1-.7 2.8-.8.6-1.5 1.1-1.5 2.4" />
-                <circle cx="12" cy="17" r="0.7" fill="currentColor" stroke="none" />
-              </svg>
+              ${HELP_PANEL_ICON_SYMBOL}
             </span>
             <span class="sr-only">Help</span>
           </button>
@@ -1964,7 +2051,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             data-i18n-attr-title="canvas.toolSelectTooltip"
             data-i18n-attr-aria-label="canvas.toolSelectTooltip"
           >
-            <span aria-hidden="true">🖱️</span>
+            <span aria-hidden="true" class="canvas-tool-icon">${SELECT_TOOL_ICON_SYMBOL}</span>
           </button>
           <button
             type="button"
@@ -1975,7 +2062,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             data-i18n-attr-title="canvas.toolPanTooltip"
             data-i18n-attr-aria-label="canvas.toolPanTooltip"
           >
-            <span aria-hidden="true">✋</span>
+            <span aria-hidden="true" class="canvas-tool-icon">${PAN_TOOL_ICON_SYMBOL}</span>
           </button>
           <button
             type="button"
@@ -1985,7 +2072,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             data-i18n-attr-title="canvas.fitViewTooltip"
             data-i18n-attr-aria-label="canvas.fitViewTooltip"
           >
-            <span aria-hidden="true">🎯</span>
+            <span aria-hidden="true" class="canvas-tool-icon">${FIT_TOOL_ICON_SYMBOL}</span>
           </button>
           <span class="canvas-controls-divider" aria-hidden="true"></span>
           <div class="zoom-control">
