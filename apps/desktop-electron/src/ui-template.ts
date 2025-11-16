@@ -455,9 +455,6 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         appearance: none;
         -webkit-appearance: none;
       }
-      button.node-delete-btn:hover {
-        background: #ff5662;
-      }
       button.node-delete-btn:focus-visible {
         outline: 1px solid rgba(255, 255, 255, 0.8);
         outline-offset: 2px;
@@ -734,6 +731,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 13px;
         cursor: pointer;
         transition: background 120ms ease;
+      }
+      button.node-delete-btn,
+      button.node-delete-btn:hover,
+      button.node-delete-btn:focus,
+      button.node-delete-btn:focus-visible {
+        background: #ff5662 !important;
+        color: transparent;
       }
       button:disabled {
         opacity: 0.4;
