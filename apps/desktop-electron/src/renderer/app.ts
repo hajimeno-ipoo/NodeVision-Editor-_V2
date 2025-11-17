@@ -961,6 +961,40 @@ import { syncPendingPortHighlight } from './ports';
     return PREVIEW_FRAME_RATIO;
   };
 
+  const updateNodeMediaPreviewStyles = (node: RendererNode, element: HTMLElement): void => {
+    const mediaBlocks = element.querySelectorAll<HTMLElement>('.node-media');
+    if (!mediaBlocks.length) {
+      return;
+    }
+    const nodeSize = state.nodeSizes.get(node.id) ?? {
+      width: node.width ?? NODE_MIN_WIDTH,
+      height: node.height ?? NODE_MIN_HEIGHT
+    };
+    const chrome = getNodeChromePadding(node.id);
+    const heightLimit = Math.max(MIN_PREVIEW_HEIGHT, nodeSize.height - chrome);
+    const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
+    let sourceNodeId: string | null = node.id;
+    if (node.typeId === 'mediaPreview') {
+      const connection = state.connections.find(
+        conn => conn.toNodeId === node.id && conn.toPortId === 'source'
+      );
+      sourceNodeId = connection?.fromNodeId ?? node.id;
+    }
+    const ratio = getPreviewAspectRatio(sourceNodeId ?? node.id);
+    let previewWidth = widthLimit;
+    let previewHeight = previewWidth / Math.max(ratio, 0.01);
+    if (previewHeight > heightLimit) {
+      previewHeight = heightLimit;
+      previewWidth = Math.min(widthLimit, previewHeight * Math.max(ratio, 0.01));
+    }
+    previewWidth = Math.max(0, previewWidth);
+    previewHeight = Math.max(MIN_PREVIEW_HEIGHT, Math.min(heightLimit, previewHeight));
+    mediaBlocks.forEach(block => {
+      block.style.setProperty('--preview-width', `${previewWidth}px`);
+      block.style.setProperty('--preview-height', `${previewHeight}px`);
+    });
+  };
+
   const getMinimumHeightForWidth = (nodeId: string, width: number): number => {
     const chrome = getNodeChromePadding(nodeId);
     const desiredPreviewWidth = getPreviewWidthForNodeWidth(width);
@@ -989,7 +1023,9 @@ import { syncPendingPortHighlight } from './ports';
     const minHeight = getMinimumHeightForWidth(node.id, width);
     const height = Math.max(minHeight, clampHeight(stored?.height ?? fallbackHeight));
     const size: NodeSize = { width, height };
-    state.nodeSizes.set(node.id, size);
+    if (!stored || stored.width !== width || stored.height !== height) {
+      state.nodeSizes.set(node.id, size);
+    }
     node.width = width;
     node.height = height;
     return size;
@@ -2325,10 +2361,14 @@ import { syncPendingPortHighlight } from './ports';
     }
     node.width = width;
     node.height = enforcedHeight;
-    state.nodeSizes.set(node.id, { width, height: enforcedHeight });
+    const storedSize = state.nodeSizes.get(node.id);
+    if (!storedSize || storedSize.width !== width || storedSize.height !== enforcedHeight) {
+      state.nodeSizes.set(node.id, { width, height: enforcedHeight });
+    }
     session.element.style.width = `${width}px`;
     session.element.style.height = `${enforcedHeight}px`;
     session.element.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
+    updateNodeMediaPreviewStyles(node, session.element);
     renderConnectionPaths();
   };
 
@@ -2341,7 +2381,7 @@ import { syncPendingPortHighlight } from './ports';
     window.removeEventListener('pointercancel', cancelResize);
     state.resizing = null;
     if (commit) {
-      commitState();
+      commitState({ skipRender: true });
     }
   };
 
@@ -2820,9 +2860,14 @@ import { syncPendingPortHighlight } from './ports';
     commitState();
   };
 
-  const commitState = (options: { skipDirtyFlag?: boolean } = {}): void => {
-    renderNodes();
-    renderConnections();
+  const commitState = (options: { skipDirtyFlag?: boolean; skipRender?: boolean } = {}): void => {
+    if (!options.skipRender) {
+      renderNodes();
+      renderConnections();
+    } else {
+      renderConnectionPaths();
+      applyNodeHighlightClasses();
+    }
     updateSelectionUi();
     updateJsonPreview();
     pushHistory();
