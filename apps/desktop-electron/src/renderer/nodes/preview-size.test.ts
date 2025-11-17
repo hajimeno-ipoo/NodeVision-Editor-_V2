@@ -33,8 +33,8 @@ describe('calculatePreviewSize', () => {
       originalWidth: 400,
       originalHeight: 400
     });
-    expect(size.height).toBeCloseTo(160, 5);
-    expect(size.width).toBeCloseTo(200, 5);
+    expect(size.height).toBeCloseTo(216, 5);
+    expect(size.width).toBeCloseTo(216, 5);
   });
 
   it('enforces minimum preview height when space allows', () => {

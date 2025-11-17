@@ -887,9 +887,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .node-ports {
         display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 4px 18px 0;
+        gap: 12px;
+        justify-content: space-between;
+        padding: 8px 18px 0;
       }
       .node-info {
         margin: 6px 18px 10px;
@@ -1431,73 +1431,29 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         align-items: stretch;
       }
       .port {
-        border-radius: 999px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        padding: 8px 14px;
-        background: linear-gradient(180deg, #dedee3, #cdced6);
-        color: #2b2c33;
+        border: none;
+        background: transparent;
+        color: #1f1f24;
         font-size: 13px;
         display: flex;
         align-items: center;
-        gap: 10px;
-        min-width: 140px;
-        justify-content: space-between;
-        transition: border 160ms ease, box-shadow 160ms ease, background 160ms ease;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 4px 4px;
+        min-width: 120px;
       }
       .port.input {
         flex-direction: row;
-        text-align: left;
+        text-align: right;
       }
       .port.output {
         flex-direction: row-reverse;
-        text-align: right;
-      }
-      .port-text {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        min-width: 0;
-      }
-      .node-type-mediapreview .port.port-input {
-        position: relative;
-      }
-      .port.output .port-text {
-        align-items: flex-end;
+        text-align: left;
       }
       .port-label {
         font-weight: 600;
         font-size: 13px;
         color: #232329;
-      }
-      .port-type {
-        font-size: 11px;
-        color: rgba(34, 34, 40, 0.6);
-        display: block;
-      }
-      .node-type-mediapreview .port.port-input .port-connection-pill {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        padding: 2px 12px;
-        font-size: 11px;
-        font-weight: 600;
-        border: 1px solid transparent;
-        pointer-events: none;
-      }
-      .port-connection-pill-ok {
-        background: rgba(82, 196, 26, 0.15);
-        color: #1d7a22;
-        border-color: rgba(82, 196, 26, 0.35);
-      }
-      .port-connection-pill-warn {
-        background: rgba(255, 149, 0, 0.15);
-        color: #7d3a00;
-        border-color: rgba(255, 149, 0, 0.35);
       }
       .port:focus-visible {
         outline: 2px solid #4e9eff;
@@ -1532,8 +1488,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: rgba(126, 194, 255, 0.35);
       }
       .port-placeholder {
-        font-size: 12px;
-        color: rgba(47, 48, 55, 0.5);
+        display: none;
       }
       #connection-layer path {
         fill: none;

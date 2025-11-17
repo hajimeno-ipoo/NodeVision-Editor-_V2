@@ -36,7 +36,7 @@ export const calculatePreviewSize = (input: PreviewSizeInput): PreviewSize => {
     aspectRatio,
     originalWidth,
     originalHeight,
-    minimumNodePortion = 0.4
+    minimumNodePortion = 0.6
   } = input;
 
   const safeRatio = clamp(Math.abs(aspectRatio) || SAFE_RATIO_FALLBACK, MIN_RATIO, MAX_RATIO);

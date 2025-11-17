@@ -1587,21 +1587,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
     }
     const ariaPressed = direction === 'output' ? String(pending) : 'false';
     const portLabel = getPortLabel(node.typeId, port);
-    let connectionBadge = '';
-    if (direction === 'input' && node.typeId === 'mediaPreview' && port.id === 'source') {
-      const badgeClass = connected ? 'port-connection-pill port-connection-pill-ok' : 'port-connection-pill port-connection-pill-warn';
-      connectionBadge = `<span class="${badgeClass}">${escapeHtml(
-        t(connected ? 'nodes.status.connected' : 'nodes.status.missing')
-      )}</span>`;
-    }
-    const textHtml = `
-        <span class="port-text">
-          <span class="port-label">${escapeHtml(portLabel)}</span>
-          <span class="port-type">${escapeHtml(port.dataType ?? '')}</span>
-        </span>
-    `;
     const dot = '<span class="port-dot" aria-hidden="true"></span>';
-    const inner = direction === 'input' ? `${dot}${textHtml}${connectionBadge}` : `${textHtml}${dot}`;
+    const labelHtml = `<span class="port-label">${escapeHtml(portLabel)}</span>`;
+    const inner = direction === 'input' ? `${dot}${labelHtml}` : `${labelHtml}${dot}`;
     return `
       <button
         type="button"
