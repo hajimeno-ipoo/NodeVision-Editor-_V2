@@ -32,6 +32,7 @@ import type { NodeRendererModule } from './nodes/types';
 import type { StoredWorkflow } from './types';
 import { syncPendingPortHighlight } from './ports';
 import { getLoadNodeReservedHeight, getMediaPreviewReservedHeight } from './nodes/preview-layout';
+import { calculatePreviewSize } from './nodes/preview-size';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
@@ -975,32 +976,35 @@ import { getLoadNodeReservedHeight, getMediaPreviewReservedHeight } from './node
     const chrome = getNodeChromePadding(node.id);
     let sourceNodeId: string | null = node.id;
     let reservedHeight = 0;
+    let previewData = state.mediaPreviews.get(node.id);
     if (node.typeId === 'mediaPreview') {
       const connection = state.connections.find(
         conn => conn.toNodeId === node.id && conn.toPortId === 'source'
       );
       sourceNodeId = connection?.fromNodeId ?? node.id;
-      const upstreamPreview = sourceNodeId ? state.mediaPreviews.get(sourceNodeId) : undefined;
-      reservedHeight = getMediaPreviewReservedHeight(Boolean(upstreamPreview));
+      previewData = sourceNodeId ? state.mediaPreviews.get(sourceNodeId) : undefined;
+      reservedHeight = getMediaPreviewReservedHeight(Boolean(previewData));
     } else if (LOAD_NODE_TYPE_IDS.has(node.typeId)) {
-      const preview = state.mediaPreviews.get(node.id);
-      reservedHeight = getLoadNodeReservedHeight(Boolean(preview));
+      reservedHeight = getLoadNodeReservedHeight(Boolean(previewData));
+    } else {
+      previewData = undefined;
     }
-    const heightLimit = Math.max(0, nodeSize.height - chrome - reservedHeight);
     const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
     const ratio = getPreviewAspectRatio(sourceNodeId ?? node.id);
-    let previewWidth = widthLimit;
-    let previewHeight = previewWidth / Math.max(ratio, 0.01);
-    if (previewHeight > heightLimit) {
-      previewHeight = heightLimit;
-      previewWidth = Math.min(widthLimit, previewHeight * Math.max(ratio, 0.01));
-    }
-    previewWidth = Math.max(0, previewWidth);
-    const minClamp = heightLimit > 0 ? Math.min(MIN_PREVIEW_HEIGHT, heightLimit) : 0;
-    previewHeight = Math.max(minClamp, Math.min(heightLimit, previewHeight));
+    const previewBox = calculatePreviewSize({
+      nodeWidth: nodeSize.width,
+      nodeHeight: nodeSize.height,
+      chromePadding: chrome,
+      reservedHeight,
+      widthLimit,
+      minHeight: MIN_PREVIEW_HEIGHT,
+      aspectRatio: ratio,
+      originalWidth: previewData?.width ?? null,
+      originalHeight: previewData?.height ?? null
+    });
     mediaBlocks.forEach(block => {
-      block.style.setProperty('--preview-width', `${previewWidth}px`);
-      block.style.setProperty('--preview-height', `${previewHeight}px`);
+      block.style.setProperty('--preview-width', `${previewBox.width}px`);
+      block.style.setProperty('--preview-height', `${previewBox.height}px`);
     });
   };
 

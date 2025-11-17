@@ -1,0 +1,65 @@
+import { describe, expect, it } from 'vitest';
+
+import { calculatePreviewSize } from './preview-size';
+
+describe('calculatePreviewSize', () => {
+  it('does not upscale beyond original dimensions', () => {
+    const size = calculatePreviewSize({
+      nodeWidth: 800,
+      nodeHeight: 800,
+      chromePadding: 100,
+      reservedHeight: 120,
+      widthLimit: 500,
+      minHeight: 240,
+      aspectRatio: 16 / 9,
+      originalWidth: 300,
+      originalHeight: 180
+    });
+    expect(size.width).toBeLessThanOrEqual(300);
+    expect(size.height).toBeLessThanOrEqual(180);
+  });
+
+  it('respects height availability when node is short', () => {
+    const size = calculatePreviewSize({
+      nodeWidth: 500,
+      nodeHeight: 360,
+      chromePadding: 120,
+      reservedHeight: 80,
+      widthLimit: 340,
+      minHeight: 200,
+      aspectRatio: 1,
+      originalWidth: 400,
+      originalHeight: 400
+    });
+    expect(size.height).toBeCloseTo(160, 5);
+    expect(size.width).toBeCloseTo(160, 5);
+  });
+
+  it('enforces minimum preview height when space allows', () => {
+    const size = calculatePreviewSize({
+      nodeWidth: 400,
+      nodeHeight: 600,
+      chromePadding: 120,
+      reservedHeight: 100,
+      widthLimit: 260,
+      minHeight: 220,
+      aspectRatio: 9 / 16,
+      originalWidth: 500,
+      originalHeight: 900
+    });
+    expect(size.height).toBeGreaterThanOrEqual(220);
+  });
+
+  it('uses available width when original size is unknown', () => {
+    const size = calculatePreviewSize({
+      nodeWidth: 420,
+      nodeHeight: 700,
+      chromePadding: 140,
+      reservedHeight: 150,
+      widthLimit: 260,
+      minHeight: 200,
+      aspectRatio: 4 / 3
+    });
+    expect(size.width).toBeCloseTo(260, 5);
+  });
+});

@@ -1,6 +1,7 @@
 import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { getLoadNodeReservedHeight } from './preview-layout';
+import { calculatePreviewSize } from './preview-size';
 
 export type LoadNodeKind = 'image' | 'video' | 'any';
 
@@ -240,18 +241,19 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
     const reservedHeight = getLoadNodeReservedHeight(Boolean(preview));
     const nodeKind = getLoadNodeKindFromType(node.typeId);
     const ratio = getPreviewAspectRatio(nodeId);
-    const heightLimit = Math.max(0, nodeSize.height - chrome - reservedHeight);
     const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
-    let previewWidth = widthLimit;
-    let previewHeight = previewWidth / ratio;
-    if (previewHeight > heightLimit) {
-      previewHeight = heightLimit;
-      previewWidth = Math.min(widthLimit, previewHeight * ratio);
-    }
-    previewWidth = Math.max(0, previewWidth);
-    const minClamp = heightLimit > 0 ? Math.min(minPreviewHeight, heightLimit) : 0;
-    previewHeight = Math.max(minClamp, Math.min(heightLimit, previewHeight));
-    const inlineStyle = ` style="--preview-width:${previewWidth}px;--preview-height:${previewHeight}px"`;
+    const previewBox = calculatePreviewSize({
+      nodeWidth: nodeSize.width || node.width || 0,
+      nodeHeight: nodeSize.height || node.height || 0,
+      chromePadding: chrome,
+      reservedHeight,
+      widthLimit,
+      minHeight: minPreviewHeight,
+      aspectRatio: ratio,
+      originalWidth: preview?.width ?? null,
+      originalHeight: preview?.height ?? null
+    });
+    const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
     const acceptAttr = nodeKind === 'image' ? 'image/*' : nodeKind === 'video' ? 'video/*' : 'image/*,video/*';
     const disabledAttr = state.readonly ? 'disabled' : '';
     const uploadControl = `
