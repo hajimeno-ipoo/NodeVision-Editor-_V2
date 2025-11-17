@@ -68,7 +68,8 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
     getNodeChromePadding,
     getPreviewWidthForNodeWidth,
     getPreviewAspectRatio,
-    minPreviewHeight
+    minPreviewHeight,
+    minPreviewWidth
   } = context;
 
   const getLoadNodeKindById = (nodeId: string): LoadNodeKind => {
@@ -249,6 +250,7 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
       reservedHeight,
       widthLimit,
       minHeight: minPreviewHeight,
+      minWidth: minPreviewWidth,
       aspectRatio: ratio,
       originalWidth: preview?.width ?? null,
       originalHeight: preview?.height ?? null

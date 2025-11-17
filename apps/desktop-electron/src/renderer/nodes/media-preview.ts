@@ -26,6 +26,7 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     getPreviewWidthForNodeWidth,
     getPreviewAspectRatio,
     minPreviewHeight,
+    minPreviewWidth,
     getMediaPreview
   } = context;
 
@@ -50,6 +51,7 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       reservedHeight,
       widthLimit,
       minHeight: minPreviewHeight,
+      minWidth: minPreviewWidth,
       aspectRatio: ratio,
       originalWidth: preview?.width ?? null,
       originalHeight: preview?.height ?? null

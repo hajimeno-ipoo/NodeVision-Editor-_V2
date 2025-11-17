@@ -24,6 +24,7 @@ export interface NodeRendererContext {
   getPreviewWidthForNodeWidth: (width: number) => number;
   getPreviewAspectRatio: (nodeId: string) => number;
   minPreviewHeight: number;
+  minPreviewWidth: number;
   getTemplateByType: (typeId: string) => NodeTemplate | undefined;
   getMediaPreview: (nodeId: string) => NodeMediaPreview | undefined;
 }

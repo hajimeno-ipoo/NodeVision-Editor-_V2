@@ -998,6 +998,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       reservedHeight,
       widthLimit,
       minHeight: MIN_PREVIEW_HEIGHT,
+      minWidth: MIN_PREVIEW_WIDTH,
       aspectRatio: ratio,
       originalWidth: previewData?.width ?? null,
       originalHeight: previewData?.height ?? null
@@ -2519,6 +2520,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       getPreviewWidthForNodeWidth,
       getPreviewAspectRatio,
       minPreviewHeight: MIN_PREVIEW_HEIGHT,
+      minPreviewWidth: MIN_PREVIEW_WIDTH,
       getTemplateByType,
       getMediaPreview
     });
