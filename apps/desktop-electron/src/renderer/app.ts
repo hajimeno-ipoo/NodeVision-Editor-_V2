@@ -31,6 +31,7 @@ import { createNodeRenderers } from './nodes';
 import type { NodeRendererModule } from './nodes/types';
 import type { StoredWorkflow } from './types';
 import { syncPendingPortHighlight } from './ports';
+import { getLoadNodeReservedHeight, getMediaPreviewReservedHeight } from './nodes/preview-layout';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
@@ -50,6 +51,7 @@ import { syncPendingPortHighlight } from './ports';
   const NODE_MIN_HEIGHT = MIN_PREVIEW_HEIGHT + MIN_NODE_CHROME;
   const NODE_MAX_HEIGHT = 720;
   const MAX_CHROME_SYNC_ATTEMPTS = 2;
+  const LOAD_NODE_TYPE_IDS = new Set(['loadImage', 'loadVideo', 'loadMedia']);
   const GRID_MINOR_BASE = 8;
   const GRID_MAJOR_FACTOR = 4;
   const SELECTION_PADDING = 6;
@@ -971,15 +973,21 @@ import { syncPendingPortHighlight } from './ports';
       height: node.height ?? NODE_MIN_HEIGHT
     };
     const chrome = getNodeChromePadding(node.id);
-    const heightLimit = Math.max(MIN_PREVIEW_HEIGHT, nodeSize.height - chrome);
-    const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
     let sourceNodeId: string | null = node.id;
+    let reservedHeight = 0;
     if (node.typeId === 'mediaPreview') {
       const connection = state.connections.find(
         conn => conn.toNodeId === node.id && conn.toPortId === 'source'
       );
       sourceNodeId = connection?.fromNodeId ?? node.id;
+      const upstreamPreview = sourceNodeId ? state.mediaPreviews.get(sourceNodeId) : undefined;
+      reservedHeight = getMediaPreviewReservedHeight(Boolean(upstreamPreview));
+    } else if (LOAD_NODE_TYPE_IDS.has(node.typeId)) {
+      const preview = state.mediaPreviews.get(node.id);
+      reservedHeight = getLoadNodeReservedHeight(Boolean(preview));
     }
+    const heightLimit = Math.max(0, nodeSize.height - chrome - reservedHeight);
+    const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
     const ratio = getPreviewAspectRatio(sourceNodeId ?? node.id);
     let previewWidth = widthLimit;
     let previewHeight = previewWidth / Math.max(ratio, 0.01);
@@ -988,7 +996,8 @@ import { syncPendingPortHighlight } from './ports';
       previewWidth = Math.min(widthLimit, previewHeight * Math.max(ratio, 0.01));
     }
     previewWidth = Math.max(0, previewWidth);
-    previewHeight = Math.max(MIN_PREVIEW_HEIGHT, Math.min(heightLimit, previewHeight));
+    const minClamp = heightLimit > 0 ? Math.min(MIN_PREVIEW_HEIGHT, heightLimit) : 0;
+    previewHeight = Math.max(minClamp, Math.min(heightLimit, previewHeight));
     mediaBlocks.forEach(block => {
       block.style.setProperty('--preview-width', `${previewWidth}px`);
       block.style.setProperty('--preview-height', `${previewHeight}px`);

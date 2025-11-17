@@ -1,6 +1,7 @@
 import type { RendererNode } from '../types';
 import { buildNodeInfoSection } from './shared';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
+import { getMediaPreviewReservedHeight } from './preview-layout';
 
 const MEDIA_PREVIEW_NODE_TYPE = 'mediaPreview';
 
@@ -39,7 +40,8 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     const chrome = getNodeChromePadding(node.id);
     const nodeWidth = nodeSize.width || node.width || 0;
     const nodeHeight = nodeSize.height || node.height || 0;
-    const heightLimit = Math.max(minPreviewHeight, nodeHeight - chrome);
+    const reservedHeight = getMediaPreviewReservedHeight(Boolean(preview));
+    const heightLimit = Math.max(0, nodeHeight - chrome - reservedHeight);
     const widthLimit = getPreviewWidthForNodeWidth(Math.max(nodeWidth, 0));
     const ratio = getPreviewAspectRatio(sourceNodeId ?? node.id);
     let previewWidth = widthLimit;
@@ -49,7 +51,8 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       previewWidth = Math.min(widthLimit, previewHeight * Math.max(ratio, 0.01));
     }
     previewWidth = Math.max(0, previewWidth);
-    previewHeight = Math.max(minPreviewHeight, Math.min(heightLimit, previewHeight));
+    const minClamp = heightLimit > 0 ? Math.min(minPreviewHeight, heightLimit) : 0;
+    previewHeight = Math.max(minClamp, Math.min(heightLimit, previewHeight));
     const inlineStyle = ` style="--preview-width:${previewWidth}px;--preview-height:${previewHeight}px"`;
     const sourceTitle = resolveNodeTitle(sourceNode, context);
     const fileLabel = escapeHtml(preview?.name ?? sourceTitle);
