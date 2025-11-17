@@ -1,5 +1,4 @@
 import type { RendererNode } from '../types';
-import { buildNodeInfoSection } from './shared';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { getMediaPreviewReservedHeight } from './preview-layout';
 
@@ -94,7 +93,7 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
   };
 
   const render = (node: RendererNode): NodeRendererView => ({
-    afterPortsHtml: buildNodeInfoSection(node, context) + buildPreviewSection(node)
+    afterPortsHtml: buildPreviewSection(node)
   });
 
   return {

@@ -1458,6 +1458,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 2px;
         min-width: 0;
       }
+      .node-type-mediapreview .port.port-input {
+        position: relative;
+      }
       .port.output .port-text {
         align-items: flex-end;
       }
@@ -1471,37 +1474,31 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         color: rgba(34, 34, 40, 0.6);
         display: block;
       }
-<<<<<<< ours
-<<<<<<< ours
-      .port-connection-wrapper {
-        display: flex;
-        justify-content: center;
-        margin-top: 4px;
-      }
-      .port-connection-badge {
+      .node-type-mediapreview .port.port-input .port-connection-pill {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 999px;
-        padding: 1px 10px;
-        font-size: 10px;
+        padding: 2px 12px;
+        font-size: 11px;
         font-weight: 600;
         border: 1px solid transparent;
+        pointer-events: none;
       }
-      .port-connection-badge-ok {
+      .port-connection-pill-ok {
         background: rgba(82, 196, 26, 0.15);
         color: #1d7a22;
         border-color: rgba(82, 196, 26, 0.35);
       }
-      .port-connection-badge-warn {
+      .port-connection-pill-warn {
         background: rgba(255, 149, 0, 0.15);
         color: #7d3a00;
         border-color: rgba(255, 149, 0, 0.35);
       }
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
       .port:focus-visible {
         outline: 2px solid #4e9eff;
         outline-offset: 2px;
