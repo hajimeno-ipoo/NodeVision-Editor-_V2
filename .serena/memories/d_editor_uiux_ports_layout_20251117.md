@@ -1,0 +1,16 @@
+## 2025-11-17 Node ports layout fix
+- 目的: 入力ポートをノード左寄せ・出力ポートを右寄せにし、ComfyUI 風のシンプルなソースカードに近づける。プレビュー機能は壊さない。
+- 変更1: apps/desktop-electron/src/renderer/app.ts
+  - buildPortGroup(node, ports, direction) で、ports が空または未定義の時は空文字列を返すように変更。
+  - これにより、入力または出力を持たないノードでは対応する .ports コンテナ自体をレンダリングしない。
+- 変更2: apps/desktop-electron/src/ui-template.ts
+  - .node-ports のレイアウトを修正。
+    - 旧: display:grid; grid-template-columns: 1fr 1fr;
+    - 新: display:grid; grid-auto-flow: column; grid-auto-columns: max-content; justify-content: space-between; column-gap: 12px;
+  - .node-ports .ports.input / .ports.output はそれぞれ justify-self:flex-start / flex-end で左右に寄せ、空コンテナが生成されない前提で左右端に張り付くようにした。
+- 結果:
+  - 入力だけ持つノード → 左側にだけポート群が表示される。
+  - 出力だけ持つノード → 右側にだけポート群が表示される。
+  - 入出力両方を持つノード → 左端に入力群、右端に出力群が並ぶ。
+  - ノード内プレビューや preview-size のロジックには変更を加えていない。
+- ビルド: `pnpm --filter desktop-electron build` が成功。TypeScript エラーなし。

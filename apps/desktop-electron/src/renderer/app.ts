@@ -1610,15 +1610,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const displayTitle = getNodeTitle(node);
     const labelKey = direction === 'input' ? 'ports.inputsLabel' : 'ports.outputsLabel';
     const label = escapeHtml(t(labelKey, { title: displayTitle }));
-    if (!ports || !ports.length) {
-      const emptyKey = direction === 'input' ? 'ports.emptyInputs' : 'ports.emptyOutputs';
-      const emptyLabel = escapeHtml(t(emptyKey));
-      return `
-        <div class="ports ${direction}" role="group" aria-label="${label}">
-          <p class="port-placeholder">${emptyLabel}</p>
-        </div>
-      `;
-    }
+    if (!ports || !ports.length) return '';
     return `
       <div class="ports ${direction}" role="group" aria-label="${label}">
         ${ports.map(port => portButtonHtml(node, port, direction)).join('')}

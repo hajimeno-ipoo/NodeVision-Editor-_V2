@@ -887,9 +887,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .node-ports {
         display: flex;
-        gap: 12px;
         justify-content: space-between;
+        align-items: flex-start;
         padding: 8px 18px 0;
+        gap: 12px;
       }
       .node-info {
         margin: 6px 18px 10px;
@@ -955,6 +956,17 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       #status-list {
         display: none;
+      }
+      .node-ports .ports {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .node-ports .ports.input {
+        align-items: flex-start;
+      }
+      .node-ports .ports.output {
+        align-items: flex-end;
       }
       /* Load node styles */
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media {
@@ -1437,18 +1449,18 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 13px;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
+        justify-content: flex-start;
         gap: 8px;
         padding: 4px 4px;
         min-width: 120px;
       }
-      .port.input {
+      .port.port-input {
         flex-direction: row;
-        text-align: right;
+        justify-content: flex-start;
       }
-      .port.output {
-        flex-direction: row-reverse;
-        text-align: left;
+      .port.port-output {
+        flex-direction: row;
+        justify-content: flex-end;
       }
       .port-label {
         font-weight: 600;
