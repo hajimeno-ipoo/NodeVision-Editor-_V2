@@ -253,7 +253,8 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
       minWidth: minPreviewWidth,
       aspectRatio: ratio,
       originalWidth: preview?.width ?? null,
-      originalHeight: preview?.height ?? null
+      originalHeight: preview?.height ?? null,
+      minimumNodePortion: 0.85
     });
     const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
     const acceptAttr = nodeKind === 'image' ? 'image/*' : nodeKind === 'video' ? 'video/*' : 'image/*,video/*';

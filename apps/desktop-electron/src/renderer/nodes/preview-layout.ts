@@ -1,6 +1,5 @@
 export const getLoadNodeReservedHeight = (hasPreview: boolean): number =>
-  hasPreview ? 176 : 140;
+  hasPreview ? 120 : 150;
 
 export const getMediaPreviewReservedHeight = (hasPreview: boolean): number =>
-  hasPreview ? 132 : 110;
-
+  hasPreview ? 80 : 110;

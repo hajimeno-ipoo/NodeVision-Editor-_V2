@@ -976,9 +976,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         gap: 8px;
         border-top: 1px solid rgba(0, 0, 0, 0.05);
         padding-top: 12px;
-        flex: 1;
-        min-height: 240px;
-        --preview-size: 320px;
+        flex: 1 1 auto;
+        min-height: 0;
       }
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload {
         position: relative;
@@ -1022,17 +1021,22 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         width: 100%;
         display: flex;
         justify-content: center;
+        flex: 1 1 auto;
+        min-height: 0;
       }
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-preview {
         border: none;
         border-radius: 0;
-        overflow: visible;
+        overflow: hidden;
         background: transparent;
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         padding: 0;
         width: min(100%, var(--preview-width, 320px));
-        height: var(--preview-height, 240px);
+        height: min(var(--preview-height, 240px), 100%);
         max-width: 100%;
+        max-height: 100%;
       }
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-preview img,
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-preview video {
@@ -1042,6 +1046,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         background: transparent;
         border-radius: 0;
         box-shadow: none;
+        max-width: 100%;
+        max-height: 100%;
       }
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-toolbar {
         display: grid;

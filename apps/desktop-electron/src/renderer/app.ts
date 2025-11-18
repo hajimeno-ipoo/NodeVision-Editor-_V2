@@ -41,16 +41,16 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const SNAP = 4;
   const DRAG_THRESHOLD = 3;
   const SCHEMA = '1.0.7';
-  const MIN_PREVIEW_WIDTH = 280;
-  const MIN_PREVIEW_HEIGHT = 240;
-  const HORIZONTAL_PREVIEW_PADDING = 56;
+  const MIN_PREVIEW_WIDTH = 220;
+  const MIN_PREVIEW_HEIGHT = 165;
+  const HORIZONTAL_PREVIEW_PADDING = 40;
   const PREVIEW_FRAME_RATIO = MIN_PREVIEW_WIDTH / MIN_PREVIEW_HEIGHT;
-  const MIN_NODE_CHROME = 220;
-  const DEFAULT_NODE_CHROME = 300;
+  const MIN_NODE_CHROME = 180;
+  const DEFAULT_NODE_CHROME = 260;
   const NODE_MIN_WIDTH = MIN_PREVIEW_WIDTH + HORIZONTAL_PREVIEW_PADDING;
-  const NODE_MAX_WIDTH = 520;
+  const NODE_MAX_WIDTH = 960;
   const NODE_MIN_HEIGHT = MIN_PREVIEW_HEIGHT + MIN_NODE_CHROME;
-  const NODE_MAX_HEIGHT = 720;
+  const NODE_MAX_HEIGHT = 1000;
   const MAX_CHROME_SYNC_ATTEMPTS = 2;
   const LOAD_NODE_TYPE_IDS = new Set(['loadImage', 'loadVideo', 'loadMedia']);
   const GRID_MINOR_BASE = 8;
@@ -130,6 +130,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   const state: RendererState = createInitialState(BOOTSTRAP, detectLocale());
   const nodeRendererByType = new Map<string, NodeRendererModule>();
+  let nodeResizeObserver: ResizeObserver | null = null;
   const getNodeRenderer = (typeId: string): NodeRendererModule | undefined => nodeRendererByType.get(typeId);
   const toNodeTypeClass = (typeId: string): string =>
     'node-type-' + typeId.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
@@ -991,6 +992,12 @@ import { calculatePreviewSize } from './nodes/preview-size';
     }
     const widthLimit = getPreviewWidthForNodeWidth(nodeSize.width);
     const ratio = getPreviewAspectRatio(sourceNodeId ?? node.id);
+    let previewFillPortion = 0.6;
+    if (node.typeId === 'mediaPreview') {
+      previewFillPortion = 0.95;
+    } else if (LOAD_NODE_TYPE_IDS.has(node.typeId)) {
+      previewFillPortion = 0.85;
+    }
     const previewBox = calculatePreviewSize({
       nodeWidth: nodeSize.width,
       nodeHeight: nodeSize.height,
@@ -1001,13 +1008,31 @@ import { calculatePreviewSize } from './nodes/preview-size';
       minWidth: MIN_PREVIEW_WIDTH,
       aspectRatio: ratio,
       originalWidth: previewData?.width ?? null,
-      originalHeight: previewData?.height ?? null
+      originalHeight: previewData?.height ?? null,
+      minimumNodePortion: previewFillPortion
     });
     mediaBlocks.forEach(block => {
       block.style.setProperty('--preview-width', `${previewBox.width}px`);
       block.style.setProperty('--preview-height', `${previewBox.height}px`);
     });
   };
+
+  if (typeof ResizeObserver === 'function') {
+    nodeResizeObserver = new ResizeObserver(entries => {
+      entries.forEach(entry => {
+        const target = entry.target as HTMLElement | null;
+        const nodeId = target?.dataset?.id;
+        if (!nodeId) {
+          return;
+        }
+        const node = state.nodes.find(item => item.id === nodeId);
+        if (!node) {
+          return;
+        }
+        updateNodeMediaPreviewStyles(node, target);
+      });
+    });
+  }
 
   const getMinimumHeightForWidth = (nodeId: string, width: number): number => {
     const chrome = getNodeChromePadding(nodeId);
@@ -2397,6 +2422,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
     pruneNodeSizes();
     pruneNodeChrome();
     setDropTarget(null);
+    if (nodeResizeObserver) {
+      nodeResizeObserver.disconnect();
+    }
     host.innerHTML = '';
     state.nodes.forEach(node => {
       const localizedTitle = getNodeTitle(node);
@@ -2474,6 +2502,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
       });
       host.appendChild(el);
       extension?.afterRender?.(el);
+      if (nodeResizeObserver && el.querySelector('.node-media')) {
+        nodeResizeObserver.observe(el);
+      }
     });
     const needsSync = !suppressChromeMeasurement && syncNodeChromePadding();
     suppressChromeMeasurement = false;

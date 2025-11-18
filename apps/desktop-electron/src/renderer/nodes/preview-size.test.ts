@@ -115,4 +115,19 @@ describe('calculatePreviewSize', () => {
     expect(size.height).toBeGreaterThan(0);
     expect(size.width).toBeGreaterThan(0);
   });
+
+  it('allows callers to demand near-full node height', () => {
+    const size = calculatePreviewSize({
+      nodeWidth: 900,
+      nodeHeight: 800,
+      chromePadding: 50,
+      reservedHeight: 30,
+      widthLimit: 900,
+      minHeight: 150,
+      minWidth: 150,
+      aspectRatio: 1,
+      minimumNodePortion: 0.9
+    });
+    expect(size.height).toBeCloseTo(720, 5);
+  });
 });
