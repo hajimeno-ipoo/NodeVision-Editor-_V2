@@ -790,9 +790,24 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     }
     const stage = modalContentElement.querySelector<HTMLElement>('[data-trim-stage]');
     const cropBox = modalContentElement.querySelector<HTMLElement>('[data-trim-box]');
+    const imageElement = modalContentElement.querySelector<HTMLImageElement>('.trim-image-stage img');
     if (!stage || !cropBox) {
       return;
     }
+
+    const applyStageAspectRatio = (): void => {
+      if (!imageElement) {
+        return;
+      }
+      const { naturalWidth, naturalHeight } = imageElement;
+      if (!naturalWidth || !naturalHeight) {
+        return;
+      }
+      const ratioValue = `${naturalWidth} / ${naturalHeight}`;
+      stage.style.setProperty('aspect-ratio', ratioValue);
+      stage.style.setProperty('--trim-image-aspect', ratioValue);
+    };
+    applyStageAspectRatio();
 
     const clampValue = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 

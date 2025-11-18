@@ -1201,14 +1201,21 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .trim-image-stage {
         position: relative;
         width: 100%;
+        aspect-ratio: var(--trim-image-aspect, 16 / 9);
+        max-height: min(55vh, 420px);
         border-radius: 20px;
         overflow: hidden;
         background: rgba(255, 255, 255, 0.04);
         margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .trim-image-stage img {
         width: 100%;
+        height: 100%;
         display: block;
+        object-fit: contain;
         user-select: none;
         pointer-events: none;
       }
