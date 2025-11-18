@@ -1031,6 +1031,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         }
         updateNodeMediaPreviewStyles(node, target);
       });
+      refreshSelectionOutline();
     });
   }
 
@@ -1781,6 +1782,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const updateCanvasTransform = (): void => {
     elements.canvas.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.zoom})`;
     updateGridBackdrop();
+    refreshSelectionOutline();
   };
 
   const updateZoomUi = (): void => {
@@ -1875,33 +1877,41 @@ import { calculatePreviewSize } from './nodes/preview-size';
     };
   };
 
+  const getSelectionPadding = (): number => SELECTION_PADDING / (state.zoom || 1);
+
   const refreshSelectionOutline = (): void => {
     if (!elements.selectionOutline) return;
     if (!state.selection.size) {
       elements.selectionOutline.style.display = 'none';
       return;
     }
-    const targets = state.nodes.filter(node => state.selection.has(node.id));
-    if (!targets.length) {
+    const nodeEls = Array.from(elements.nodeLayer.querySelectorAll<HTMLElement>('.node.selected'));
+    if (!nodeEls.length) {
       elements.selectionOutline.style.display = 'none';
       return;
     }
+    const canvasRect = elements.canvas.getBoundingClientRect();
+    const zoom = state.zoom || 1;
     let minX = Number.POSITIVE_INFINITY;
     let minY = Number.POSITIVE_INFINITY;
     let maxX = Number.NEGATIVE_INFINITY;
     let maxY = Number.NEGATIVE_INFINITY;
-    targets.forEach(node => {
-      const size = getNodeSizeForSelection(node);
-      minX = Math.min(minX, node.position.x);
-      minY = Math.min(minY, node.position.y);
-      maxX = Math.max(maxX, node.position.x + size.width);
-      maxY = Math.max(maxY, node.position.y + size.height);
+    nodeEls.forEach(nodeEl => {
+      const rect = nodeEl.getBoundingClientRect();
+      const localMinX = (rect.left - canvasRect.left) / zoom;
+      const localMinY = (rect.top - canvasRect.top) / zoom;
+      const localMaxX = (rect.right - canvasRect.left) / zoom;
+      const localMaxY = (rect.bottom - canvasRect.top) / zoom;
+      minX = Math.min(minX, localMinX);
+      minY = Math.min(minY, localMinY);
+      maxX = Math.max(maxX, localMaxX);
+      maxY = Math.max(maxY, localMaxY);
     });
     if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
       elements.selectionOutline.style.display = 'none';
       return;
     }
-    const padding = SELECTION_PADDING;
+    const padding = getSelectionPadding();
     elements.selectionOutline.style.display = 'block';
     elements.selectionOutline.style.transform = `translate(${minX - padding}px, ${minY - padding}px)`;
     elements.selectionOutline.style.width = `${Math.max(0, maxX - minX + padding * 2)}px`;
