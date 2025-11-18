@@ -11,6 +11,23 @@ export interface PortDefinition {
   required?: boolean;
 }
 
+export interface TrimRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface TrimNodeSettings {
+  kind: 'trim';
+  startMs: number | null;
+  endMs: number | null;
+  strictCut: boolean;
+  region: TrimRegion | null;
+}
+
+export type NodeSettings = TrimNodeSettings;
+
 export interface EditorNode {
   id: string;
   typeId: string;
@@ -22,6 +39,7 @@ export interface EditorNode {
   inputs: PortDefinition[];
   outputs: PortDefinition[];
   searchTokens: string[];
+  settings?: NodeSettings;
 }
 
 export interface NodeConnection {
@@ -70,6 +88,7 @@ export interface NodeTemplate {
   height?: number;
   inputs?: PortDefinition[];
   outputs?: PortDefinition[];
+  defaultSettings?: NodeSettings;
 }
 
 export interface SerializedProject {
@@ -80,6 +99,7 @@ export interface SerializedProject {
     nodeVersion: string;
     title: string;
     position: Vec2;
+    settings?: NodeSettings;
   }>;
   connections: NodeConnection[];
   metadata: ProjectMetadata;

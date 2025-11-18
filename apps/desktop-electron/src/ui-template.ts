@@ -1082,6 +1082,105 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         color: rgba(48, 48, 60, 0.85);
         font-weight: 600;
       }
+      .node-type-trim .trim-panel {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.12));
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .trim-panel-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .trim-timecode {
+        display: flex;
+        gap: 12px;
+      }
+      .trim-timecode label {
+        display: flex;
+        flex-direction: column;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
+        gap: 4px;
+      }
+      .trim-timecode input[type='text'] {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        font-size: 14px;
+        padding: 6px 10px;
+        min-width: 96px;
+      }
+      .trim-timecode input[type='text']:focus-visible {
+        outline: 2px solid #7dc3ff;
+        border-color: transparent;
+      }
+      .trim-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.85);
+        cursor: pointer;
+      }
+      .trim-toggle input {
+        width: 16px;
+        height: 16px;
+      }
+      .trim-timeline {
+        width: 100%;
+        padding: 8px 0;
+      }
+      .trim-track {
+        position: relative;
+        width: 100%;
+        height: 32px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .trim-window {
+        position: absolute;
+        left: var(--trim-start, 0%);
+        right: calc(100% - var(--trim-end, 100%));
+        top: 4px;
+        bottom: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        pointer-events: none;
+      }
+      .trim-handle {
+        position: absolute;
+        top: 0;
+        width: 20px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: ew-resize;
+      }
+      .trim-handle::after {
+        content: '';
+        width: 8px;
+        height: 60%;
+        border-radius: 8px;
+        background: #ffe089;
+        box-shadow: 0 0 12px rgba(255, 224, 137, 0.55);
+      }
+      .trim-handle-start {
+        left: 0;
+      }
+      .trim-handle-end {
+        right: 0;
+      }
       button, .pill-button {
         border: none;
         border-radius: 999px;

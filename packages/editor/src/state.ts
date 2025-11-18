@@ -1,5 +1,5 @@
 import { DEFAULT_NODE_TEMPLATES } from './templates';
-import type { EditorNode, EditorProject, EditorState, NodeTemplate } from './types';
+import type { EditorNode, EditorProject, EditorState, NodeSettings, NodeTemplate } from './types';
 
 export const PROJECT_SCHEMA_VERSION = '1.0.7';
 
@@ -26,6 +26,9 @@ export const createEditorState = (project: EditorProject = createDefaultProject(
   isRunning: false
 });
 
+const cloneSettings = (settings?: NodeSettings): NodeSettings | undefined =>
+  settings ? JSON.parse(JSON.stringify(settings)) : undefined;
+
 export const withUpdatedProject = (state: EditorState, project: EditorProject): EditorState => ({
   ...state,
   project: {
@@ -48,6 +51,7 @@ export const seedDemoNodes = (templates: NodeTemplate[] = DEFAULT_NODE_TEMPLATES
     height: template.height ?? 120,
     inputs: template.inputs?.map(port => ({ ...port })) ?? [],
     outputs: template.outputs?.map(port => ({ ...port })) ?? [],
-    searchTokens: template.keywords
+    searchTokens: template.keywords,
+    settings: cloneSettings(template.defaultSettings)
   }));
 };

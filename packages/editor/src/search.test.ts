@@ -73,4 +73,29 @@ describe('search', () => {
     expect(hits).toHaveLength(1);
     expect(hits[0].typeId).toBe('keywordOnly');
   });
+
+  it('clones ports and default settings when instantiating nodes', () => {
+    const template: NodeTemplate = {
+      typeId: 'trim',
+      nodeVersion: '1.0.0',
+      title: 'Trim',
+      category: 'Edit',
+      description: 'Cut media between points',
+      keywords: ['trim'],
+      inputs: [{ id: 'source', label: 'Source', direction: 'input', dataType: 'video' }],
+      outputs: [{ id: 'result', label: 'Result', direction: 'output', dataType: 'video' }],
+      defaultSettings: {
+        kind: 'trim',
+        startMs: null,
+        endMs: null,
+        strictCut: false,
+        region: null
+      }
+    };
+    const node = new NodeSearchIndex([template], mockId).instantiate(template, { x: 0, y: 0 });
+    expect(node.inputs).toHaveLength(1);
+    expect(node.outputs).toHaveLength(1);
+    expect(node.settings).toEqual(template.defaultSettings);
+    expect(node.settings).not.toBe(template.defaultSettings);
+  });
 });

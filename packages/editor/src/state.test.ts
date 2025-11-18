@@ -66,4 +66,27 @@ describe('state helpers', () => {
     expect(fallbackNode.inputs).toHaveLength(1);
     expect(fallbackNode.searchTokens).toEqual(['fallback']);
   });
+
+  it('clones default settings from templates when seeding', () => {
+    const templates: NodeTemplate[] = [
+      {
+        typeId: 'trim',
+        nodeVersion: '1.0.0',
+        title: 'Trim',
+        category: 'Edit',
+        description: 'Trim example',
+        keywords: ['trim'],
+        defaultSettings: {
+          kind: 'trim',
+          startMs: 0,
+          endMs: 5000,
+          strictCut: true,
+          region: null
+        }
+      }
+    ];
+    const [node] = seedDemoNodes(templates);
+    expect(node.settings).toEqual(templates[0].defaultSettings);
+    expect(node.settings).not.toBe(templates[0].defaultSettings);
+  });
 });

@@ -2,6 +2,12 @@ import type { EditorNode, NodeTemplate, Vec2 } from './types';
 
 const defaultId = (template: NodeTemplate, index: number): string => `${template.typeId}-${Date.now()}-${index}`;
 
+const clonePorts = (ports?: NodeTemplate['inputs']): NonNullable<NodeTemplate['inputs']> =>
+  ports?.map(port => ({ ...port })) ?? [];
+
+const cloneSettings = (settings?: NodeTemplate['defaultSettings']) =>
+  settings ? JSON.parse(JSON.stringify(settings)) : undefined;
+
 export class NodeSearchIndex {
   constructor(private readonly templates: NodeTemplate[], private readonly idFactory: typeof defaultId = defaultId) {}
 
@@ -28,9 +34,10 @@ export class NodeSearchIndex {
       position,
       width: template.width ?? 220,
       height: template.height ?? 120,
-      inputs: [],
-      outputs: [],
-      searchTokens: template.keywords
+      inputs: clonePorts(template.inputs),
+      outputs: clonePorts(template.outputs),
+      searchTokens: template.keywords,
+      settings: cloneSettings(template.defaultSettings)
     };
   }
 }

@@ -51,6 +51,8 @@ export interface NodeMediaPreview {
   kind: 'image' | 'video';
   width: number | null;
   height: number | null;
+  ownedUrl?: boolean;
+  derivedFrom?: string;
 }
 
 export interface NodeSize {

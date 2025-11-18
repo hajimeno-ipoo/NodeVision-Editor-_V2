@@ -369,6 +369,18 @@ describe('load media node UI', () => {
     expect(status?.textContent).toContain('未接続');
     dom.window.close();
   });
+
+  it('renders trim timeline controls with inputs and handles', async () => {
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const panel = dom.window.document.querySelector('.node[data-id="n2"] .trim-panel');
+    expect(panel).toBeTruthy();
+    const inputs = panel?.querySelectorAll('input[type="text"]');
+    expect(inputs?.length).toBe(2);
+    const handles = panel?.querySelectorAll('.trim-handle');
+    expect(handles?.length).toBe(2);
+    dom.window.close();
+  });
 });
 
 describe('ui-template accessibility helpers', () => {

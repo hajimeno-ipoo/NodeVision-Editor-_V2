@@ -1,0 +1,6 @@
+## 2025-11-18 Trim node research
+- Confirmed `packages/editor/src/templates.ts` only registers the Trim template, while `apps/desktop-electron/src/renderer/nodes/trim.ts` just shows a tip and never exposes UI/state, so renderer cannot set start/end or produce previews.
+- Media preview pipeline currently only tracks load nodes via `state.mediaPreviews`; trim outputs never populate previews, so Media Preview nodes can’t show trimmed results.
+- Engine builder already supports Trim nodes with `startMs/endMs/strictCut` (packages/engine/src/ffmpeg/builder.ts), but renderer never writes these params, so jobs always run untrimmed.
+- Chrome DevTools MCP repeatedly dies (“Transport closed”) even with headless flags, so Playwright snapshot of `tmp/nodevision-preview.html` is the current fallback for DOM inspection.
+- Next steps: extend node schema to store trim settings, build interactive timeline UI (handles + numeric inputs) inside `apps/desktop-electron/src/renderer/nodes/trim.ts`, stream state into serialization, and generate derived previews so Media Preview nodes show trimmed imagery.

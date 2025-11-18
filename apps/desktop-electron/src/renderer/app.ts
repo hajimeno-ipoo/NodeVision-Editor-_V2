@@ -1,5 +1,7 @@
 /// <reference lib="dom" />
 
+import type { TrimNodeSettings } from '@nodevision/editor';
+
 import { captureDomElements } from './dom';
 import {
   cloneConnection,
@@ -25,7 +27,8 @@ import type {
   RendererDom,
   NodevisionApi,
   NodeSize,
-  CanvasTool
+  CanvasTool,
+  NodeMediaPreview
 } from './types';
 import { createNodeRenderers } from './nodes';
 import type { NodeRendererModule } from './nodes/types';
@@ -33,6 +36,7 @@ import type { StoredWorkflow } from './types';
 import { syncPendingPortHighlight } from './ports';
 import { getLoadNodeReservedHeight, getMediaPreviewReservedHeight } from './nodes/preview-layout';
 import { calculatePreviewSize } from './nodes/preview-size';
+import { ensureTrimSettings } from './nodes/trim-shared';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
@@ -76,6 +80,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   const elements: RendererDom = captureDomElements();
   let unsavedWorkflowLabel = 'Unsaved Workflow';
+
+  const cloneNodeSettings = (settings?: RendererNode['settings']) =>
+    settings ? deepClone(settings) : undefined;
 
   const getErrorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -924,7 +931,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   const cleanupMediaPreview = (nodeId: string): void => {
     const preview = state.mediaPreviews.get(nodeId);
-    if (preview && typeof URL?.revokeObjectURL === 'function') {
+    if (preview && preview.ownedUrl !== false && typeof URL?.revokeObjectURL === 'function') {
       URL.revokeObjectURL(preview.url);
     }
     if (preview) {
@@ -936,11 +943,257 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   const cleanupAllMediaPreviews = (): void => {
     state.mediaPreviews.forEach(preview => {
-      if (typeof URL?.revokeObjectURL === 'function') {
+      if (preview.ownedUrl !== false && typeof URL?.revokeObjectURL === 'function') {
         URL.revokeObjectURL(preview.url);
       }
     });
     state.mediaPreviews.clear();
+  };
+
+  const trimPreviewTasks = new Map<string, Promise<void>>();
+
+  const getPreviewWorkbench = (): HTMLElement | null => {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+    let container = document.getElementById('nodevision-trim-previews');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'nodevision-trim-previews';
+      Object.assign(container.style, {
+        position: 'fixed',
+        left: '-9999px',
+        top: '-9999px',
+        width: '1px',
+        height: '1px',
+        overflow: 'hidden'
+      });
+      document.body.appendChild(container);
+    }
+    return container;
+  };
+
+  const captureImageFrame = (preview: NodeMediaPreview): Promise<HTMLCanvasElement | null> =>
+    new Promise(resolve => {
+      if (typeof document === 'undefined') {
+        resolve(null);
+        return;
+      }
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        canvas.width = width || 1;
+        canvas.height = height || 1;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas);
+          return;
+        }
+        resolve(null);
+      };
+      img.onerror = () => resolve(null);
+      img.src = preview.url;
+    });
+
+  const captureVideoFrame = (preview: NodeMediaPreview, startMs: number | null): Promise<HTMLCanvasElement | null> =>
+    new Promise(resolve => {
+      if (typeof document === 'undefined') {
+        resolve(null);
+        return;
+      }
+      const workbench = getPreviewWorkbench();
+      if (!workbench) {
+        resolve(null);
+        return;
+      }
+      const video = document.createElement('video');
+      video.preload = 'auto';
+      video.muted = true;
+      video.playsInline = true;
+      video.controls = false;
+      video.style.width = '1px';
+      video.style.height = '1px';
+      const cleanup = () => {
+        video.pause();
+        video.removeAttribute('src');
+        try {
+          video.load();
+        } catch {
+          /* noop */
+        }
+        video.remove();
+      };
+      const drawFrame = () => {
+        const width = video.videoWidth || 0;
+        const height = video.videoHeight || 0;
+        if (!width || !height) {
+          cleanup();
+          resolve(null);
+          return;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          cleanup();
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(video, 0, 0, width, height);
+        cleanup();
+        resolve(canvas);
+      };
+      const handleSeeked = () => {
+        video.removeEventListener('seeked', handleSeeked);
+        drawFrame();
+      };
+      video.onloadeddata = () => {
+        if (typeof startMs === 'number' && Number.isFinite(startMs) && startMs > 0) {
+          const seconds = startMs / 1000;
+          video.addEventListener('seeked', handleSeeked);
+          try {
+            video.currentTime = Math.max(0, seconds);
+          } catch {
+            video.removeEventListener('seeked', handleSeeked);
+            drawFrame();
+          }
+          return;
+        }
+        drawFrame();
+      };
+      video.onerror = () => {
+        cleanup();
+        resolve(null);
+      };
+      workbench.appendChild(video);
+      try {
+        video.src = preview.url;
+        video.load();
+      } catch {
+        cleanup();
+        resolve(null);
+      }
+    });
+
+  const captureFrameForPreview = (
+    preview: NodeMediaPreview,
+    startMs: number | null
+  ): Promise<HTMLCanvasElement | null> => {
+    if (preview.kind === 'image') {
+      return captureImageFrame(preview);
+    }
+    return captureVideoFrame(preview, startMs);
+  };
+
+  const clampRegionValue = (value: number, min = 0, max = 1): number => Math.min(max, Math.max(min, value));
+
+  const cropCanvasToRegion = (
+    sourceCanvas: HTMLCanvasElement,
+    region: TrimNodeSettings['region'] | null | undefined
+  ): HTMLCanvasElement => {
+    const safeRegion = region ?? { x: 0, y: 0, width: 1, height: 1 };
+    const normalizedWidth = clampRegionValue(safeRegion.width ?? 1, 0.01, 1);
+    const normalizedHeight = clampRegionValue(safeRegion.height ?? 1, 0.01, 1);
+    const startX = clampRegionValue(safeRegion.x ?? 0);
+    const startY = clampRegionValue(safeRegion.y ?? 0);
+    const width = Math.max(1, Math.round(sourceCanvas.width * normalizedWidth));
+    const height = Math.max(1, Math.round(sourceCanvas.height * normalizedHeight));
+    const offsetX = Math.min(sourceCanvas.width - width, Math.max(0, Math.round(sourceCanvas.width * startX)));
+    const offsetY = Math.min(sourceCanvas.height - height, Math.max(0, Math.round(sourceCanvas.height * startY)));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(sourceCanvas, offsetX, offsetY, width, height, 0, 0, width, height);
+    }
+    return canvas;
+  };
+
+  const buildTrimSignature = (
+    sourceNodeId: string,
+    sourcePreview: NodeMediaPreview,
+    settings: TrimNodeSettings
+  ): string => {
+    const region = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+    return [
+      sourceNodeId,
+      sourcePreview.url,
+      sourcePreview.width ?? 'auto',
+      sourcePreview.height ?? 'auto',
+      settings.startMs ?? 'null',
+      settings.endMs ?? 'null',
+      region.x ?? 0,
+      region.y ?? 0,
+      region.width ?? 1,
+      region.height ?? 1
+    ].join('|');
+  };
+
+  const deriveTrimPreview = async (node: RendererNode): Promise<void> => {
+    if (node.typeId !== 'trim') {
+      return;
+    }
+    const connection = state.connections.find(conn => conn.toNodeId === node.id && conn.toPortId === 'source');
+    if (!connection) {
+      cleanupMediaPreview(node.id);
+      return;
+    }
+    const sourcePreview = state.mediaPreviews.get(connection.fromNodeId);
+    if (!sourcePreview) {
+      cleanupMediaPreview(node.id);
+      return;
+    }
+    const settings = ensureTrimSettings(node);
+    const signature = buildTrimSignature(connection.fromNodeId, sourcePreview, settings);
+    const existing = state.mediaPreviews.get(node.id);
+    if (existing?.derivedFrom === signature) {
+      return;
+    }
+    const frameCanvas = await captureFrameForPreview(sourcePreview, settings.startMs ?? null);
+    if (!frameCanvas) {
+      cleanupMediaPreview(node.id);
+      state.mediaPreviews.set(node.id, {
+        ...sourcePreview,
+        ownedUrl: false,
+        derivedFrom: signature
+      });
+      renderNodes();
+      return;
+    }
+    const croppedCanvas = cropCanvasToRegion(frameCanvas, settings.region);
+    const dataUrl = croppedCanvas.toDataURL('image/png');
+    cleanupMediaPreview(node.id);
+    state.mediaPreviews.set(node.id, {
+      ...sourcePreview,
+      url: dataUrl,
+      type: 'image/png',
+      kind: 'image',
+      width: croppedCanvas.width,
+      height: croppedCanvas.height,
+      ownedUrl: true,
+      derivedFrom: signature,
+      name: `${sourcePreview.name} (trim)`
+    });
+    renderNodes();
+  };
+
+  const scheduleTrimPreviewUpdate = (node: RendererNode): void => {
+    if (node.typeId !== 'trim') {
+      return;
+    }
+    if (trimPreviewTasks.has(node.id)) {
+      return;
+    }
+    const task = deriveTrimPreview(node)
+      .catch(error => console.warn('[NodeVision] trim preview update failed', error))
+      .finally(() => trimPreviewTasks.delete(node.id));
+    trimPreviewTasks.set(node.id, task);
   };
 
   const getNodeChromePadding = (nodeId: string): number => {
@@ -2515,6 +2768,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
       if (nodeResizeObserver && el.querySelector('.node-media')) {
         nodeResizeObserver.observe(el);
       }
+      if (node.typeId === 'trim') {
+        scheduleTrimPreviewUpdate(node);
+      }
     });
     const needsSync = !suppressChromeMeasurement && syncNodeChromePadding();
     suppressChromeMeasurement = false;
@@ -2927,7 +3183,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
       typeId: node.typeId,
       nodeVersion: node.nodeVersion,
       title: node.title,
-      position: node.position
+      position: node.position,
+      settings: cloneNodeSettings(node.settings)
     })),
     connections: state.connections.map(connection => deepClone(connection)),
     metadata: {
@@ -2955,7 +3212,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
       height: template.height ?? 120,
       searchTokens: templateTokens,
       inputs: clonePorts(template.inputs),
-      outputs: clonePorts(template.outputs)
+      outputs: clonePorts(template.outputs),
+      settings: template.defaultSettings ? deepClone(template.defaultSettings) : undefined
     };
     state.nodes.push(node);
     state.selection = new Set([node.id]);
@@ -3163,7 +3421,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
       height: template?.height ?? 120,
       searchTokens: templateTokens,
       inputs: clonePorts(template?.inputs),
-      outputs: clonePorts(template?.outputs)
+      outputs: clonePorts(template?.outputs),
+      settings: cloneNodeSettings(node.settings ?? template?.defaultSettings)
     } as RendererNode;
   };
 

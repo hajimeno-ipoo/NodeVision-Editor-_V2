@@ -13,4 +13,16 @@ describe('DEFAULT_NODE_TEMPLATES', () => {
       expect(template?.title.length).toBeGreaterThan(0);
     });
   });
+
+  it('provides default settings for the trim template', () => {
+    const trimTemplate = DEFAULT_NODE_TEMPLATES.find(entry => entry.typeId === 'trim');
+    expect(trimTemplate).toBeTruthy();
+    expect(trimTemplate?.defaultSettings).toEqual({
+      kind: 'trim',
+      startMs: null,
+      endMs: null,
+      strictCut: false,
+      region: null
+    });
+  });
 });

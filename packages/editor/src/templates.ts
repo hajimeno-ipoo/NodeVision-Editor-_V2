@@ -1,5 +1,13 @@
 import type { NodeTemplate } from './types';
 
+const DEFAULT_TRIM_SETTINGS: NodeTemplate['defaultSettings'] = {
+  kind: 'trim',
+  startMs: null,
+  endMs: null,
+  strictCut: false,
+  region: null
+};
+
 export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
   {
     typeId: 'loadImage',
@@ -52,7 +60,8 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     ],
     outputs: [
       { id: 'result', label: 'Result', direction: 'output', dataType: 'video', required: true }
-    ]
+    ],
+    defaultSettings: DEFAULT_TRIM_SETTINGS
   },
   {
     typeId: 'resize',

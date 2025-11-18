@@ -83,4 +83,36 @@ describe('persistence', () => {
       globalThis.structuredClone = original;
     }
   });
+
+  it('round-trips trim node settings', () => {
+    const project = createDefaultProject('Trim Demo');
+    const trimTemplate = DEFAULT_NODE_TEMPLATES.find(template => template.typeId === 'trim');
+    expect(trimTemplate).toBeTruthy();
+    project.nodes = [
+      {
+        id: 'trim-1',
+        typeId: 'trim',
+        nodeVersion: '1.0.0',
+        title: 'Trim',
+        position: { x: 0, y: 0 },
+        width: 220,
+        height: 120,
+        inputs: [],
+        outputs: [],
+        searchTokens: ['trim'],
+        settings: {
+          kind: 'trim',
+          startMs: 2500,
+          endMs: 9000,
+          strictCut: true,
+          region: { x: 0.1, y: 0, width: 0.8, height: 1 }
+        }
+      }
+    ];
+    const serialized = serializeProject(project);
+    expect(serialized.nodes[0].settings?.startMs).toBe(2500);
+    const hydrated = deserializeProject(serialized);
+    expect(hydrated.project.nodes[0].settings?.startMs).toBe(2500);
+    expect(hydrated.project.nodes[0].settings?.strictCut).toBe(true);
+  });
 });

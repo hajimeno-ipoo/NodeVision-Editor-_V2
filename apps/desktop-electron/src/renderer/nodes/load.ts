@@ -207,7 +207,8 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
       type: resolvedType,
       kind,
       width: null,
-      height: null
+      height: null,
+      ownedUrl: true
     });
     renderNodes();
     if (kind === 'image') {

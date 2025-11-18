@@ -29,7 +29,8 @@ const hydrateNode = (node: SerializedProject['nodes'][number]): EditorNode => {
     height: template?.height ?? 120,
     inputs: [],
     outputs: [],
-    searchTokens: template?.keywords ?? []
+    searchTokens: template?.keywords ?? [],
+    settings: node.settings ? deepClone(node.settings) : template?.defaultSettings ? deepClone(template.defaultSettings) : undefined
   };
 };
 
@@ -65,7 +66,8 @@ export const serializeProject = (project: EditorProject): SerializedProject => (
     typeId: node.typeId,
     nodeVersion: node.nodeVersion,
     title: node.title,
-    position: node.position
+    position: node.position,
+    settings: node.settings ? deepClone(node.settings) : undefined
   })),
   connections: deepClone(project.connections),
   metadata: {
