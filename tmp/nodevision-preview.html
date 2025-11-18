@@ -835,17 +835,17 @@
         display: flex;
       }
       .nv-modal {
-        width: min(720px, 100%);
-        max-height: min(90vh, 720px);
-        overflow: auto;
+        width: min(880px, calc(100vw - 40px));
+        max-height: min(96vh, 940px);
+        overflow: visible;
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: #11121a;
         box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
         display: flex;
         flex-direction: column;
-        gap: 16px;
-        padding: 20px 24px 28px;
+        gap: 20px;
+        padding: 28px 36px 40px;
       }
       .nv-modal-header {
         display: flex;
@@ -862,10 +862,14 @@
         border: none;
         background: rgba(255, 255, 255, 0.1);
         color: inherit;
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         border-radius: 999px;
         font-size: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
         cursor: pointer;
       }
       .nv-modal-close:hover,
@@ -875,6 +879,10 @@
       }
       .nv-modal-content {
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        overflow: visible;
       }
       .trim-modal-placeholder {
         margin: 0;
@@ -883,56 +891,214 @@
         font-size: 15px;
         color: rgba(255, 255, 255, 0.85);
       }
+      .trim-image-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      .trim-image-toolbar-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .trim-tool-button {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: inherit;
+        font-size: 13px;
+        padding: 8px 12px;
+        cursor: pointer;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
+      }
+      .trim-tool-button[data-active='true'] {
+        background: rgba(255, 224, 137, 0.2);
+        border-color: rgba(255, 224, 137, 0.8);
+      }
+      .trim-tool-button[data-trim-tool='zoom-in'],
+      .trim-tool-button[data-trim-tool='zoom-out'] {
+        width: 42px;
+        padding: 0;
+        font-size: 18px;
+      }
+      .trim-stage-wrapper {
+        position: relative;
+        width: 100%;
+        padding: 12px 0 28px;
+      }
       .trim-image-stage {
         position: relative;
         width: 100%;
-        border-radius: 20px;
+        aspect-ratio: var(--trim-image-aspect, 16 / 9);
+        max-height: min(58vh, 480px);
+        border-radius: 24px;
         overflow: hidden;
         background: rgba(255, 255, 255, 0.04);
-        margin-bottom: 12px;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .trim-grid-overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        pointer-events: none;
+        background-size: 20px 20px;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        opacity: 0;
+        transition: opacity 150ms ease;
+      }
+      .trim-grid-overlay.is-visible {
+        opacity: 1;
       }
       .trim-image-stage img {
         width: 100%;
+        height: 100%;
         display: block;
+        object-fit: contain;
         user-select: none;
         pointer-events: none;
       }
+      .trim-image-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin: 8px 0 12px;
+      }
+      .trim-control {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 12px 14px;
+      }
+      .trim-control label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .trim-control-inputs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .trim-control-inputs input[type='range'] {
+        flex: 1;
+      }
+      .trim-control-inputs input[type='number'] {
+        width: 64px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        padding: 6px 8px;
+      }
+      .trim-control-badge {
+        border-radius: 999px;
+        padding: 4px 12px;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 12px;
+      }
+      .trim-control-unit {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .trim-control select {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: inherit;
+        padding: 8px 10px;
+      }
       .trim-crop-box {
         position: absolute;
-        border: 2px solid #ffe089;
+        border: 4px solid #ffe089;
+        box-sizing: border-box;
+        border-radius: 0;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
         cursor: move;
       }
       .trim-crop-handle {
         position: absolute;
-        width: 14px;
-        height: 14px;
         background: #ffe089;
         border: 2px solid #11121a;
         border-radius: 999px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      }
+      .trim-crop-handle[data-trim-handle='nw'],
+      .trim-crop-handle[data-trim-handle='ne'],
+      .trim-crop-handle[data-trim-handle='sw'],
+      .trim-crop-handle[data-trim-handle='se'] {
+        width: 22px;
+        height: 22px;
       }
       .trim-crop-handle[data-trim-handle='nw'] {
-        top: -9px;
-        left: -9px;
+        top: -12px;
+        left: -12px;
         cursor: nwse-resize;
       }
       .trim-crop-handle[data-trim-handle='ne'] {
-        top: -9px;
-        right: -9px;
+        top: -12px;
+        right: -12px;
         cursor: nesw-resize;
       }
       .trim-crop-handle[data-trim-handle='sw'] {
-        bottom: -9px;
-        left: -9px;
+        bottom: -12px;
+        left: -12px;
         cursor: nesw-resize;
       }
       .trim-crop-handle[data-trim-handle='se'] {
-        bottom: -9px;
-        right: -9px;
+        bottom: -12px;
+        right: -12px;
         cursor: nwse-resize;
       }
+      .trim-crop-handle[data-trim-handle='n'],
+      .trim-crop-handle[data-trim-handle='s'] {
+        width: 52px;
+        height: 14px;
+      }
+      .trim-crop-handle[data-trim-handle='n'] {
+        top: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: ns-resize;
+      }
+      .trim-crop-handle[data-trim-handle='s'] {
+        bottom: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: ns-resize;
+      }
+      .trim-crop-handle[data-trim-handle='w'],
+      .trim-crop-handle[data-trim-handle='e'] {
+        width: 14px;
+        height: 52px;
+      }
+      .trim-crop-handle[data-trim-handle='w'] {
+        left: -9px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: ew-resize;
+      }
+      .trim-crop-handle[data-trim-handle='e'] {
+        right: -9px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: ew-resize;
+      }
       .trim-modal-hint {
-        margin: 0 0 12px;
+        margin: 0;
+        padding-bottom: 8px;
         font-size: 13px;
         color: rgba(255, 255, 255, 0.75);
         text-align: center;
@@ -2173,8 +2339,8 @@
       </div>
     </div>
     <script>
-      window.__NODEVISION_BOOTSTRAP__ = JSON.parse(decodeURIComponent('%7B%22status%22%3A%7B%22settings%22%3A%7B%22schemaVersion%22%3A%221.0.7%22%2C%22tempRoot%22%3A%22%2Ftmp%2Fnodevision%22%2C%22ffmpegPath%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22ffprobePath%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22locale%22%3A%22ja-JP%22%2C%22http%22%3A%7B%22enabled%22%3Afalse%2C%22tokenLabel%22%3A%22default%22%2C%22port%22%3A3921%7D%2C%22presets%22%3A%7B%22videoBitrate%22%3A%228M%22%2C%22audioBitrate%22%3A%22320k%22%2C%22container%22%3A%22mp4%22%7D%2C%22diagnostics%22%3A%7B%22lastTokenPreview%22%3Anull%2C%22collectCrashDumps%22%3Afalse%2C%22lastLogExportPath%22%3Anull%7D%2C%22createdAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%2C%22updatedAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%7D%2C%22ffmpeg%22%3A%7B%22ffmpeg%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%2C%22ffprobe%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%7D%2C%22token%22%3A%7B%22label%22%3A%22default%22%2C%22value%22%3A%22abcd1234%22%2C%22expiresAt%22%3A%222025-11-19T07%3A34%3A34.148Z%22%2C%22createdAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%2C%22updatedAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%7D%2C%22distribution%22%3A%7B%22ffmpeg%22%3A%7B%22origin%22%3A%22external%22%2C%22license%22%3A%22lgpl%22%2C%22licenseUrl%22%3A%22https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fold-licenses%2Flgpl-2.1.en.html%22%2C%22sourceUrl%22%3A%22https%3A%2F%2Fffmpeg.org%2Fdownload.html%23sources%22%7D%7D%7D%2C%22templates%22%3A%5B%7B%22typeId%22%3A%22load%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%20Media%22%2C%22category%22%3A%22Input%22%2C%22description%22%3A%22Import%20image%2Fvideo%20files%22%2C%22keywords%22%3A%5B%22load%22%2C%22input%22%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22category%22%3A%22Edit%22%2C%22description%22%3A%22Set%20in%2Fout%20points%22%2C%22keywords%22%3A%5B%22trim%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22preview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22category%22%3A%22Output%22%2C%22description%22%3A%22Preview%20media%22%2C%22keywords%22%3A%5B%22preview%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%5D%2C%22nodes%22%3A%5B%7B%22id%22%3A%22n-load%22%2C%22typeId%22%3A%22load%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%22%2C%22position%22%3A%7B%22x%22%3A0%2C%22y%22%3A0%7D%2C%22width%22%3A220%2C%22height%22%3A120%2C%22inputs%22%3A%5B%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22load%22%5D%7D%2C%7B%22id%22%3A%22n-trim%22%2C%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22position%22%3A%7B%22x%22%3A280%2C%22y%22%3A40%7D%2C%22width%22%3A220%2C%22height%22%3A140%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22trim%22%5D%7D%2C%7B%22id%22%3A%22n-preview%22%2C%22typeId%22%3A%22preview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22position%22%3A%7B%22x%22%3A580%2C%22y%22%3A-20%7D%2C%22width%22%3A240%2C%22height%22%3A160%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%5D%2C%22searchTokens%22%3A%5B%22preview%22%5D%7D%5D%2C%22connections%22%3A%5B%7B%22id%22%3A%22c1%22%2C%22fromNodeId%22%3A%22n-load%22%2C%22fromPortId%22%3A%22media%22%2C%22toNodeId%22%3A%22n-trim%22%2C%22toPortId%22%3A%22source%22%7D%2C%7B%22id%22%3A%22c2%22%2C%22fromNodeId%22%3A%22n-trim%22%2C%22fromPortId%22%3A%22result%22%2C%22toNodeId%22%3A%22n-preview%22%2C%22toPortId%22%3A%22source%22%7D%5D%2C%22queue%22%3A%7B%22active%22%3A%5B%5D%2C%22queued%22%3A%5B%5D%2C%22history%22%3A%5B%5D%2C%22warnings%22%3A%5B%5D%2C%22limits%22%3A%7B%22maxParallelJobs%22%3A1%2C%22maxQueueLength%22%3A4%2C%22queueTimeoutMs%22%3A180000%7D%7D%2C%22diagnostics%22%3A%7B%22collectCrashDumps%22%3Afalse%2C%22lastTokenPreview%22%3Anull%2C%22lastLogExportPath%22%3Anull%2C%22lastExportSha%22%3Anull%2C%22inspectHistory%22%3A%5B%5D%7D%7D'));
-      window.__NODEVISION_TRANSLATIONS__ = {"en-US":{"common.close":"Close","actions.save":"Save","actions.cancel":"Cancel","actions.reset":"Reset","app.title":"NodeVision Editor","toolbar.alignLeft":"Align left","toolbar.alignTop":"Align top","toolbar.alignCenter":"Align center","toolbar.undo":"Undo","toolbar.redo":"Redo","toolbar.runningMode":"Running mode","toolbar.localeLabel":"Language","toolbar.locale.en":"English","toolbar.locale.ja":"Japanese","workflow.unsaved":"Unsaved Workflow","workflow.menu.rename":"Rename","workflow.menu.fileSave":"Save to file","workflow.menu.fileLoad":"Load from file","workflow.menu.saveAs":"Save as","workflow.menu.clear":"Clear workflow","workflow.menu.openList":"Browse workflows","workflow.context.delete":"Delete workflow","workflow.modal.title":"Workflow name","workflow.modal.placeholder":"Name your workflow…","workflow.modal.cancel":"Cancel","workflow.modal.confirm":"Save","workflow.promptName":"Workflow name","workflow.confirmDelete":"Delete workflow \"{{name}}\"?","workflow.confirmClear":"Clear the current workflow? This removes all nodes.","workflow.errorNameRequired":"Please enter a workflow name.","workflows.title":"Workflows","workflows.saveCurrent":"Save current workflow","workflows.searchLabel":"Search workflows","workflows.searchPlaceholder":"Search workflows…","workflows.empty":"No saved workflows yet","autosave.pending":"Waiting for changes...","autosave.running":"Monitoring changes while running ({{seconds}}s)","autosave.idle":"Watching for edits ({{seconds}}s)","autosave.saved":"Autosaved at {{time}}","sidebar.ariaLabel":"Node search and help","sidebar.searchLabel":"Node search","sidebar.searchPlaceholder":"Load, Trim, Resize...","sidebar.suggestionsLabel":"Node suggestions","help.shortcutsTitle":"Shortcuts","help.copy":"Copy node","help.paste":"Paste (4px snap)","help.duplicate":"Duplicate","help.zoomReset":"Zoom 100%","help.fitSelection":"Fit selection","help.zoomIn":"Canvas zoom in","help.zoomOut":"Canvas zoom out","help.guideTitle":"Guided actions","help.guideHtml":"• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.","readonly.banner":"Read-only because the schema version differs. Editing is disabled.","queue.ariaLabel":"Job queue","queue.title":"Job queue","queue.demoJob":"Add demo job","queue.cancelAll":"Cancel all","queue.status.running":"Running","queue.status.queued":"Queued","queue.status.coolingDown":"Cooling down","queue.status.failed":"Failed","queue.status.canceled":"Canceled","queue.historyTitle":"History (20 entries)","queue.emptyActive":"No active jobs","queue.emptyQueued":"No queued jobs","queue.noHistory":"No history yet","queue.noLogs":"No logs yet","queue.defaultJob":"Job","queue.stableTitle":"Queue Stable","queue.stableSummary":"Queued {{queued}}/{{limit}} • Timeout {{timeout}}s","nodes.ariaLabel":"{{title}} node","nodes.load.selectButton":"Choose a file to upload","nodes.load.empty":"No media selected yet","nodes.load.previewMeta":"{{name}} — {{size}} • {{type}}","nodes.load.unknownType":"unknown format","nodes.load.noFile":"No file chosen","nodes.load.aspectUnknown":"Size unknown","nodes.mediaPreview.noInput":"Connect a media node to preview it here.","nodes.mediaPreview.waiting":"Waiting for upstream media…","nodes.mediaPreview.disconnected":"No source connected","nodes.mediaPreview.sourceLabel":"Source: {{title}}","nodes.mediaPreview.metaUnknown":"Size unknown","nodes.delete":"Delete node","nodes.status.connected":"Connected","nodes.status.missing":"Missing","nodes.trim.tip":"Connect a source clip and edit it using the trim modals before applying heavy effects.","nodes.trim.imageButton":"Image Trim","nodes.trim.videoButton":"Video Trim","nodes.trim.status.empty":"No adjustments yet","nodes.trim.status.imageEdited":"Image crop ready","nodes.trim.status.videoEdited":"Video trim ready","nodes.trim.status.imageSummary":"Image crop {{width}}% × {{height}}%","nodes.trim.status.videoSummary":"Video {{start}} → {{end}}{{strict}}","nodes.trim.status.videoEndLabel":"end","nodes.trim.status.videoStrictSuffix":"(strict)","nodes.trim.modalPlaceholder.image":"Drag the highlighted box or its corners to crop the displayed image.","nodes.trim.modalPlaceholder.video":"Video trim modal is coming soon—set accurate in/out ranges in a dedicated workspace.","nodes.trim.toast.imageSaved":"Image crop updated.","nodes.trim.toast.videoSaved":"Video trim updated.","nodes.trim.modalPlaceholder.noImage":"Load an image source and connect it to this Trim node to enable cropping.","nodes.mediaPreview.trimmedBadge":"Trimmed output","nodes.mediaPreview.trimmedRange":"Range {{start}} → {{end}}{{strict}}","nodes.mediaPreview.trimmedCrop":"Crop {{width}}% × {{height}}%","nodes.trim.modalPlaceholder.noVideo":"Connect a video Load node and capture a preview before trimming.","nodes.trim.modalHint.video":"Use the handles or enter exact timecodes, then save to refresh downstream previews.","nodes.trim.video.previewFallback":"Video source","nodes.trim.video.startLabel":"Start time","nodes.trim.video.endLabel":"End time","nodes.trim.video.durationUnknown":"Duration unknown","nodes.trim.video.strictLabel":"Strict cut","nodes.trim.video.strictHint":"Discard frames outside the saved range.","nodes.trim.video.controls.play":"Play","nodes.trim.video.controls.pause":"Pause","nodes.trim.video.controls.stepBack":"Step back","nodes.trim.video.controls.stepForward":"Step forward","nodes.trim.video.startHandle":"Adjust start handle","nodes.trim.video.endHandle":"Adjust end handle","nodes.resize.tip":"Keep Resize nodes near export to avoid repeated resampling.","nodes.overlay.tip":"Attach both Base and Layer inputs—alpha channels stay intact.","nodes.text.tip":"Text Overlay renders crisp vector titles on top of the background clip.","nodes.crop.tip":"Crop defines the visible frame; pair it with Resize or Export to lock the aspect.","nodes.speed.tip":"Speed changes alter downstream duration, so reconnect jobs after tweaking ratios.","nodes.changeFps.tip":"Normalize variable frame rate footage before export to keep audio in sync.","nodes.export.tip":"Only flows that reach Export will generate a rendered file.","ports.inputsLabel":"{{title}} inputs","ports.outputsLabel":"{{title}} outputs","ports.emptyInputs":"No inputs","ports.emptyOutputs":"No outputs","ports.direction.input":"Input","ports.direction.output":"Output","ports.portLabel":"{{direction}} port {{label}} ({{dataType}})","connections.title":"Connections","connections.ariaLabel":"Connection list","connections.empty":"No connections yet","connections.ready":"Select an output port to start connecting","connections.remove":"Remove connection","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"Select an input port to finish connection from {{from}}","diagnostics.ariaLabel":"Logs and diagnostics","diagnostics.title":"Logs & diagnostics","diagnostics.crashConsent":"Include crash dumps","diagnostics.passwordPlaceholder":"Export password","diagnostics.exportButton":"Export logs","diagnostics.inspectHistoryTitle":"Inspect history (20 entries)","diagnostics.noExport":"No exports yet","diagnostics.lastExport":"Last export: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"unknown","diagnostics.historyEmpty":"No inspect history yet","diagnostics.noDetails":"No details","diagnostics.defaultToken":"token?","diagnostics.clipCount":"{{count}} clips","diagnostics.defaultPath":"diagnostics folder","json.banner":"Manage JSON saves and loads here. schemaVersion=1.0.7 is preserved.","json.export":"Export JSON","json.import":"Import JSON","json.editorLabel":"JSON for save/load","canvas.ariaLabel":"Node canvas","canvas.controls":"Canvas controls","canvas.toolSelectTooltip":"Select tool (V)","canvas.toolPanTooltip":"Pan view (H)","canvas.fitViewTooltip":"Fit selection (.)","canvas.zoomDisplayLabel":"Zoom options (⌥+~ / ⌥+Shift+; for zoom in · ⌥+= / ⌥+Shift+= for zoom out)","canvas.zoomIn":"Zoom in (⌥+~ / ⌥+Shift+;)","canvas.zoomOut":"Zoom out (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"Zoom to fit selection","canvas.zoomApply":"Apply","canvas.zoomInputLabel":"Zoom percent","canvas.zoomInputPlaceholder":"e.g. 150","toast.queueRefreshFailed":"Failed to refresh queue: {{message}}","toast.demoJobMissing":"Demo job API is unavailable","toast.demoJobAdded":"Demo job added","toast.queueFull":"{{code}}: queue is full","toast.demoJobFailed":"Failed to add job: {{reason}}","toast.cancelAll":"All jobs canceled","toast.mediaSelected":"Loaded {{name}}","toast.mediaFailed":"Could not open the file picker. Try again or restart.","toast.mediaWrongTypeImage":"This node only accepts image files.","toast.mediaWrongTypeVideo":"This node only accepts video files.","toast.exportMissing":"Export API is not connected","toast.exportFailed":"Export failed: {{reason}}","toast.logsExported":"Logs exported to {{path}}{{shaSuffix}}","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"Crash dumps will be included","toast.crashOff":"Crash dumps will be excluded","errors.schemaMissing":"schemaVersion is missing","errors.jsonLoadFailed":"Failed to load JSON: {{reason}}","about.title":"About & licensing","about.ariaLabel":"About and licensing","about.distributionLabel":"FFmpeg distribution","about.licenseLabel":"License","about.pathLabel":"FFmpeg path","about.versionLabel":"FFmpeg version","about.origin.bundled":"Bundled with NodeVision","about.origin.external":"External/system binary","about.noticeBundled":"NodeVision ships FFmpeg compiled under the LGPL v2.1+. Use the links below to review the license text and download matching source code.","about.noticeExternal":"FFmpeg was detected on this system. Confirm that the “{{license}}” license suits your redistribution requirements.","about.licenseLinkLabel":"License text","about.sourceLinkLabel":"FFmpeg source","about.versionUnknown":"Unknown","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"Nonfree build (--enable-nonfree)","about.licenseValue.unknown":"Unknown license","nodeTemplate.loadMedia.title":"Load Media","nodeTemplate.loadMedia.description":"Open a local image or video file","nodeTemplate.loadMedia.port.media":"Media","nodeTemplate.loadImage.title":"Load Image","nodeTemplate.loadImage.description":"Open a local image file","nodeTemplate.loadImage.port.media":"Image","nodeTemplate.loadVideo.title":"Load Video","nodeTemplate.loadVideo.description":"Open a local video file","nodeTemplate.loadVideo.port.media":"Video","nodeTemplate.mediaPreview.title":"Media Preview","nodeTemplate.mediaPreview.description":"Display the connected image or video inside the graph","nodeTemplate.mediaPreview.port.source":"Source","nodeTemplate.trim.title":"Trim","nodeTemplate.trim.description":"Cut media between in/out points","nodeTemplate.trim.port.source":"Source","nodeTemplate.trim.port.result":"Result","nodeTemplate.resize.title":"Resize","nodeTemplate.resize.description":"Resize media with aspect ratio controls","nodeTemplate.resize.port.source":"Source","nodeTemplate.resize.port.resized":"Resized","nodeTemplate.overlay.title":"Overlay","nodeTemplate.overlay.description":"Blend two sources with position controls","nodeTemplate.overlay.port.base":"Base","nodeTemplate.overlay.port.layer":"Layer","nodeTemplate.overlay.port.composite":"Composite","nodeTemplate.text.title":"Text Overlay","nodeTemplate.text.description":"Render titles or captions with font and color controls","nodeTemplate.text.port.background":"Background","nodeTemplate.text.port.titled":"Titled","nodeTemplate.crop.title":"Crop","nodeTemplate.crop.description":"Trim the visible area to a custom frame","nodeTemplate.crop.port.source":"Source","nodeTemplate.crop.port.cropped":"Cropped","nodeTemplate.speed.title":"Speed","nodeTemplate.speed.description":"Ramp playback speed for slow/fast motion","nodeTemplate.speed.port.source":"Source","nodeTemplate.speed.port.retimed":"Retimed","nodeTemplate.changeFps.title":"Change FPS","nodeTemplate.changeFps.description":"Convert variable frame rate clips to constant FPS","nodeTemplate.changeFps.port.source":"Source","nodeTemplate.changeFps.port.normalized":"Normalized","nodeTemplate.export.title":"Export Media","nodeTemplate.export.description":"Finalize and export the edited result","nodeTemplate.export.port.program":"Program","nodeTemplate.export.port.delivery":"Exported","demo.jobName":"FFmpeg demo render"},"ja-JP":{"common.close":"閉じる","actions.save":"保存","actions.cancel":"キャンセル","actions.reset":"リセット","app.title":"NodeVisionエディター","toolbar.alignLeft":"左揃え","toolbar.alignTop":"上揃え","toolbar.alignCenter":"中央揃え","toolbar.undo":"元に戻す","toolbar.redo":"やり直し","toolbar.runningMode":"実行中モード","toolbar.localeLabel":"言語","toolbar.locale.en":"英語","toolbar.locale.ja":"日本語","workflow.unsaved":"未保存のワークフロー","workflow.menu.rename":"名前を変更","workflow.menu.fileSave":"ファイル保存","workflow.menu.fileLoad":"ファイル読込","workflow.menu.saveAs":"名前を付けて保存","workflow.menu.clear":"ワークフローをクリア","workflow.menu.openList":"ワークフローを表示","workflow.context.delete":"ワークフローを削除","workflow.modal.title":"ワークフロー名","workflow.modal.placeholder":"名前を入力してください","workflow.modal.cancel":"キャンセル","workflow.modal.confirm":"保存","workflow.promptName":"ワークフロー名","workflow.confirmDelete":"ワークフロー「{{name}}」を削除しますか？","workflow.confirmClear":"現在のワークフローをクリアしますか？すべてのノードが削除されます。","workflow.errorNameRequired":"ワークフロー名を入力してください。","workflows.title":"ワークフロー","workflows.saveCurrent":"現在のワークフローを保存","workflows.searchLabel":"ワークフローを検索","workflows.searchPlaceholder":"ワークフローを検索…","workflows.empty":"保存されたワークフローはまだありません","autosave.pending":"変更待ち...","autosave.running":"実行中…変更を監視中 ({{seconds}}秒)","autosave.idle":"変更検知 ({{seconds}}秒)","autosave.saved":"{{time}} に自動保存したよ","sidebar.ariaLabel":"ノード検索とヘルプ","sidebar.searchLabel":"ノード検索","sidebar.searchPlaceholder":"ロード、トリム、リサイズ…","sidebar.suggestionsLabel":"ノード候補","help.shortcutsTitle":"ショートカット","help.copy":"ノードをコピー","help.paste":"貼り付け（4pxスナップ）","help.duplicate":"複製","help.zoomReset":"ズーム 100%","help.fitSelection":"選択範囲にフィット","help.zoomIn":"キャンバスを拡大","help.zoomOut":"キャンバスを縮小","help.guideTitle":"操作ガイド","help.guideHtml":"・ドラッグでノード移動（4pxスナップ）<br />・Enterで候補を追加<br />・Tabでカードにフォーカスできます。","readonly.banner":"スキーマ差分のため読み取り専用です（編集は無効化）。","queue.ariaLabel":"ジョブキュー","queue.title":"ジョブキュー","queue.demoJob":"デモジョブ追加","queue.cancelAll":"すべてキャンセル","queue.status.running":"実行中","queue.status.queued":"待機中","queue.status.coolingDown":"クールダウン","queue.status.failed":"失敗","queue.status.canceled":"キャンセル済み","queue.historyTitle":"履歴 (20件)","queue.emptyActive":"実行中のジョブはありません","queue.emptyQueued":"待機ジョブなし","queue.noHistory":"履歴はまだありません","queue.noLogs":"ログなし","queue.defaultJob":"ジョブ","queue.stableTitle":"キューは安定","queue.stableSummary":"待機 {{queued}}/{{limit}} ・ タイムアウト {{timeout}}秒","nodes.ariaLabel":"{{title}} ノード","nodes.load.selectButton":"アップロードするファイルを選択","nodes.load.empty":"まだメディアが選ばれていません","nodes.load.previewMeta":"{{name}} ／ {{size}} ・ {{type}}","nodes.load.unknownType":"形式不明","nodes.load.noFile":"ファイル未選択","nodes.load.aspectUnknown":"サイズ未取得","nodes.mediaPreview.noInput":"ここに表示したいメディアを接続してね","nodes.mediaPreview.waiting":"接続済みのノードからプレビューを待機中…","nodes.mediaPreview.disconnected":"入力が未接続","nodes.mediaPreview.sourceLabel":"ソース: {{title}}","nodes.mediaPreview.metaUnknown":"サイズ未取得","nodes.delete":"ノードを削除","nodes.status.connected":"接続済み","nodes.status.missing":"未接続","nodes.trim.tip":"ソースをつないで専用モーダルでIN/OUTやクロップを決めておくと、その後の重い処理が超ラクになるよ。","nodes.trim.imageButton":"画像トリム","nodes.trim.videoButton":"動画トリム","nodes.trim.status.empty":"まだ設定されていません","nodes.trim.status.imageEdited":"画像クロップ済み","nodes.trim.status.videoEdited":"動画トリム済み","nodes.trim.status.imageSummary":"画像 {{width}}% × {{height}}% で表示中","nodes.trim.status.videoSummary":"動画 {{start}} → {{end}}{{strict}}","nodes.trim.status.videoEndLabel":"最後","nodes.trim.status.videoStrictSuffix":"（キッチリ）","nodes.trim.modalPlaceholder.image":"ハイライトされた枠や角をドラッグして、表示中の画像をトリミングしてね。","nodes.trim.modalPlaceholder.video":"動画トリム専用モーダルはまもなく登場。IN/OUTを正確に設定できる編集スペースになるよ。","nodes.trim.modalPlaceholder.noImage":"先に画像ロードノードを接続してメディアを選んでね。","nodes.trim.toast.imageSaved":"画像のトリム設定を保存したよ。","nodes.trim.toast.videoSaved":"動画のトリム設定を保存したよ。","nodes.mediaPreview.trimmedBadge":"トリム結果","nodes.mediaPreview.trimmedRange":"範囲 {{start}} → {{end}}{{strict}}","nodes.mediaPreview.trimmedCrop":"トリム {{width}}% × {{height}}%","nodes.trim.modalPlaceholder.noVideo":"先に動画ロードノードをつなげてプレビューをつくってからトリムしてね。","nodes.trim.modalHint.video":"タイムラインのハンドルか時間入力でIN/OUTを決めて、保存すれば下流にも反映されるよ。","nodes.trim.video.previewFallback":"動画ソース","nodes.trim.video.startLabel":"開始","nodes.trim.video.endLabel":"終了","nodes.trim.video.durationUnknown":"長さは未取得","nodes.trim.video.strictLabel":"キッチリカット","nodes.trim.video.strictHint":"指定範囲の外はフレームごと捨てるよ。","nodes.trim.video.controls.play":"再生","nodes.trim.video.controls.pause":"一時停止","nodes.trim.video.controls.stepBack":"1コマ戻す","nodes.trim.video.controls.stepForward":"1コマ進める","nodes.trim.video.startHandle":"開始ハンドル","nodes.trim.video.endHandle":"終了ハンドル","nodes.resize.tip":"リサイズは書き出し直前に置くとリサンプリング回数を減らせるよ。","nodes.overlay.tip":"ベースとレイヤー両方を接続するとアルファ付きで重ね合わせできるよ。","nodes.text.tip":"テキストノードは背景入力に重ねて、くっきりしたタイトルをGPUで描画するよ。","nodes.crop.tip":"クロップは表示枠を切るだけだから、後段のリサイズや書き出しとセットで使うのが吉。","nodes.speed.tip":"スピード変更は下流の尺も変わるから、繋ぎ直してからキューを流してね。","nodes.changeFps.tip":"可変フレームレート素材は書き出し前にFPS変換で揃えると音ズレ防止になるよ。","nodes.export.tip":"エクスポートまで辿り着いたフローだけがファイルを書き出すから忘れずにつないでね。","ports.inputsLabel":"{{title}} の入力","ports.outputsLabel":"{{title}} の出力","ports.emptyInputs":"入力なし","ports.emptyOutputs":"出力なし","ports.direction.input":"入力","ports.direction.output":"出力","ports.portLabel":"{{direction}}ポート {{label}} ({{dataType}})","connections.title":"接続","connections.ariaLabel":"接続リスト","connections.empty":"接続はまだありません","connections.ready":"出力ポートを選んで接続を始めてね","connections.remove":"接続を削除","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"{{from}} から接続する入力ポートを選択してください","diagnostics.ariaLabel":"ログと診断","diagnostics.title":"ログ & 診断","diagnostics.crashConsent":"クラッシュダンプを含める","diagnostics.passwordPlaceholder":"エクスポート用パスワード","diagnostics.exportButton":"ログを書き出し","diagnostics.inspectHistoryTitle":"inspect履歴 (20件)","diagnostics.noExport":"まだエクスポートしていません","diagnostics.lastExport":"最後のエクスポート: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"不明","diagnostics.historyEmpty":"履歴はまだありません","diagnostics.noDetails":"詳細なし","diagnostics.defaultToken":"トークン?","diagnostics.clipCount":"{{count}} クリップ","diagnostics.defaultPath":"診断フォルダー","json.banner":"JSONプロジェクトの保存/読み込みはここから。schemaVersion=1.0.7 を保持します。","json.export":"JSONを書き出し","json.import":"JSONを読み込み","json.editorLabel":"保存用JSON","canvas.ariaLabel":"ノードキャンバス","canvas.controls":"キャンバス操作","canvas.toolSelectTooltip":"選択ツール (V)","canvas.toolPanTooltip":"パンビュー (H)","canvas.fitViewTooltip":"全体表示 (.)","canvas.zoomDisplayLabel":"ズーム設定（拡大: ⌥+〜 / ⌥+Shift+； ・ 縮小: ⌥+= / ⌥+Shift+=）","canvas.zoomIn":"拡大 (⌥+〜 / ⌥+Shift+；)","canvas.zoomOut":"縮小 (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"全体表示にズーム","canvas.zoomApply":"適用","canvas.zoomInputLabel":"ズーム %","canvas.zoomInputPlaceholder":"例: 150","toast.queueRefreshFailed":"キュー更新に失敗: {{message}}","toast.demoJobMissing":"デモジョブAPIがみつからないよ","toast.demoJobAdded":"デモジョブを追加したよ","toast.queueFull":"{{code}}: 待機キューが満杯だよ","toast.demoJobFailed":"ジョブ追加に失敗したよ: {{reason}}","toast.cancelAll":"全ジョブをキャンセルしたよ","toast.mediaSelected":"{{name}} を読み込んだよ","toast.mediaFailed":"ファイル選択を開けなかったよ。もう一度試してね。","toast.mediaWrongTypeImage":"このノードは画像ファイル専用だよ","toast.mediaWrongTypeVideo":"このノードは動画ファイル専用だよ","toast.exportMissing":"Export APIが未接続だよ","toast.exportFailed":"エクスポートに失敗したよ: {{reason}}","toast.logsExported":"ログを {{path}}{{shaSuffix}} にエクスポートしたよ","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"クラッシュダンプを含めるよ","toast.crashOff":"クラッシュダンプを除外するよ","errors.schemaMissing":"schemaVersion がありません","errors.jsonLoadFailed":"JSONの読み込みに失敗しました: {{reason}}","about.title":"アバウトとライセンス","about.ariaLabel":"アバウトとライセンス","about.distributionLabel":"FFmpeg配布形態","about.licenseLabel":"ライセンス","about.pathLabel":"FFmpegパス","about.versionLabel":"FFmpegバージョン","about.origin.bundled":"NodeVision同梱 (LGPL)","about.origin.external":"外部/システムのバイナリ","about.noticeBundled":"NodeVisionはLGPL v2.1+準拠でビルドしたFFmpegを同梱しています。下のリンクからライセンス原文と対応するソースコードにアクセスしてください。","about.noticeExternal":"このFFmpegはシステムから検出したものです（ライセンス: {{license}}）。再配布ポリシーに合っているかご確認ください。","about.licenseLinkLabel":"ライセンス原文","about.sourceLinkLabel":"FFmpegソース","about.versionUnknown":"不明","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"非フリー構成 (--enable-nonfree)","about.licenseValue.unknown":"ライセンス不明","nodeTemplate.loadMedia.title":"メディアを読み込み","nodeTemplate.loadMedia.description":"ローカルの画像や動画を開く","nodeTemplate.loadMedia.port.media":"メディア","nodeTemplate.loadImage.title":"画像を読み込み","nodeTemplate.loadImage.description":"ローカルの画像ファイルを開く","nodeTemplate.loadImage.port.media":"画像","nodeTemplate.loadVideo.title":"動画を読み込み","nodeTemplate.loadVideo.description":"ローカルの動画ファイルを開く","nodeTemplate.loadVideo.port.media":"動画","nodeTemplate.mediaPreview.title":"メディアプレビュー","nodeTemplate.mediaPreview.description":"接続中の画像・動画をノードで表示","nodeTemplate.mediaPreview.port.source":"ソース","nodeTemplate.trim.title":"トリム","nodeTemplate.trim.description":"IN/OUT間で素材をカット","nodeTemplate.trim.port.source":"ソース","nodeTemplate.trim.port.result":"出力","nodeTemplate.resize.title":"リサイズ","nodeTemplate.resize.description":"アスペクト比を保ってサイズ変更","nodeTemplate.resize.port.source":"ソース","nodeTemplate.resize.port.resized":"リサイズ後","nodeTemplate.overlay.title":"オーバーレイ","nodeTemplate.overlay.description":"2つの映像を合成して位置を調整","nodeTemplate.overlay.port.base":"ベース","nodeTemplate.overlay.port.layer":"レイヤー","nodeTemplate.overlay.port.composite":"合成結果","nodeTemplate.text.title":"テキストオーバーレイ","nodeTemplate.text.description":"文字や字幕を描画","nodeTemplate.text.port.background":"背景","nodeTemplate.text.port.titled":"テキスト出力","nodeTemplate.crop.title":"クロップ","nodeTemplate.crop.description":"表示範囲をトリミング","nodeTemplate.crop.port.source":"ソース","nodeTemplate.crop.port.cropped":"クロップ後","nodeTemplate.speed.title":"再生速度","nodeTemplate.speed.description":"スロー/早回しを設定","nodeTemplate.speed.port.source":"ソース","nodeTemplate.speed.port.retimed":"速度変更後","nodeTemplate.changeFps.title":"フレームレート変換","nodeTemplate.changeFps.description":"可変フレームを固定フレームに揃える","nodeTemplate.changeFps.port.source":"ソース","nodeTemplate.changeFps.port.normalized":"正規化後","nodeTemplate.export.title":"メディアを書き出し","nodeTemplate.export.description":"最終結果を書き出す","nodeTemplate.export.port.program":"プログラム","nodeTemplate.export.port.delivery":"書き出し結果","demo.jobName":"FFmpeg 合成"}};
+      window.__NODEVISION_BOOTSTRAP__ = JSON.parse(decodeURIComponent('%7B%22status%22%3A%7B%22settings%22%3A%7B%22schemaVersion%22%3A%221.0.7%22%2C%22tempRoot%22%3A%22%2Ftmp%2Fnodevision%22%2C%22ffmpegPath%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22ffprobePath%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22locale%22%3A%22ja-JP%22%2C%22http%22%3A%7B%22enabled%22%3Afalse%2C%22tokenLabel%22%3A%22default%22%2C%22port%22%3A3921%7D%2C%22presets%22%3A%7B%22videoBitrate%22%3A%228M%22%2C%22audioBitrate%22%3A%22320k%22%2C%22container%22%3A%22mp4%22%7D%2C%22diagnostics%22%3A%7B%22lastTokenPreview%22%3Anull%2C%22collectCrashDumps%22%3Afalse%2C%22lastLogExportPath%22%3Anull%7D%2C%22createdAt%22%3A%222025-11-18T15%3A28%3A27.756Z%22%2C%22updatedAt%22%3A%222025-11-18T15%3A28%3A27.756Z%22%7D%2C%22ffmpeg%22%3A%7B%22ffmpeg%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%2C%22ffprobe%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%7D%2C%22token%22%3A%7B%22label%22%3A%22default%22%2C%22value%22%3A%22abcd1234%22%2C%22expiresAt%22%3A%222025-11-19T15%3A28%3A27.757Z%22%2C%22createdAt%22%3A%222025-11-18T15%3A28%3A27.756Z%22%2C%22updatedAt%22%3A%222025-11-18T15%3A28%3A27.756Z%22%7D%2C%22distribution%22%3A%7B%22ffmpeg%22%3A%7B%22origin%22%3A%22external%22%2C%22license%22%3A%22lgpl%22%2C%22licenseUrl%22%3A%22https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fold-licenses%2Flgpl-2.1.en.html%22%2C%22sourceUrl%22%3A%22https%3A%2F%2Fffmpeg.org%2Fdownload.html%23sources%22%7D%7D%7D%2C%22templates%22%3A%5B%7B%22typeId%22%3A%22load%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%20Media%22%2C%22category%22%3A%22Input%22%2C%22description%22%3A%22Import%20image%2Fvideo%20files%22%2C%22keywords%22%3A%5B%22load%22%2C%22input%22%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22category%22%3A%22Edit%22%2C%22description%22%3A%22Set%20in%2Fout%20points%22%2C%22keywords%22%3A%5B%22trim%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22preview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22category%22%3A%22Output%22%2C%22description%22%3A%22Preview%20media%22%2C%22keywords%22%3A%5B%22preview%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%5D%2C%22nodes%22%3A%5B%7B%22id%22%3A%22n-load%22%2C%22typeId%22%3A%22loadImage%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%22%2C%22position%22%3A%7B%22x%22%3A0%2C%22y%22%3A0%7D%2C%22width%22%3A220%2C%22height%22%3A120%2C%22inputs%22%3A%5B%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22load%22%5D%7D%2C%7B%22id%22%3A%22n-trim%22%2C%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22position%22%3A%7B%22x%22%3A280%2C%22y%22%3A40%7D%2C%22width%22%3A220%2C%22height%22%3A140%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22trim%22%5D%7D%2C%7B%22id%22%3A%22n-preview%22%2C%22typeId%22%3A%22mediaPreview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22position%22%3A%7B%22x%22%3A580%2C%22y%22%3A-20%7D%2C%22width%22%3A240%2C%22height%22%3A160%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%5D%2C%22searchTokens%22%3A%5B%22preview%22%5D%7D%5D%2C%22connections%22%3A%5B%7B%22id%22%3A%22c1%22%2C%22fromNodeId%22%3A%22n-load%22%2C%22fromPortId%22%3A%22media%22%2C%22toNodeId%22%3A%22n-trim%22%2C%22toPortId%22%3A%22source%22%7D%2C%7B%22id%22%3A%22c2%22%2C%22fromNodeId%22%3A%22n-trim%22%2C%22fromPortId%22%3A%22result%22%2C%22toNodeId%22%3A%22n-preview%22%2C%22toPortId%22%3A%22source%22%7D%5D%2C%22queue%22%3A%7B%22active%22%3A%5B%5D%2C%22queued%22%3A%5B%5D%2C%22history%22%3A%5B%5D%2C%22warnings%22%3A%5B%5D%2C%22limits%22%3A%7B%22maxParallelJobs%22%3A1%2C%22maxQueueLength%22%3A4%2C%22queueTimeoutMs%22%3A180000%7D%7D%2C%22diagnostics%22%3A%7B%22collectCrashDumps%22%3Afalse%2C%22lastTokenPreview%22%3Anull%2C%22lastLogExportPath%22%3Anull%2C%22lastExportSha%22%3Anull%2C%22inspectHistory%22%3A%5B%5D%7D%7D'));
+      window.__NODEVISION_TRANSLATIONS__ = {"en-US":{"common.close":"Close","actions.save":"Save","actions.cancel":"Cancel","actions.reset":"Reset","app.title":"NodeVision Editor","toolbar.alignLeft":"Align left","toolbar.alignTop":"Align top","toolbar.alignCenter":"Align center","toolbar.undo":"Undo","toolbar.redo":"Redo","toolbar.runningMode":"Running mode","toolbar.localeLabel":"Language","toolbar.locale.en":"English","toolbar.locale.ja":"Japanese","workflow.unsaved":"Unsaved Workflow","workflow.menu.rename":"Rename","workflow.menu.fileSave":"Save to file","workflow.menu.fileLoad":"Load from file","workflow.menu.saveAs":"Save as","workflow.menu.clear":"Clear workflow","workflow.menu.openList":"Browse workflows","workflow.context.delete":"Delete workflow","workflow.modal.title":"Workflow name","workflow.modal.placeholder":"Name your workflow…","workflow.modal.cancel":"Cancel","workflow.modal.confirm":"Save","workflow.promptName":"Workflow name","workflow.confirmDelete":"Delete workflow \"{{name}}\"?","workflow.confirmClear":"Clear the current workflow? This removes all nodes.","workflow.errorNameRequired":"Please enter a workflow name.","workflows.title":"Workflows","workflows.saveCurrent":"Save current workflow","workflows.searchLabel":"Search workflows","workflows.searchPlaceholder":"Search workflows…","workflows.empty":"No saved workflows yet","autosave.pending":"Waiting for changes...","autosave.running":"Monitoring changes while running ({{seconds}}s)","autosave.idle":"Watching for edits ({{seconds}}s)","autosave.saved":"Autosaved at {{time}}","sidebar.ariaLabel":"Node search and help","sidebar.searchLabel":"Node search","sidebar.searchPlaceholder":"Load, Trim, Resize...","sidebar.suggestionsLabel":"Node suggestions","help.shortcutsTitle":"Shortcuts","help.copy":"Copy node","help.paste":"Paste (4px snap)","help.duplicate":"Duplicate","help.zoomReset":"Zoom 100%","help.fitSelection":"Fit selection","help.zoomIn":"Canvas zoom in","help.zoomOut":"Canvas zoom out","help.guideTitle":"Guided actions","help.guideHtml":"• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.","readonly.banner":"Read-only because the schema version differs. Editing is disabled.","queue.ariaLabel":"Job queue","queue.title":"Job queue","queue.demoJob":"Add demo job","queue.cancelAll":"Cancel all","queue.status.running":"Running","queue.status.queued":"Queued","queue.status.coolingDown":"Cooling down","queue.status.failed":"Failed","queue.status.canceled":"Canceled","queue.historyTitle":"History (20 entries)","queue.emptyActive":"No active jobs","queue.emptyQueued":"No queued jobs","queue.noHistory":"No history yet","queue.noLogs":"No logs yet","queue.defaultJob":"Job","queue.stableTitle":"Queue Stable","queue.stableSummary":"Queued {{queued}}/{{limit}} • Timeout {{timeout}}s","nodes.ariaLabel":"{{title}} node","nodes.load.selectButton":"Choose a file to upload","nodes.load.empty":"No media selected yet","nodes.load.previewMeta":"{{name}} — {{size}} • {{type}}","nodes.load.unknownType":"unknown format","nodes.load.noFile":"No file chosen","nodes.load.aspectUnknown":"Size unknown","nodes.mediaPreview.noInput":"Connect a media node to preview it here.","nodes.mediaPreview.waiting":"Waiting for upstream media…","nodes.mediaPreview.disconnected":"No source connected","nodes.mediaPreview.sourceLabel":"Source: {{title}}","nodes.mediaPreview.metaUnknown":"Size unknown","nodes.delete":"Delete node","nodes.status.connected":"Connected","nodes.status.missing":"Missing","nodes.trim.tip":"Connect a source clip and edit it using the trim modals before applying heavy effects.","nodes.trim.imageButton":"Image Trim","nodes.trim.videoButton":"Video Trim","nodes.trim.status.empty":"No adjustments yet","nodes.trim.status.imageEdited":"Image crop ready","nodes.trim.status.videoEdited":"Video trim ready","nodes.trim.status.imageSummary":"Image crop {{width}}% × {{height}}%","nodes.trim.status.videoSummary":"Video {{start}} → {{end}}{{strict}}","nodes.trim.status.videoEndLabel":"end","nodes.trim.status.videoStrictSuffix":"(strict)","nodes.trim.imageTools.zoomIn":"Zoom in","nodes.trim.imageTools.zoomOut":"Zoom out","nodes.trim.imageTools.grid":"Grid","nodes.trim.imageTools.rotateLeft":"Rotate left","nodes.trim.imageTools.rotateRight":"Rotate right","nodes.trim.imageTools.flipHorizontal":"Flip horizontally","nodes.trim.imageTools.flipHorizontalShort":"⇋","nodes.trim.imageTools.flipVertical":"Flip vertically","nodes.trim.imageTools.flipVerticalShort":"⇵","nodes.trim.imageTools.reset":"Reset transform","nodes.trim.imageControls.rotation":"Rotation","nodes.trim.imageControls.zoom":"Zoom","nodes.trim.imageControls.aspect":"Aspect ratio","nodes.trim.imageControls.aspectOption.free":"Free","nodes.trim.imageControls.aspectOption.original":"Original","nodes.trim.imageControls.aspectOption.square":"Square","nodes.trim.imageControls.aspectOption.4:3":"4:3","nodes.trim.imageControls.aspectOption.16:9":"16:9","nodes.trim.imageControls.aspectOption.9:16":"9:16","nodes.trim.modalPlaceholder.image":"Drag the highlighted box or its corners to crop the displayed image.","nodes.trim.modalPlaceholder.video":"Video trim modal is coming soon—set accurate in/out ranges in a dedicated workspace.","nodes.trim.toast.imageSaved":"Image crop updated.","nodes.trim.toast.videoSaved":"Video trim updated.","nodes.trim.modalPlaceholder.noImage":"Load an image source and connect it to this Trim node to enable cropping.","nodes.mediaPreview.trimmedBadge":"Trimmed output","nodes.mediaPreview.trimmedRange":"Range {{start}} → {{end}}{{strict}}","nodes.mediaPreview.trimmedCrop":"Crop {{width}}% × {{height}}%","nodes.trim.modalPlaceholder.noVideo":"Connect a video Load node and capture a preview before trimming.","nodes.trim.modalHint.video":"Use the handles or enter exact timecodes, then save to refresh downstream previews.","nodes.trim.video.previewFallback":"Video source","nodes.trim.video.startLabel":"Start time","nodes.trim.video.endLabel":"End time","nodes.trim.video.durationUnknown":"Duration unknown","nodes.trim.video.strictLabel":"Strict cut","nodes.trim.video.strictHint":"Discard frames outside the saved range.","nodes.trim.video.controls.play":"Play","nodes.trim.video.controls.pause":"Pause","nodes.trim.video.controls.stepBack":"Step back","nodes.trim.video.controls.stepForward":"Step forward","nodes.trim.video.startHandle":"Adjust start handle","nodes.trim.video.endHandle":"Adjust end handle","nodes.resize.tip":"Keep Resize nodes near export to avoid repeated resampling.","nodes.overlay.tip":"Attach both Base and Layer inputs—alpha channels stay intact.","nodes.text.tip":"Text Overlay renders crisp vector titles on top of the background clip.","nodes.crop.tip":"Crop defines the visible frame; pair it with Resize or Export to lock the aspect.","nodes.speed.tip":"Speed changes alter downstream duration, so reconnect jobs after tweaking ratios.","nodes.changeFps.tip":"Normalize variable frame rate footage before export to keep audio in sync.","nodes.export.tip":"Only flows that reach Export will generate a rendered file.","ports.inputsLabel":"{{title}} inputs","ports.outputsLabel":"{{title}} outputs","ports.emptyInputs":"No inputs","ports.emptyOutputs":"No outputs","ports.direction.input":"Input","ports.direction.output":"Output","ports.portLabel":"{{direction}} port {{label}} ({{dataType}})","connections.title":"Connections","connections.ariaLabel":"Connection list","connections.empty":"No connections yet","connections.ready":"Select an output port to start connecting","connections.remove":"Remove connection","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"Select an input port to finish connection from {{from}}","diagnostics.ariaLabel":"Logs and diagnostics","diagnostics.title":"Logs & diagnostics","diagnostics.crashConsent":"Include crash dumps","diagnostics.passwordPlaceholder":"Export password","diagnostics.exportButton":"Export logs","diagnostics.inspectHistoryTitle":"Inspect history (20 entries)","diagnostics.noExport":"No exports yet","diagnostics.lastExport":"Last export: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"unknown","diagnostics.historyEmpty":"No inspect history yet","diagnostics.noDetails":"No details","diagnostics.defaultToken":"token?","diagnostics.clipCount":"{{count}} clips","diagnostics.defaultPath":"diagnostics folder","json.banner":"Manage JSON saves and loads here. schemaVersion=1.0.7 is preserved.","json.export":"Export JSON","json.import":"Import JSON","json.editorLabel":"JSON for save/load","canvas.ariaLabel":"Node canvas","canvas.controls":"Canvas controls","canvas.toolSelectTooltip":"Select tool (V)","canvas.toolPanTooltip":"Pan view (H)","canvas.fitViewTooltip":"Fit selection (.)","canvas.zoomDisplayLabel":"Zoom options (⌥+~ / ⌥+Shift+; for zoom in · ⌥+= / ⌥+Shift+= for zoom out)","canvas.zoomIn":"Zoom in (⌥+~ / ⌥+Shift+;)","canvas.zoomOut":"Zoom out (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"Zoom to fit selection","canvas.zoomApply":"Apply","canvas.zoomInputLabel":"Zoom percent","canvas.zoomInputPlaceholder":"e.g. 150","toast.queueRefreshFailed":"Failed to refresh queue: {{message}}","toast.demoJobMissing":"Demo job API is unavailable","toast.demoJobAdded":"Demo job added","toast.queueFull":"{{code}}: queue is full","toast.demoJobFailed":"Failed to add job: {{reason}}","toast.cancelAll":"All jobs canceled","toast.mediaSelected":"Loaded {{name}}","toast.mediaFailed":"Could not open the file picker. Try again or restart.","toast.mediaWrongTypeImage":"This node only accepts image files.","toast.mediaWrongTypeVideo":"This node only accepts video files.","toast.exportMissing":"Export API is not connected","toast.exportFailed":"Export failed: {{reason}}","toast.logsExported":"Logs exported to {{path}}{{shaSuffix}}","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"Crash dumps will be included","toast.crashOff":"Crash dumps will be excluded","errors.schemaMissing":"schemaVersion is missing","errors.jsonLoadFailed":"Failed to load JSON: {{reason}}","about.title":"About & licensing","about.ariaLabel":"About and licensing","about.distributionLabel":"FFmpeg distribution","about.licenseLabel":"License","about.pathLabel":"FFmpeg path","about.versionLabel":"FFmpeg version","about.origin.bundled":"Bundled with NodeVision","about.origin.external":"External/system binary","about.noticeBundled":"NodeVision ships FFmpeg compiled under the LGPL v2.1+. Use the links below to review the license text and download matching source code.","about.noticeExternal":"FFmpeg was detected on this system. Confirm that the “{{license}}” license suits your redistribution requirements.","about.licenseLinkLabel":"License text","about.sourceLinkLabel":"FFmpeg source","about.versionUnknown":"Unknown","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"Nonfree build (--enable-nonfree)","about.licenseValue.unknown":"Unknown license","nodeTemplate.loadMedia.title":"Load Media","nodeTemplate.loadMedia.description":"Open a local image or video file","nodeTemplate.loadMedia.port.media":"Media","nodeTemplate.loadImage.title":"Load Image","nodeTemplate.loadImage.description":"Open a local image file","nodeTemplate.loadImage.port.media":"Image","nodeTemplate.loadVideo.title":"Load Video","nodeTemplate.loadVideo.description":"Open a local video file","nodeTemplate.loadVideo.port.media":"Video","nodeTemplate.mediaPreview.title":"Media Preview","nodeTemplate.mediaPreview.description":"Display the connected image or video inside the graph","nodeTemplate.mediaPreview.port.source":"Source","nodeTemplate.trim.title":"Trim","nodeTemplate.trim.description":"Cut media between in/out points","nodeTemplate.trim.port.source":"Source","nodeTemplate.trim.port.result":"Result","nodeTemplate.resize.title":"Resize","nodeTemplate.resize.description":"Resize media with aspect ratio controls","nodeTemplate.resize.port.source":"Source","nodeTemplate.resize.port.resized":"Resized","nodeTemplate.overlay.title":"Overlay","nodeTemplate.overlay.description":"Blend two sources with position controls","nodeTemplate.overlay.port.base":"Base","nodeTemplate.overlay.port.layer":"Layer","nodeTemplate.overlay.port.composite":"Composite","nodeTemplate.text.title":"Text Overlay","nodeTemplate.text.description":"Render titles or captions with font and color controls","nodeTemplate.text.port.background":"Background","nodeTemplate.text.port.titled":"Titled","nodeTemplate.crop.title":"Crop","nodeTemplate.crop.description":"Trim the visible area to a custom frame","nodeTemplate.crop.port.source":"Source","nodeTemplate.crop.port.cropped":"Cropped","nodeTemplate.speed.title":"Speed","nodeTemplate.speed.description":"Ramp playback speed for slow/fast motion","nodeTemplate.speed.port.source":"Source","nodeTemplate.speed.port.retimed":"Retimed","nodeTemplate.changeFps.title":"Change FPS","nodeTemplate.changeFps.description":"Convert variable frame rate clips to constant FPS","nodeTemplate.changeFps.port.source":"Source","nodeTemplate.changeFps.port.normalized":"Normalized","nodeTemplate.export.title":"Export Media","nodeTemplate.export.description":"Finalize and export the edited result","nodeTemplate.export.port.program":"Program","nodeTemplate.export.port.delivery":"Exported","demo.jobName":"FFmpeg demo render"},"ja-JP":{"common.close":"閉じる","actions.save":"保存","actions.cancel":"キャンセル","actions.reset":"リセット","app.title":"NodeVisionエディター","toolbar.alignLeft":"左揃え","toolbar.alignTop":"上揃え","toolbar.alignCenter":"中央揃え","toolbar.undo":"元に戻す","toolbar.redo":"やり直し","toolbar.runningMode":"実行中モード","toolbar.localeLabel":"言語","toolbar.locale.en":"英語","toolbar.locale.ja":"日本語","workflow.unsaved":"未保存のワークフロー","workflow.menu.rename":"名前を変更","workflow.menu.fileSave":"ファイル保存","workflow.menu.fileLoad":"ファイル読込","workflow.menu.saveAs":"名前を付けて保存","workflow.menu.clear":"ワークフローをクリア","workflow.menu.openList":"ワークフローを表示","workflow.context.delete":"ワークフローを削除","workflow.modal.title":"ワークフロー名","workflow.modal.placeholder":"名前を入力してください","workflow.modal.cancel":"キャンセル","workflow.modal.confirm":"保存","workflow.promptName":"ワークフロー名","workflow.confirmDelete":"ワークフロー「{{name}}」を削除しますか？","workflow.confirmClear":"現在のワークフローをクリアしますか？すべてのノードが削除されます。","workflow.errorNameRequired":"ワークフロー名を入力してください。","workflows.title":"ワークフロー","workflows.saveCurrent":"現在のワークフローを保存","workflows.searchLabel":"ワークフローを検索","workflows.searchPlaceholder":"ワークフローを検索…","workflows.empty":"保存されたワークフローはまだありません","autosave.pending":"変更待ち...","autosave.running":"実行中…変更を監視中 ({{seconds}}秒)","autosave.idle":"変更検知 ({{seconds}}秒)","autosave.saved":"{{time}} に自動保存したよ","sidebar.ariaLabel":"ノード検索とヘルプ","sidebar.searchLabel":"ノード検索","sidebar.searchPlaceholder":"ロード、トリム、リサイズ…","sidebar.suggestionsLabel":"ノード候補","help.shortcutsTitle":"ショートカット","help.copy":"ノードをコピー","help.paste":"貼り付け（4pxスナップ）","help.duplicate":"複製","help.zoomReset":"ズーム 100%","help.fitSelection":"選択範囲にフィット","help.zoomIn":"キャンバスを拡大","help.zoomOut":"キャンバスを縮小","help.guideTitle":"操作ガイド","help.guideHtml":"・ドラッグでノード移動（4pxスナップ）<br />・Enterで候補を追加<br />・Tabでカードにフォーカスできます。","readonly.banner":"スキーマ差分のため読み取り専用です（編集は無効化）。","queue.ariaLabel":"ジョブキュー","queue.title":"ジョブキュー","queue.demoJob":"デモジョブ追加","queue.cancelAll":"すべてキャンセル","queue.status.running":"実行中","queue.status.queued":"待機中","queue.status.coolingDown":"クールダウン","queue.status.failed":"失敗","queue.status.canceled":"キャンセル済み","queue.historyTitle":"履歴 (20件)","queue.emptyActive":"実行中のジョブはありません","queue.emptyQueued":"待機ジョブなし","queue.noHistory":"履歴はまだありません","queue.noLogs":"ログなし","queue.defaultJob":"ジョブ","queue.stableTitle":"キューは安定","queue.stableSummary":"待機 {{queued}}/{{limit}} ・ タイムアウト {{timeout}}秒","nodes.ariaLabel":"{{title}} ノード","nodes.load.selectButton":"アップロードするファイルを選択","nodes.load.empty":"まだメディアが選ばれていません","nodes.load.previewMeta":"{{name}} ／ {{size}} ・ {{type}}","nodes.load.unknownType":"形式不明","nodes.load.noFile":"ファイル未選択","nodes.load.aspectUnknown":"サイズ未取得","nodes.mediaPreview.noInput":"ここに表示したいメディアを接続してね","nodes.mediaPreview.waiting":"接続済みのノードからプレビューを待機中…","nodes.mediaPreview.disconnected":"入力が未接続","nodes.mediaPreview.sourceLabel":"ソース: {{title}}","nodes.mediaPreview.metaUnknown":"サイズ未取得","nodes.delete":"ノードを削除","nodes.status.connected":"接続済み","nodes.status.missing":"未接続","nodes.trim.tip":"ソースをつないで専用モーダルでIN/OUTやクロップを決めておくと、その後の重い処理が超ラクになるよ。","nodes.trim.imageButton":"画像トリム","nodes.trim.videoButton":"動画トリム","nodes.trim.status.empty":"まだ設定されていません","nodes.trim.status.imageEdited":"画像クロップ済み","nodes.trim.status.videoEdited":"動画トリム済み","nodes.trim.status.imageSummary":"画像 {{width}}% × {{height}}% で表示中","nodes.trim.status.videoSummary":"動画 {{start}} → {{end}}{{strict}}","nodes.trim.status.videoEndLabel":"最後","nodes.trim.status.videoStrictSuffix":"（キッチリ）","nodes.trim.imageTools.zoomIn":"ズームイン","nodes.trim.imageTools.zoomOut":"ズームアウト","nodes.trim.imageTools.grid":"グリッド","nodes.trim.imageTools.rotateLeft":"左回転","nodes.trim.imageTools.rotateRight":"右回転","nodes.trim.imageTools.flipHorizontal":"左右反転","nodes.trim.imageTools.flipHorizontalShort":"左右","nodes.trim.imageTools.flipVertical":"上下反転","nodes.trim.imageTools.flipVerticalShort":"上下","nodes.trim.imageTools.reset":"変形リセット","nodes.trim.imageControls.rotation":"回転","nodes.trim.imageControls.zoom":"ズーム","nodes.trim.imageControls.aspect":"アスペクト比","nodes.trim.imageControls.aspectOption.free":"自由","nodes.trim.imageControls.aspectOption.original":"元の比率","nodes.trim.imageControls.aspectOption.square":"正方形","nodes.trim.imageControls.aspectOption.4:3":"4:3","nodes.trim.imageControls.aspectOption.16:9":"16:9","nodes.trim.imageControls.aspectOption.9:16":"9:16","nodes.trim.modalPlaceholder.image":"ハイライトされた枠や角をドラッグして、表示中の画像をトリミングしてね。","nodes.trim.modalPlaceholder.video":"動画トリム専用モーダルはまもなく登場。IN/OUTを正確に設定できる編集スペースになるよ。","nodes.trim.modalPlaceholder.noImage":"先に画像ロードノードを接続してメディアを選んでね。","nodes.trim.toast.imageSaved":"画像のトリム設定を保存したよ。","nodes.trim.toast.videoSaved":"動画のトリム設定を保存したよ。","nodes.mediaPreview.trimmedBadge":"トリム結果","nodes.mediaPreview.trimmedRange":"範囲 {{start}} → {{end}}{{strict}}","nodes.mediaPreview.trimmedCrop":"トリム {{width}}% × {{height}}%","nodes.trim.modalPlaceholder.noVideo":"先に動画ロードノードをつなげてプレビューをつくってからトリムしてね。","nodes.trim.modalHint.video":"タイムラインのハンドルか時間入力でIN/OUTを決めて、保存すれば下流にも反映されるよ。","nodes.trim.video.previewFallback":"動画ソース","nodes.trim.video.startLabel":"開始","nodes.trim.video.endLabel":"終了","nodes.trim.video.durationUnknown":"長さは未取得","nodes.trim.video.strictLabel":"キッチリカット","nodes.trim.video.strictHint":"指定範囲の外はフレームごと捨てるよ。","nodes.trim.video.controls.play":"再生","nodes.trim.video.controls.pause":"一時停止","nodes.trim.video.controls.stepBack":"1コマ戻す","nodes.trim.video.controls.stepForward":"1コマ進める","nodes.trim.video.startHandle":"開始ハンドル","nodes.trim.video.endHandle":"終了ハンドル","nodes.resize.tip":"リサイズは書き出し直前に置くとリサンプリング回数を減らせるよ。","nodes.overlay.tip":"ベースとレイヤー両方を接続するとアルファ付きで重ね合わせできるよ。","nodes.text.tip":"テキストノードは背景入力に重ねて、くっきりしたタイトルをGPUで描画するよ。","nodes.crop.tip":"クロップは表示枠を切るだけだから、後段のリサイズや書き出しとセットで使うのが吉。","nodes.speed.tip":"スピード変更は下流の尺も変わるから、繋ぎ直してからキューを流してね。","nodes.changeFps.tip":"可変フレームレート素材は書き出し前にFPS変換で揃えると音ズレ防止になるよ。","nodes.export.tip":"エクスポートまで辿り着いたフローだけがファイルを書き出すから忘れずにつないでね。","ports.inputsLabel":"{{title}} の入力","ports.outputsLabel":"{{title}} の出力","ports.emptyInputs":"入力なし","ports.emptyOutputs":"出力なし","ports.direction.input":"入力","ports.direction.output":"出力","ports.portLabel":"{{direction}}ポート {{label}} ({{dataType}})","connections.title":"接続","connections.ariaLabel":"接続リスト","connections.empty":"接続はまだありません","connections.ready":"出力ポートを選んで接続を始めてね","connections.remove":"接続を削除","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"{{from}} から接続する入力ポートを選択してください","diagnostics.ariaLabel":"ログと診断","diagnostics.title":"ログ & 診断","diagnostics.crashConsent":"クラッシュダンプを含める","diagnostics.passwordPlaceholder":"エクスポート用パスワード","diagnostics.exportButton":"ログを書き出し","diagnostics.inspectHistoryTitle":"inspect履歴 (20件)","diagnostics.noExport":"まだエクスポートしていません","diagnostics.lastExport":"最後のエクスポート: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"不明","diagnostics.historyEmpty":"履歴はまだありません","diagnostics.noDetails":"詳細なし","diagnostics.defaultToken":"トークン?","diagnostics.clipCount":"{{count}} クリップ","diagnostics.defaultPath":"診断フォルダー","json.banner":"JSONプロジェクトの保存/読み込みはここから。schemaVersion=1.0.7 を保持します。","json.export":"JSONを書き出し","json.import":"JSONを読み込み","json.editorLabel":"保存用JSON","canvas.ariaLabel":"ノードキャンバス","canvas.controls":"キャンバス操作","canvas.toolSelectTooltip":"選択ツール (V)","canvas.toolPanTooltip":"パンビュー (H)","canvas.fitViewTooltip":"全体表示 (.)","canvas.zoomDisplayLabel":"ズーム設定（拡大: ⌥+〜 / ⌥+Shift+； ・ 縮小: ⌥+= / ⌥+Shift+=）","canvas.zoomIn":"拡大 (⌥+〜 / ⌥+Shift+；)","canvas.zoomOut":"縮小 (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"全体表示にズーム","canvas.zoomApply":"適用","canvas.zoomInputLabel":"ズーム %","canvas.zoomInputPlaceholder":"例: 150","toast.queueRefreshFailed":"キュー更新に失敗: {{message}}","toast.demoJobMissing":"デモジョブAPIがみつからないよ","toast.demoJobAdded":"デモジョブを追加したよ","toast.queueFull":"{{code}}: 待機キューが満杯だよ","toast.demoJobFailed":"ジョブ追加に失敗したよ: {{reason}}","toast.cancelAll":"全ジョブをキャンセルしたよ","toast.mediaSelected":"{{name}} を読み込んだよ","toast.mediaFailed":"ファイル選択を開けなかったよ。もう一度試してね。","toast.mediaWrongTypeImage":"このノードは画像ファイル専用だよ","toast.mediaWrongTypeVideo":"このノードは動画ファイル専用だよ","toast.exportMissing":"Export APIが未接続だよ","toast.exportFailed":"エクスポートに失敗したよ: {{reason}}","toast.logsExported":"ログを {{path}}{{shaSuffix}} にエクスポートしたよ","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"クラッシュダンプを含めるよ","toast.crashOff":"クラッシュダンプを除外するよ","errors.schemaMissing":"schemaVersion がありません","errors.jsonLoadFailed":"JSONの読み込みに失敗しました: {{reason}}","about.title":"アバウトとライセンス","about.ariaLabel":"アバウトとライセンス","about.distributionLabel":"FFmpeg配布形態","about.licenseLabel":"ライセンス","about.pathLabel":"FFmpegパス","about.versionLabel":"FFmpegバージョン","about.origin.bundled":"NodeVision同梱 (LGPL)","about.origin.external":"外部/システムのバイナリ","about.noticeBundled":"NodeVisionはLGPL v2.1+準拠でビルドしたFFmpegを同梱しています。下のリンクからライセンス原文と対応するソースコードにアクセスしてください。","about.noticeExternal":"このFFmpegはシステムから検出したものです（ライセンス: {{license}}）。再配布ポリシーに合っているかご確認ください。","about.licenseLinkLabel":"ライセンス原文","about.sourceLinkLabel":"FFmpegソース","about.versionUnknown":"不明","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"非フリー構成 (--enable-nonfree)","about.licenseValue.unknown":"ライセンス不明","nodeTemplate.loadMedia.title":"メディアを読み込み","nodeTemplate.loadMedia.description":"ローカルの画像や動画を開く","nodeTemplate.loadMedia.port.media":"メディア","nodeTemplate.loadImage.title":"画像を読み込み","nodeTemplate.loadImage.description":"ローカルの画像ファイルを開く","nodeTemplate.loadImage.port.media":"画像","nodeTemplate.loadVideo.title":"動画を読み込み","nodeTemplate.loadVideo.description":"ローカルの動画ファイルを開く","nodeTemplate.loadVideo.port.media":"動画","nodeTemplate.mediaPreview.title":"メディアプレビュー","nodeTemplate.mediaPreview.description":"接続中の画像・動画をノードで表示","nodeTemplate.mediaPreview.port.source":"ソース","nodeTemplate.trim.title":"トリム","nodeTemplate.trim.description":"IN/OUT間で素材をカット","nodeTemplate.trim.port.source":"ソース","nodeTemplate.trim.port.result":"出力","nodeTemplate.resize.title":"リサイズ","nodeTemplate.resize.description":"アスペクト比を保ってサイズ変更","nodeTemplate.resize.port.source":"ソース","nodeTemplate.resize.port.resized":"リサイズ後","nodeTemplate.overlay.title":"オーバーレイ","nodeTemplate.overlay.description":"2つの映像を合成して位置を調整","nodeTemplate.overlay.port.base":"ベース","nodeTemplate.overlay.port.layer":"レイヤー","nodeTemplate.overlay.port.composite":"合成結果","nodeTemplate.text.title":"テキストオーバーレイ","nodeTemplate.text.description":"文字や字幕を描画","nodeTemplate.text.port.background":"背景","nodeTemplate.text.port.titled":"テキスト出力","nodeTemplate.crop.title":"クロップ","nodeTemplate.crop.description":"表示範囲をトリミング","nodeTemplate.crop.port.source":"ソース","nodeTemplate.crop.port.cropped":"クロップ後","nodeTemplate.speed.title":"再生速度","nodeTemplate.speed.description":"スロー/早回しを設定","nodeTemplate.speed.port.source":"ソース","nodeTemplate.speed.port.retimed":"速度変更後","nodeTemplate.changeFps.title":"フレームレート変換","nodeTemplate.changeFps.description":"可変フレームを固定フレームに揃える","nodeTemplate.changeFps.port.source":"ソース","nodeTemplate.changeFps.port.normalized":"正規化後","nodeTemplate.export.title":"メディアを書き出し","nodeTemplate.export.description":"最終結果を書き出す","nodeTemplate.export.port.program":"プログラム","nodeTemplate.export.port.delivery":"書き出し結果","demo.jobName":"FFmpeg 合成"}};
       window.__NODEVISION_SUPPORTED_LOCALES__ = ["en-US","ja-JP"];
       window.__NODEVISION_FALLBACK_LOCALE__ = 'ja-JP';
     </script>
@@ -2716,13 +2882,69 @@
                   modalContentElement.appendChild(warning);
                   return;
               }
+              const rotationValue = Math.round(session.draftRotationDeg || 0);
+              const zoomPercent = Math.round((session.draftZoom || 1) * 100);
+              const aspectOptions = ['free', 'original', 'square', '4:3', '16:9', '9:16'];
               modalContentElement.innerHTML = `
-            <div class="trim-image-stage" data-trim-stage>
+            <div class="trim-image-toolbar" role="toolbar">
+              <div class="trim-image-toolbar-group">
+                <button type="button" class="trim-tool-button" data-trim-tool="zoom-out" title="${escapeHtml(t('nodes.trim.imageTools.zoomOut'))}">−</button>
+                <button type="button" class="trim-tool-button" data-trim-tool="zoom-in" title="${escapeHtml(t('nodes.trim.imageTools.zoomIn'))}">＋</button>
+                <button type="button" class="trim-tool-button" data-trim-tool="grid" data-active="${String(session.showGrid)}" title="${escapeHtml(t('nodes.trim.imageTools.grid'))}">
+                  ${escapeHtml(t('nodes.trim.imageTools.grid'))}
+                </button>
+              </div>
+              <div class="trim-image-toolbar-group">
+                <button type="button" class="trim-tool-button" data-trim-tool="rotate-left" title="${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}">${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}</button>
+                <button type="button" class="trim-tool-button" data-trim-tool="rotate-right" title="${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}">${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}</button>
+                <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal" title="${escapeHtml(t('nodes.trim.imageTools.flipHorizontal'))}">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
+                <button type="button" class="trim-tool-button" data-trim-tool="flip-vertical" title="${escapeHtml(t('nodes.trim.imageTools.flipVertical'))}">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
+                <button type="button" class="trim-tool-button" data-trim-tool="reset-transform" title="${escapeHtml(t('nodes.trim.imageTools.reset'))}">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
+              </div>
+            </div>
+            <div class="trim-stage-wrapper" data-trim-stage-wrapper>
+              <div class="trim-image-stage" data-trim-stage>
               <img src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
               <div class="trim-crop-box" data-trim-box>
-                ${['nw', 'ne', 'sw', 'se']
+                ${['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se']
                   .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
                   .join('')}
+              </div>
+              <div class="trim-grid-overlay${session.showGrid ? ' is-visible' : ''}" data-trim-grid-overlay></div>
+            </div>
+            </div>
+            <div class="trim-image-controls">
+              <div class="trim-control">
+                <label>
+                  <span>${escapeHtml(t('nodes.trim.imageControls.rotation'))}</span>
+                  <div class="trim-control-inputs">
+                    <input type="range" min="-180" max="180" step="1" value="${rotationValue}" data-trim-rotation-range />
+                    <input type="number" min="-180" max="180" step="1" value="${rotationValue}" data-trim-rotation-input />
+                    <span class="trim-control-unit">°</span>
+                  </div>
+                </label>
+              </div>
+              <div class="trim-control">
+                <label>
+                  <span>${escapeHtml(t('nodes.trim.imageControls.zoom'))}</span>
+                  <div class="trim-control-inputs">
+                    <input type="range" min="0.25" max="4" step="0.05" value="${session.draftZoom ?? 1}" data-trim-zoom-range />
+                    <span class="trim-control-badge" data-trim-zoom-label>${zoomPercent}%</span>
+                  </div>
+                </label>
+              </div>
+              <div class="trim-control">
+                <label>
+                  <span>${escapeHtml(t('nodes.trim.imageControls.aspect'))}</span>
+                  <select data-trim-aspect>
+                    ${aspectOptions
+                  .map(option => `
+                          <option value="${option}" ${option === session.draftAspectMode ? 'selected' : ''}>
+                            ${escapeHtml(t(`nodes.trim.imageControls.aspectOption.${option}`))}
+                          </option>`)
+                  .join('')}
+                  </select>
+                </label>
               </div>
             </div>
             <p class="trim-modal-hint">${escapeHtml(t('nodes.trim.modalPlaceholder.image'))}</p>
@@ -2837,14 +3059,230 @@
               showToast(t(toastKey));
           };
           const initializeTrimImageControls = (session) => {
-              if (!modalContentElement) {
+              const modalContent = modalContentElement;
+              if (!modalContent) {
                   return;
               }
-              const stage = modalContentElement.querySelector('[data-trim-stage]');
-              const cropBox = modalContentElement.querySelector('[data-trim-box]');
+              const stage = modalContent.querySelector('[data-trim-stage]');
+              const cropBox = modalContent.querySelector('[data-trim-box]');
+              const imageElement = modalContent.querySelector('.trim-image-stage img');
+              const gridOverlay = modalContent.querySelector('[data-trim-grid-overlay]');
+              const rotationRange = modalContent.querySelector('[data-trim-rotation-range]');
+              const rotationInput = modalContent.querySelector('[data-trim-rotation-input]');
+              const zoomRange = modalContent.querySelector('[data-trim-zoom-range]');
+              const zoomLabel = modalContent.querySelector('[data-trim-zoom-label]');
+              const aspectSelect = modalContent.querySelector('[data-trim-aspect]');
+              const toolbarButtons = modalContent.querySelectorAll('[data-trim-tool]');
               if (!stage || !cropBox) {
                   return;
               }
+              const getImageAspectRatio = () => {
+                  const preview = session.sourcePreview;
+                  if (preview?.width && preview?.height) {
+                      return preview.width / preview.height;
+                  }
+                  if (imageElement?.naturalWidth && imageElement?.naturalHeight) {
+                      return imageElement.naturalWidth / imageElement.naturalHeight;
+                  }
+                  return 1;
+              };
+              const aspectValueMap = {
+                  free: null,
+                  original: null,
+                  square: 1,
+                  '4:3': 4 / 3,
+                  '16:9': 16 / 9,
+                  '9:16': 9 / 16
+              };
+              const getSelectedAspectRatio = () => {
+                  const mode = session.draftAspectMode ?? 'free';
+                  if (mode === 'original') {
+                      return getImageAspectRatio();
+                  }
+                  return aspectValueMap[mode] ?? null;
+              };
+              const getNormalizedAspectRatio = () => {
+                  const target = getSelectedAspectRatio();
+                  if (!target) {
+                      return null;
+                  }
+                  const imageAspect = getImageAspectRatio() || 1;
+                  if (!imageAspect) {
+                      return null;
+                  }
+                  return target / imageAspect;
+              };
+              const clampSize = (value) => clampValue(value, MIN_TRIM_REGION_SIZE, 1);
+              const clampRegionPosition = (region) => {
+                  return {
+                      ...region,
+                      x: clampValue(region.x, 0, 1 - region.width),
+                      y: clampValue(region.y, 0, 1 - region.height)
+                  };
+              };
+              const buildRegionFromAnchor = (width, height, handle, reference) => {
+                  const left = reference.x;
+                  const top = reference.y;
+                  const right = reference.x + reference.width;
+                  const bottom = reference.y + reference.height;
+                  const centerX = left + reference.width / 2;
+                  const centerY = top + reference.height / 2;
+                  let x = reference.x;
+                  let y = reference.y;
+                  switch (handle) {
+                      case 'nw':
+                          x = right - width;
+                          y = bottom - height;
+                          break;
+                      case 'ne':
+                          x = left;
+                          y = bottom - height;
+                          break;
+                      case 'sw':
+                          x = right - width;
+                          y = top;
+                          break;
+                      case 'se':
+                          x = left;
+                          y = top;
+                          break;
+                      case 'n':
+                          x = centerX - width / 2;
+                          y = bottom - height;
+                          break;
+                      case 's':
+                          x = centerX - width / 2;
+                          y = top;
+                          break;
+                      case 'w':
+                          x = right - width;
+                          y = centerY - height / 2;
+                          break;
+                      case 'e':
+                          x = left;
+                          y = centerY - height / 2;
+                          break;
+                      case 'center':
+                      default:
+                          x = centerX - width / 2;
+                          y = centerY - height / 2;
+                          break;
+                  }
+                  return { x, y, width, height };
+              };
+              const applyAspectConstraint = (region, handle) => {
+                  const normalizedRatio = getNormalizedAspectRatio();
+                  const reference = { ...region };
+                  const baseWidth = clampSize(reference.width);
+                  const baseHeight = clampSize(reference.height);
+                  if (!normalizedRatio) {
+                      return clampRegionPosition({ ...reference, width: baseWidth, height: baseHeight });
+                  }
+                  const widthFromHeight = clampSize(baseHeight * normalizedRatio);
+                  const heightFromWidth = clampSize(baseWidth / normalizedRatio);
+                  const regionByWidth = clampRegionPosition(buildRegionFromAnchor(widthFromHeight, baseHeight, handle, reference));
+                  const regionByHeight = clampRegionPosition(buildRegionFromAnchor(baseWidth, heightFromWidth, handle, reference));
+                  if (handle === 'n' || handle === 's') {
+                      return regionByWidth;
+                  }
+                  if (handle === 'e' || handle === 'w') {
+                      return regionByHeight;
+                  }
+                  const computeRatioError = (candidate) => {
+                      const candidateRatio = candidate.width / candidate.height;
+                      return Math.abs(candidateRatio - normalizedRatio);
+                  };
+                  const widthError = computeRatioError(regionByWidth);
+                  const heightError = computeRatioError(regionByHeight);
+                  if (widthError < heightError - 0.0001) {
+                      return regionByWidth;
+                  }
+                  if (heightError < widthError - 0.0001) {
+                      return regionByHeight;
+                  }
+                  const areaWidth = regionByWidth.width * regionByWidth.height;
+                  const areaHeight = regionByHeight.width * regionByHeight.height;
+                  return areaWidth >= areaHeight ? regionByWidth : regionByHeight;
+              };
+              const applyStageAspectRatio = () => {
+                  if (!imageElement) {
+                      return;
+                  }
+                  const { naturalWidth, naturalHeight } = imageElement;
+                  if (!naturalWidth || !naturalHeight) {
+                      return;
+                  }
+                  const ratioValue = `${naturalWidth} / ${naturalHeight}`;
+                  stage.style.setProperty('aspect-ratio', ratioValue);
+                  stage.style.setProperty('--trim-image-aspect', ratioValue);
+              };
+              applyStageAspectRatio();
+              const clampRotation = (value) => Math.max(-180, Math.min(180, value));
+              const clampZoom = (value) => Math.max(0.25, Math.min(4, value));
+              const updateZoomLabel = () => {
+                  if (!zoomLabel)
+                      return;
+                  const zoomPercent = Math.round((session.draftZoom ?? 1) * 100);
+                  zoomLabel.textContent = `${zoomPercent}%`;
+              };
+              const updateTransformStyles = () => {
+                  if (!imageElement) {
+                      return;
+                  }
+                  const rotation = clampRotation(session.draftRotationDeg ?? 0);
+                  const zoomValue = clampZoom(session.draftZoom ?? 1);
+                  session.draftRotationDeg = rotation;
+                  session.draftZoom = zoomValue;
+                  const flipX = session.draftFlipHorizontal ? -1 : 1;
+                  const flipY = session.draftFlipVertical ? -1 : 1;
+                  imageElement.style.transform = `rotate(${rotation}deg) scaleX(${zoomValue * flipX}) scaleY(${zoomValue * flipY})`;
+                  if (gridOverlay) {
+                      gridOverlay.classList.toggle('is-visible', session.showGrid);
+                      gridOverlay.style.transform = `rotate(${rotation}deg)`;
+                  }
+                  updateZoomLabel();
+              };
+              const syncRotationControls = () => {
+                  const value = String(clampRotation(session.draftRotationDeg ?? 0));
+                  if (rotationRange)
+                      rotationRange.value = value;
+                  if (rotationInput)
+                      rotationInput.value = value;
+              };
+              const syncZoomControls = () => {
+                  if (zoomRange) {
+                      zoomRange.value = String(clampZoom(session.draftZoom ?? 1));
+                  }
+                  updateZoomLabel();
+              };
+              const setRotation = (value) => {
+                  session.draftRotationDeg = clampRotation(value);
+                  syncRotationControls();
+                  updateTransformStyles();
+              };
+              const setZoom = (value) => {
+                  session.draftZoom = clampZoom(value);
+                  syncZoomControls();
+                  updateTransformStyles();
+              };
+              const toggleFlip = (axis) => {
+                  if (axis === 'horizontal') {
+                      session.draftFlipHorizontal = !session.draftFlipHorizontal;
+                  }
+                  else {
+                      session.draftFlipVertical = !session.draftFlipVertical;
+                  }
+                  updateTransformStyles();
+              };
+              const toggleGrid = () => {
+                  session.showGrid = !session.showGrid;
+                  updateTransformStyles();
+                  const gridButton = modalContent.querySelector('[data-trim-tool="grid"]');
+                  gridButton?.setAttribute('data-active', String(session.showGrid));
+              };
+              syncRotationControls();
+              syncZoomControls();
+              updateTransformStyles();
               const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
               const updateCropBoxStyles = () => {
                   const region = session.draftRegion;
@@ -2921,7 +3359,7 @@
                       if (next.y + next.height > 1) {
                           next.height = 1 - next.y;
                       }
-                      session.draftRegion = next;
+                      session.draftRegion = applyAspectConstraint(next, handle);
                       updateCropBoxStyles();
                   };
                   const handleUp = (moveEvent) => {
@@ -2942,18 +3380,95 @@
                       startMove(event);
                   }
               });
-              modalContentElement.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
-                  session.draftRegion = { ...DEFAULT_TRIM_REGION };
+              modalContent.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
+                  session.draftRegion = applyAspectConstraint({ ...DEFAULT_TRIM_REGION }, 'center');
+                  session.draftRotationDeg = 0;
+                  session.draftZoom = 1;
+                  session.draftFlipHorizontal = false;
+                  session.draftFlipVertical = false;
+                  session.draftAspectMode = 'free';
+                  session.showGrid = false;
+                  const gridButton = modalContent.querySelector('[data-trim-tool="grid"]');
+                  gridButton?.setAttribute('data-active', 'false');
+                  syncRotationControls();
+                  syncZoomControls();
+                  updateTransformStyles();
+                  if (aspectSelect) {
+                      aspectSelect.value = 'free';
+                  }
                   updateCropBoxStyles();
               });
-              modalContentElement.querySelector('[data-trim-cancel]')?.addEventListener('click', () => {
+              modalContent.querySelector('[data-trim-cancel]')?.addEventListener('click', () => {
                   closeActiveModal();
               });
-              modalContentElement.querySelector('[data-trim-save]')?.addEventListener('click', () => {
+              modalContent.querySelector('[data-trim-save]')?.addEventListener('click', () => {
                   persistTrimSettings(session.nodeId, settings => {
                       settings.region = { ...session.draftRegion };
+                      settings.rotationDeg = clampTrimRotation(session.draftRotationDeg ?? 0);
+                      settings.zoom = clampTrimZoom(session.draftZoom ?? 1);
+                      settings.flipHorizontal = Boolean(session.draftFlipHorizontal);
+                      settings.flipVertical = Boolean(session.draftFlipVertical);
+                      settings.aspectMode = session.draftAspectMode ?? 'free';
                   }, 'nodes.trim.toast.imageSaved');
               });
+              rotationRange?.addEventListener('input', event => {
+                  const value = Number(event.target.value);
+                  setRotation(value);
+              });
+              rotationInput?.addEventListener('change', event => {
+                  const value = Number(event.target.value);
+                  setRotation(value);
+              });
+              zoomRange?.addEventListener('input', event => {
+                  const value = Number(event.target.value);
+                  setZoom(value);
+              });
+              aspectSelect?.addEventListener('change', event => {
+                  const value = event.target.value;
+                  session.draftAspectMode = value;
+                  session.draftRegion = applyAspectConstraint(session.draftRegion, 'center');
+                  updateCropBoxStyles();
+              });
+              toolbarButtons.forEach(button => {
+                  const tool = button.dataset.trimTool;
+                  button.addEventListener('click', () => {
+                      switch (tool) {
+                          case 'zoom-in':
+                              setZoom((session.draftZoom ?? 1) + 0.1);
+                              break;
+                          case 'zoom-out':
+                              setZoom((session.draftZoom ?? 1) - 0.1);
+                              break;
+                          case 'grid':
+                              toggleGrid();
+                              break;
+                          case 'rotate-left':
+                              setRotation((session.draftRotationDeg ?? 0) - 90);
+                              break;
+                          case 'rotate-right':
+                              setRotation((session.draftRotationDeg ?? 0) + 90);
+                              break;
+                          case 'flip-horizontal':
+                              toggleFlip('horizontal');
+                              break;
+                          case 'flip-vertical':
+                              toggleFlip('vertical');
+                              break;
+                          case 'reset-transform':
+                              session.draftRotationDeg = 0;
+                              session.draftZoom = 1;
+                              session.draftFlipHorizontal = false;
+                              session.draftFlipVertical = false;
+                              syncRotationControls();
+                              syncZoomControls();
+                              updateTransformStyles();
+                              break;
+                          default:
+                              break;
+                      }
+                  });
+              });
+              session.draftRegion = applyAspectConstraint(session.draftRegion, 'center');
               updateCropBoxStyles();
           };
           const initializeTrimVideoControls = (session) => {
@@ -3295,7 +3810,13 @@
                       mode: 'image',
                       nodeId,
                       draftRegion: { ...(settings.region ?? DEFAULT_TRIM_REGION) },
-                      sourcePreview: sourcePreview && sourcePreview.kind === 'image' ? sourcePreview : null
+                      sourcePreview: sourcePreview && sourcePreview.kind === 'image' ? sourcePreview : null,
+                      draftRotationDeg: settings.rotationDeg ?? 0,
+                      draftZoom: settings.zoom ?? 1,
+                      draftFlipHorizontal: settings.flipHorizontal ?? false,
+                      draftFlipVertical: settings.flipVertical ?? false,
+                      draftAspectMode: settings.aspectMode ?? 'free',
+                      showGrid: false
                   };
               }
               else {
@@ -3904,6 +4425,38 @@
               return captureVideoFrame(preview, startMs);
           };
           const clampRegionValue = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+          const clampTrimRotation = (value) => {
+              if (typeof value !== 'number' || Number.isNaN(value)) {
+                  return 0;
+              }
+              return Math.max(-180, Math.min(180, value));
+          };
+          const clampTrimZoom = (value) => {
+              if (typeof value !== 'number' || Number.isNaN(value)) {
+                  return 1;
+              }
+              return Math.max(0.25, Math.min(4, value));
+          };
+          const applyTrimTransforms = (sourceCanvas, settings) => {
+              const rotationDeg = clampTrimRotation(settings.rotationDeg);
+              const zoomValue = clampTrimZoom(settings.zoom);
+              const flipX = settings.flipHorizontal ? -1 : 1;
+              const flipY = settings.flipVertical ? -1 : 1;
+              const canvas = document.createElement('canvas');
+              canvas.width = sourceCanvas.width;
+              canvas.height = sourceCanvas.height;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                  return sourceCanvas;
+              }
+              ctx.save();
+              ctx.translate(canvas.width / 2, canvas.height / 2);
+              ctx.rotate((rotationDeg * Math.PI) / 180);
+              ctx.scale(zoomValue * flipX, zoomValue * flipY);
+              ctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
+              ctx.restore();
+              return canvas;
+          };
           const cropCanvasToRegion = (sourceCanvas, region) => {
               const safeRegion = region ?? { x: 0, y: 0, width: 1, height: 1 };
               const normalizedWidth = clampRegionValue(safeRegion.width ?? 1, 0.01, 1);
@@ -3935,7 +4488,12 @@
                   region.x ?? 0,
                   region.y ?? 0,
                   region.width ?? 1,
-                  region.height ?? 1
+                  region.height ?? 1,
+                  clampTrimRotation(settings.rotationDeg),
+                  clampTrimZoom(settings.zoom),
+                  settings.flipHorizontal ? 'fh' : 'nh',
+                  settings.flipVertical ? 'fv' : 'nv',
+                  settings.aspectMode ?? 'free'
               ].join('|');
           };
           const findTrimSourcePreview = (nodeId) => {
@@ -3972,7 +4530,8 @@
                   renderNodes();
                   return;
               }
-              const croppedCanvas = cropCanvasToRegion(frameCanvas, settings.region);
+              const transformedCanvas = applyTrimTransforms(frameCanvas, settings);
+              const croppedCanvas = cropCanvasToRegion(transformedCanvas, settings.region);
               const dataUrl = croppedCanvas.toDataURL('image/png');
               cleanupMediaPreview(node.id);
               state.mediaPreviews.set(node.id, {
@@ -6710,6 +7269,25 @@
               'nodes.trim.status.videoSummary': 'Video {{start}} → {{end}}{{strict}}',
               'nodes.trim.status.videoEndLabel': 'end',
               'nodes.trim.status.videoStrictSuffix': '(strict)',
+              'nodes.trim.imageTools.zoomIn': 'Zoom in',
+              'nodes.trim.imageTools.zoomOut': 'Zoom out',
+              'nodes.trim.imageTools.grid': 'Grid',
+              'nodes.trim.imageTools.rotateLeft': 'Rotate left',
+              'nodes.trim.imageTools.rotateRight': 'Rotate right',
+              'nodes.trim.imageTools.flipHorizontal': 'Flip horizontally',
+              'nodes.trim.imageTools.flipHorizontalShort': '⇋',
+              'nodes.trim.imageTools.flipVertical': 'Flip vertically',
+              'nodes.trim.imageTools.flipVerticalShort': '⇵',
+              'nodes.trim.imageTools.reset': 'Reset transform',
+              'nodes.trim.imageControls.rotation': 'Rotation',
+              'nodes.trim.imageControls.zoom': 'Zoom',
+              'nodes.trim.imageControls.aspect': 'Aspect ratio',
+              'nodes.trim.imageControls.aspectOption.free': 'Free',
+              'nodes.trim.imageControls.aspectOption.original': 'Original',
+              'nodes.trim.imageControls.aspectOption.square': 'Square',
+              'nodes.trim.imageControls.aspectOption.4:3': '4:3',
+              'nodes.trim.imageControls.aspectOption.16:9': '16:9',
+              'nodes.trim.imageControls.aspectOption.9:16': '9:16',
               'nodes.trim.modalPlaceholder.image': 'Drag the highlighted box or its corners to crop the displayed image.',
               'nodes.trim.modalPlaceholder.video': 'Video trim modal is coming soon—set accurate in/out ranges in a dedicated workspace.',
               'nodes.trim.toast.imageSaved': 'Image crop updated.',
@@ -6962,6 +7540,25 @@
               'nodes.trim.status.videoSummary': '動画 {{start}} → {{end}}{{strict}}',
               'nodes.trim.status.videoEndLabel': '最後',
               'nodes.trim.status.videoStrictSuffix': '（キッチリ）',
+              'nodes.trim.imageTools.zoomIn': 'ズームイン',
+              'nodes.trim.imageTools.zoomOut': 'ズームアウト',
+              'nodes.trim.imageTools.grid': 'グリッド',
+              'nodes.trim.imageTools.rotateLeft': '左回転',
+              'nodes.trim.imageTools.rotateRight': '右回転',
+              'nodes.trim.imageTools.flipHorizontal': '左右反転',
+              'nodes.trim.imageTools.flipHorizontalShort': '左右',
+              'nodes.trim.imageTools.flipVertical': '上下反転',
+              'nodes.trim.imageTools.flipVerticalShort': '上下',
+              'nodes.trim.imageTools.reset': '変形リセット',
+              'nodes.trim.imageControls.rotation': '回転',
+              'nodes.trim.imageControls.zoom': 'ズーム',
+              'nodes.trim.imageControls.aspect': 'アスペクト比',
+              'nodes.trim.imageControls.aspectOption.free': '自由',
+              'nodes.trim.imageControls.aspectOption.original': '元の比率',
+              'nodes.trim.imageControls.aspectOption.square': '正方形',
+              'nodes.trim.imageControls.aspectOption.4:3': '4:3',
+              'nodes.trim.imageControls.aspectOption.16:9': '16:9',
+              'nodes.trim.imageControls.aspectOption.9:16': '9:16',
               'nodes.trim.modalPlaceholder.image': 'ハイライトされた枠や角をドラッグして、表示中の画像をトリミングしてね。',
               'nodes.trim.modalPlaceholder.video': '動画トリム専用モーダルはまもなく登場。IN/OUTを正確に設定できる編集スペースになるよ。',
               'nodes.trim.modalPlaceholder.noImage': '先に画像ロードノードを接続してメディアを選んでね。',
@@ -7890,19 +8487,49 @@
           startMs: null,
           endMs: null,
           strictCut: false,
-          region: { x: 0, y: 0, width: 1, height: 1 }
+          region: { x: 0, y: 0, width: 1, height: 1 },
+          rotationDeg: 0,
+          zoom: 1,
+          flipHorizontal: false,
+          flipVertical: false,
+          aspectMode: 'free'
       };
       const cloneSettings = () => ({
           kind: 'trim',
           startMs: exports.DEFAULT_TRIM_SETTINGS.startMs,
           endMs: exports.DEFAULT_TRIM_SETTINGS.endMs,
           strictCut: exports.DEFAULT_TRIM_SETTINGS.strictCut,
-          region: cloneRegion(exports.DEFAULT_TRIM_SETTINGS.region)
+          region: cloneRegion(exports.DEFAULT_TRIM_SETTINGS.region),
+          rotationDeg: exports.DEFAULT_TRIM_SETTINGS.rotationDeg,
+          zoom: exports.DEFAULT_TRIM_SETTINGS.zoom,
+          flipHorizontal: exports.DEFAULT_TRIM_SETTINGS.flipHorizontal,
+          flipVertical: exports.DEFAULT_TRIM_SETTINGS.flipVertical,
+          aspectMode: exports.DEFAULT_TRIM_SETTINGS.aspectMode
       });
       const ensureTrimSettings = (node) => {
           const current = node.settings;
           if (current && current.kind === 'trim') {
               current.region = cloneRegion(current.region);
+              if (typeof current.rotationDeg !== 'number') {
+                  current.rotationDeg = exports.DEFAULT_TRIM_SETTINGS.rotationDeg;
+              }
+              if (typeof current.zoom !== 'number' || Number.isNaN(current.zoom) || current.zoom <= 0) {
+                  current.zoom = exports.DEFAULT_TRIM_SETTINGS.zoom;
+              }
+              if (typeof current.flipHorizontal !== 'boolean') {
+                  current.flipHorizontal = exports.DEFAULT_TRIM_SETTINGS.flipHorizontal;
+              }
+              if (typeof current.flipVertical !== 'boolean') {
+                  current.flipVertical = exports.DEFAULT_TRIM_SETTINGS.flipVertical;
+              }
+              if (current.aspectMode !== 'free' &&
+                  current.aspectMode !== 'original' &&
+                  current.aspectMode !== 'square' &&
+                  current.aspectMode !== '4:3' &&
+                  current.aspectMode !== '16:9' &&
+                  current.aspectMode !== '9:16') {
+                  current.aspectMode = exports.DEFAULT_TRIM_SETTINGS.aspectMode;
+              }
               return current;
           }
           const next = cloneSettings();

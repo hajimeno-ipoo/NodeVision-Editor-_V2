@@ -669,10 +669,10 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         <div class="trim-image-toolbar-group">
           <button type="button" class="trim-tool-button" data-trim-tool="rotate-left" title="${escapeHtml(
             t('nodes.trim.imageTools.rotateLeft')
-          )}">⟲</button>
+          )}">${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}</button>
           <button type="button" class="trim-tool-button" data-trim-tool="rotate-right" title="${escapeHtml(
             t('nodes.trim.imageTools.rotateRight')
-          )}">⟳</button>
+          )}">${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}</button>
           <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal" title="${escapeHtml(
             t('nodes.trim.imageTools.flipHorizontal')
           )}">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
@@ -681,14 +681,14 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
           )}">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
           <button type="button" class="trim-tool-button" data-trim-tool="reset-transform" title="${escapeHtml(
             t('nodes.trim.imageTools.reset')
-          )}">↺</button>
+          )}">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
         </div>
       </div>
       <div class="trim-stage-wrapper" data-trim-stage-wrapper>
         <div class="trim-image-stage" data-trim-stage>
         <img src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
         <div class="trim-crop-box" data-trim-box>
-          ${['nw', 'ne', 'sw', 'se']
+          ${['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se']
             .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
             .join('')}
         </div>
@@ -883,6 +883,157 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       return;
     }
 
+    const getImageAspectRatio = (): number => {
+      const preview = session.sourcePreview;
+      if (preview?.width && preview?.height) {
+        return preview.width / preview.height;
+      }
+      if (imageElement?.naturalWidth && imageElement?.naturalHeight) {
+        return imageElement.naturalWidth / imageElement.naturalHeight;
+      }
+      return 1;
+    };
+
+    const aspectValueMap: Record<Exclude<TrimNodeSettings['aspectMode'], undefined>, number | null> = {
+      free: null,
+      original: null,
+      square: 1,
+      '4:3': 4 / 3,
+      '16:9': 16 / 9,
+      '9:16': 9 / 16
+    };
+
+    const getSelectedAspectRatio = (): number | null => {
+      const mode = session.draftAspectMode ?? 'free';
+      if (mode === 'original') {
+        return getImageAspectRatio();
+      }
+      return aspectValueMap[mode] ?? null;
+    };
+
+    const getNormalizedAspectRatio = (): number | null => {
+      const target = getSelectedAspectRatio();
+      if (!target) {
+        return null;
+      }
+      const imageAspect = getImageAspectRatio() || 1;
+      if (!imageAspect) {
+        return null;
+      }
+      return target / imageAspect;
+    };
+
+    const clampSize = (value: number): number => clampValue(value, MIN_TRIM_REGION_SIZE, 1);
+
+    const clampRegionPosition = (region: NonNullable<TrimNodeSettings['region']>): NonNullable<TrimNodeSettings['region']> => {
+      return {
+        ...region,
+        x: clampValue(region.x, 0, 1 - region.width),
+        y: clampValue(region.y, 0, 1 - region.height)
+      };
+    };
+
+    const buildRegionFromAnchor = (
+      width: number,
+      height: number,
+      handle: TrimResizeHandle | 'center',
+      reference: NonNullable<TrimNodeSettings['region']>
+    ): NonNullable<TrimNodeSettings['region']> => {
+      const left = reference.x;
+      const top = reference.y;
+      const right = reference.x + reference.width;
+      const bottom = reference.y + reference.height;
+      const centerX = left + reference.width / 2;
+      const centerY = top + reference.height / 2;
+      let x = reference.x;
+      let y = reference.y;
+      switch (handle) {
+        case 'nw':
+          x = right - width;
+          y = bottom - height;
+          break;
+        case 'ne':
+          x = left;
+          y = bottom - height;
+          break;
+        case 'sw':
+          x = right - width;
+          y = top;
+          break;
+        case 'se':
+          x = left;
+          y = top;
+          break;
+        case 'n':
+          x = centerX - width / 2;
+          y = bottom - height;
+          break;
+        case 's':
+          x = centerX - width / 2;
+          y = top;
+          break;
+        case 'w':
+          x = right - width;
+          y = centerY - height / 2;
+          break;
+        case 'e':
+          x = left;
+          y = centerY - height / 2;
+          break;
+        case 'center':
+        default:
+          x = centerX - width / 2;
+          y = centerY - height / 2;
+          break;
+      }
+      return { x, y, width, height };
+    };
+
+    const applyAspectConstraint = (
+      region: NonNullable<TrimNodeSettings['region']>,
+      handle: TrimResizeHandle | 'center'
+    ): NonNullable<TrimNodeSettings['region']> => {
+      const normalizedRatio = getNormalizedAspectRatio();
+      const reference = { ...region };
+      const baseWidth = clampSize(reference.width);
+      const baseHeight = clampSize(reference.height);
+      if (!normalizedRatio) {
+        return clampRegionPosition({ ...reference, width: baseWidth, height: baseHeight });
+      }
+      const widthFromHeight = clampSize(baseHeight * normalizedRatio);
+      const heightFromWidth = clampSize(baseWidth / normalizedRatio);
+      const regionByWidth = clampRegionPosition(
+        buildRegionFromAnchor(widthFromHeight, baseHeight, handle, reference)
+      );
+      const regionByHeight = clampRegionPosition(
+        buildRegionFromAnchor(baseWidth, heightFromWidth, handle, reference)
+      );
+
+      if (handle === 'n' || handle === 's') {
+        return regionByWidth;
+      }
+      if (handle === 'e' || handle === 'w') {
+        return regionByHeight;
+      }
+
+      const computeRatioError = (candidate: NonNullable<TrimNodeSettings['region']>): number => {
+        const candidateRatio = candidate.width / candidate.height;
+        return Math.abs(candidateRatio - normalizedRatio);
+      };
+
+      const widthError = computeRatioError(regionByWidth);
+      const heightError = computeRatioError(regionByHeight);
+      if (widthError < heightError - 0.0001) {
+        return regionByWidth;
+      }
+      if (heightError < widthError - 0.0001) {
+        return regionByHeight;
+      }
+      const areaWidth = regionByWidth.width * regionByWidth.height;
+      const areaHeight = regionByHeight.width * regionByHeight.height;
+      return areaWidth >= areaHeight ? regionByWidth : regionByHeight;
+    };
+
     const applyStageAspectRatio = (): void => {
       if (!imageElement) {
         return;
@@ -1015,7 +1166,9 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       window.addEventListener('pointerup', handleUp);
     };
 
-    const startResize = (handle: 'nw' | 'ne' | 'sw' | 'se', event: PointerEvent): void => {
+    type TrimResizeHandle = 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se';
+
+    const startResize = (handle: TrimResizeHandle, event: PointerEvent): void => {
       event.preventDefault();
       const rect = stage.getBoundingClientRect();
       const pointerId = event.pointerId ?? 1;
@@ -1053,7 +1206,7 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         if (next.y + next.height > 1) {
           next.height = 1 - next.y;
         }
-        session.draftRegion = next;
+        session.draftRegion = applyAspectConstraint(next, handle);
         updateCropBoxStyles();
       };
 
@@ -1068,7 +1221,7 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
 
     cropBox.addEventListener('pointerdown', event => {
       const target = event.target as HTMLElement | null;
-      const handle = target?.dataset.trimHandle as 'nw' | 'ne' | 'sw' | 'se' | undefined;
+      const handle = target?.dataset.trimHandle as TrimResizeHandle | undefined;
       if (handle) {
         startResize(handle, event);
       } else {
@@ -1077,7 +1230,7 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     });
 
     modalContent.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
-      session.draftRegion = { ...DEFAULT_TRIM_REGION };
+      session.draftRegion = applyAspectConstraint({ ...DEFAULT_TRIM_REGION }, 'center');
       session.draftRotationDeg = 0;
       session.draftZoom = 1;
       session.draftFlipHorizontal = false;
@@ -1127,6 +1280,8 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     aspectSelect?.addEventListener('change', event => {
       const value = (event.target as HTMLSelectElement).value as TrimNodeSettings['aspectMode'];
       session.draftAspectMode = value;
+      session.draftRegion = applyAspectConstraint(session.draftRegion, 'center');
+      updateCropBoxStyles();
     });
     toolbarButtons.forEach(button => {
       const tool = button.dataset.trimTool;
@@ -1168,6 +1323,7 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       });
     });
 
+    session.draftRegion = applyAspectConstraint(session.draftRegion, 'center');
     updateCropBoxStyles();
   };
 

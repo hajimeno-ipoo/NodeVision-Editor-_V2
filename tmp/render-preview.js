@@ -71,7 +71,7 @@ const payload = {
   nodes: [
     {
       id: 'n-load',
-      typeId: 'load',
+      typeId: 'loadImage',
       nodeVersion: '1.0.0',
       title: 'Load',
       position: { x: 0, y: 0 },
@@ -95,7 +95,7 @@ const payload = {
     },
     {
       id: 'n-preview',
-      typeId: 'preview',
+      typeId: 'mediaPreview',
       nodeVersion: '1.0.0',
       title: 'Preview',
       position: { x: 580, y: -20 },

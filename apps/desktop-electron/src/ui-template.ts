@@ -1150,17 +1150,17 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         display: flex;
       }
       .nv-modal {
-        width: min(720px, 100%);
-        max-height: min(90vh, 720px);
-        overflow: auto;
+        width: min(880px, calc(100vw - 40px));
+        max-height: min(96vh, 940px);
+        overflow: visible;
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: #11121a;
         box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
         display: flex;
         flex-direction: column;
-        gap: 16px;
-        padding: 20px 24px 28px;
+        gap: 20px;
+        padding: 28px 36px 40px;
       }
       .nv-modal-header {
         display: flex;
@@ -1177,10 +1177,14 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         border: none;
         background: rgba(255, 255, 255, 0.1);
         color: inherit;
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         border-radius: 999px;
         font-size: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
         cursor: pointer;
       }
       .nv-modal-close:hover,
@@ -1190,6 +1194,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .nv-modal-content {
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        overflow: visible;
       }
       .trim-modal-placeholder {
         margin: 0;
@@ -1203,7 +1211,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-        margin-bottom: 12px;
+        margin-bottom: 20px;
         flex-wrap: wrap;
       }
       .trim-image-toolbar-group {
@@ -1212,39 +1220,52 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         flex-wrap: wrap;
       }
       .trim-tool-button {
-        border-radius: 10px;
+        border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         background: rgba(255, 255, 255, 0.05);
         color: inherit;
         font-size: 13px;
-        padding: 6px 10px;
+        padding: 8px 12px;
         cursor: pointer;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
       }
       .trim-tool-button[data-active='true'] {
         background: rgba(255, 224, 137, 0.2);
         border-color: rgba(255, 224, 137, 0.8);
       }
+      .trim-tool-button[data-trim-tool='zoom-in'],
+      .trim-tool-button[data-trim-tool='zoom-out'] {
+        width: 42px;
+        padding: 0;
+        font-size: 18px;
+      }
       .trim-stage-wrapper {
         position: relative;
         width: 100%;
+        padding: 12px 0 28px;
       }
       .trim-image-stage {
         position: relative;
         width: 100%;
         aspect-ratio: var(--trim-image-aspect, 16 / 9);
-        max-height: min(55vh, 420px);
-        border-radius: 20px;
+        max-height: min(58vh, 480px);
+        border-radius: 24px;
         overflow: hidden;
         background: rgba(255, 255, 255, 0.04);
-        margin-bottom: 12px;
+        margin: 0 auto 20px;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
       }
       .trim-grid-overlay {
         position: absolute;
         inset: 0;
-        border-radius: 20px;
+        border-radius: 24px;
         pointer-events: none;
         background-size: 20px 20px;
         background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
@@ -1316,40 +1337,83 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .trim-crop-box {
         position: absolute;
-        border: 2px solid #ffe089;
+        border: 4px solid #ffe089;
+        box-sizing: border-box;
+        border-radius: 0;
         box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
         cursor: move;
       }
       .trim-crop-handle {
         position: absolute;
-        width: 14px;
-        height: 14px;
         background: #ffe089;
         border: 2px solid #11121a;
         border-radius: 999px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      }
+      .trim-crop-handle[data-trim-handle='nw'],
+      .trim-crop-handle[data-trim-handle='ne'],
+      .trim-crop-handle[data-trim-handle='sw'],
+      .trim-crop-handle[data-trim-handle='se'] {
+        width: 22px;
+        height: 22px;
       }
       .trim-crop-handle[data-trim-handle='nw'] {
-        top: -9px;
-        left: -9px;
+        top: -12px;
+        left: -12px;
         cursor: nwse-resize;
       }
       .trim-crop-handle[data-trim-handle='ne'] {
-        top: -9px;
-        right: -9px;
+        top: -12px;
+        right: -12px;
         cursor: nesw-resize;
       }
       .trim-crop-handle[data-trim-handle='sw'] {
-        bottom: -9px;
-        left: -9px;
+        bottom: -12px;
+        left: -12px;
         cursor: nesw-resize;
       }
       .trim-crop-handle[data-trim-handle='se'] {
-        bottom: -9px;
-        right: -9px;
+        bottom: -12px;
+        right: -12px;
         cursor: nwse-resize;
       }
+      .trim-crop-handle[data-trim-handle='n'],
+      .trim-crop-handle[data-trim-handle='s'] {
+        width: 52px;
+        height: 14px;
+      }
+      .trim-crop-handle[data-trim-handle='n'] {
+        top: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: ns-resize;
+      }
+      .trim-crop-handle[data-trim-handle='s'] {
+        bottom: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: ns-resize;
+      }
+      .trim-crop-handle[data-trim-handle='w'],
+      .trim-crop-handle[data-trim-handle='e'] {
+        width: 14px;
+        height: 52px;
+      }
+      .trim-crop-handle[data-trim-handle='w'] {
+        left: -9px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: ew-resize;
+      }
+      .trim-crop-handle[data-trim-handle='e'] {
+        right: -9px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: ew-resize;
+      }
       .trim-modal-hint {
-        margin: 0 0 12px;
+        margin: 0;
+        padding-bottom: 8px;
         font-size: 13px;
         color: rgba(255, 255, 255, 0.75);
         text-align: center;
