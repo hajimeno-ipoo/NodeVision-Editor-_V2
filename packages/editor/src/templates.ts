@@ -5,7 +5,12 @@ const DEFAULT_TRIM_SETTINGS: NodeTemplate['defaultSettings'] = {
   startMs: null,
   endMs: null,
   strictCut: false,
-  region: null
+  region: null,
+  rotationDeg: 0,
+  zoom: 1,
+  flipHorizontal: false,
+  flipVertical: false,
+  aspectMode: 'free'
 };
 
 export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [

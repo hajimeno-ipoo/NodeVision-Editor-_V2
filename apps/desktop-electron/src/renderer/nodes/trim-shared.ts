@@ -19,7 +19,12 @@ export const DEFAULT_TRIM_SETTINGS: TrimNodeSettings = {
   startMs: null,
   endMs: null,
   strictCut: false,
-  region: { x: 0, y: 0, width: 1, height: 1 }
+  region: { x: 0, y: 0, width: 1, height: 1 },
+  rotationDeg: 0,
+  zoom: 1,
+  flipHorizontal: false,
+  flipVertical: false,
+  aspectMode: 'free'
 };
 
 const cloneSettings = (): TrimNodeSettings => ({
@@ -27,13 +32,40 @@ const cloneSettings = (): TrimNodeSettings => ({
   startMs: DEFAULT_TRIM_SETTINGS.startMs,
   endMs: DEFAULT_TRIM_SETTINGS.endMs,
   strictCut: DEFAULT_TRIM_SETTINGS.strictCut,
-  region: cloneRegion(DEFAULT_TRIM_SETTINGS.region)
+  region: cloneRegion(DEFAULT_TRIM_SETTINGS.region),
+  rotationDeg: DEFAULT_TRIM_SETTINGS.rotationDeg,
+  zoom: DEFAULT_TRIM_SETTINGS.zoom,
+  flipHorizontal: DEFAULT_TRIM_SETTINGS.flipHorizontal,
+  flipVertical: DEFAULT_TRIM_SETTINGS.flipVertical,
+  aspectMode: DEFAULT_TRIM_SETTINGS.aspectMode
 });
 
 export const ensureTrimSettings = (node: RendererNode): TrimNodeSettings => {
   const current = node.settings;
   if (current && current.kind === 'trim') {
     current.region = cloneRegion(current.region);
+    if (typeof current.rotationDeg !== 'number') {
+      current.rotationDeg = DEFAULT_TRIM_SETTINGS.rotationDeg;
+    }
+    if (typeof current.zoom !== 'number' || Number.isNaN(current.zoom) || current.zoom <= 0) {
+      current.zoom = DEFAULT_TRIM_SETTINGS.zoom;
+    }
+    if (typeof current.flipHorizontal !== 'boolean') {
+      current.flipHorizontal = DEFAULT_TRIM_SETTINGS.flipHorizontal;
+    }
+    if (typeof current.flipVertical !== 'boolean') {
+      current.flipVertical = DEFAULT_TRIM_SETTINGS.flipVertical;
+    }
+    if (
+      current.aspectMode !== 'free' &&
+      current.aspectMode !== 'original' &&
+      current.aspectMode !== 'square' &&
+      current.aspectMode !== '4:3' &&
+      current.aspectMode !== '16:9' &&
+      current.aspectMode !== '9:16'
+    ) {
+      current.aspectMode = DEFAULT_TRIM_SETTINGS.aspectMode;
+    }
     return current;
   }
   const next = cloneSettings();

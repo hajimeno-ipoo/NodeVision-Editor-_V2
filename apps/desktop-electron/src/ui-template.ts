@@ -1198,6 +1198,36 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 15px;
         color: rgba(255, 255, 255, 0.85);
       }
+      .trim-image-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .trim-image-toolbar-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .trim-tool-button {
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: inherit;
+        font-size: 13px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      .trim-tool-button[data-active='true'] {
+        background: rgba(255, 224, 137, 0.2);
+        border-color: rgba(255, 224, 137, 0.8);
+      }
+      .trim-stage-wrapper {
+        position: relative;
+        width: 100%;
+      }
       .trim-image-stage {
         position: relative;
         width: 100%;
@@ -1211,6 +1241,20 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         align-items: center;
         justify-content: center;
       }
+      .trim-grid-overlay {
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        pointer-events: none;
+        background-size: 20px 20px;
+        background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        opacity: 0;
+        transition: opacity 150ms ease;
+      }
+      .trim-grid-overlay.is-visible {
+        opacity: 1;
+      }
       .trim-image-stage img {
         width: 100%;
         height: 100%;
@@ -1218,6 +1262,57 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         object-fit: contain;
         user-select: none;
         pointer-events: none;
+      }
+      .trim-image-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin: 8px 0 12px;
+      }
+      .trim-control {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 12px 14px;
+      }
+      .trim-control label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .trim-control-inputs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .trim-control-inputs input[type='range'] {
+        flex: 1;
+      }
+      .trim-control-inputs input[type='number'] {
+        width: 64px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        padding: 6px 8px;
+      }
+      .trim-control-badge {
+        border-radius: 999px;
+        padding: 4px 12px;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 12px;
+      }
+      .trim-control-unit {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .trim-control select {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: inherit;
+        padding: 8px 10px;
       }
       .trim-crop-box {
         position: absolute;

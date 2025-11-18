@@ -87,6 +87,12 @@ type TrimImageModalState = {
   nodeId: string;
   draftRegion: NonNullable<TrimNodeSettings['region']>;
   sourcePreview: NodeMediaPreview | null;
+  draftRotationDeg: number;
+  draftZoom: number;
+  draftFlipHorizontal: boolean;
+  draftFlipVertical: boolean;
+  draftAspectMode: TrimNodeSettings['aspectMode'];
+  showGrid: boolean;
 };
 
 type TrimVideoModalState = {
@@ -642,13 +648,87 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       modalContentElement.appendChild(warning);
       return;
     }
+    const rotationValue = Math.round(session.draftRotationDeg || 0);
+    const zoomPercent = Math.round((session.draftZoom || 1) * 100);
+    const aspectOptions: TrimNodeSettings['aspectMode'][] = ['free', 'original', 'square', '4:3', '16:9', '9:16'];
     modalContentElement.innerHTML = `
-      <div class="trim-image-stage" data-trim-stage>
+      <div class="trim-image-toolbar" role="toolbar">
+        <div class="trim-image-toolbar-group">
+          <button type="button" class="trim-tool-button" data-trim-tool="zoom-out" title="${escapeHtml(
+            t('nodes.trim.imageTools.zoomOut')
+          )}">−</button>
+          <button type="button" class="trim-tool-button" data-trim-tool="zoom-in" title="${escapeHtml(
+            t('nodes.trim.imageTools.zoomIn')
+          )}">＋</button>
+          <button type="button" class="trim-tool-button" data-trim-tool="grid" data-active="${String(
+            session.showGrid
+          )}" title="${escapeHtml(t('nodes.trim.imageTools.grid'))}">
+            ${escapeHtml(t('nodes.trim.imageTools.grid'))}
+          </button>
+        </div>
+        <div class="trim-image-toolbar-group">
+          <button type="button" class="trim-tool-button" data-trim-tool="rotate-left" title="${escapeHtml(
+            t('nodes.trim.imageTools.rotateLeft')
+          )}">⟲</button>
+          <button type="button" class="trim-tool-button" data-trim-tool="rotate-right" title="${escapeHtml(
+            t('nodes.trim.imageTools.rotateRight')
+          )}">⟳</button>
+          <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal" title="${escapeHtml(
+            t('nodes.trim.imageTools.flipHorizontal')
+          )}">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
+          <button type="button" class="trim-tool-button" data-trim-tool="flip-vertical" title="${escapeHtml(
+            t('nodes.trim.imageTools.flipVertical')
+          )}">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
+          <button type="button" class="trim-tool-button" data-trim-tool="reset-transform" title="${escapeHtml(
+            t('nodes.trim.imageTools.reset')
+          )}">↺</button>
+        </div>
+      </div>
+      <div class="trim-stage-wrapper" data-trim-stage-wrapper>
+        <div class="trim-image-stage" data-trim-stage>
         <img src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
         <div class="trim-crop-box" data-trim-box>
           ${['nw', 'ne', 'sw', 'se']
             .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
             .join('')}
+        </div>
+        <div class="trim-grid-overlay${session.showGrid ? ' is-visible' : ''}" data-trim-grid-overlay></div>
+      </div>
+      </div>
+      <div class="trim-image-controls">
+        <div class="trim-control">
+          <label>
+            <span>${escapeHtml(t('nodes.trim.imageControls.rotation'))}</span>
+            <div class="trim-control-inputs">
+              <input type="range" min="-180" max="180" step="1" value="${rotationValue}" data-trim-rotation-range />
+              <input type="number" min="-180" max="180" step="1" value="${rotationValue}" data-trim-rotation-input />
+              <span class="trim-control-unit">°</span>
+            </div>
+          </label>
+        </div>
+        <div class="trim-control">
+          <label>
+            <span>${escapeHtml(t('nodes.trim.imageControls.zoom'))}</span>
+            <div class="trim-control-inputs">
+              <input type="range" min="0.25" max="4" step="0.05" value="${session.draftZoom ?? 1}" data-trim-zoom-range />
+              <span class="trim-control-badge" data-trim-zoom-label>${zoomPercent}%</span>
+            </div>
+          </label>
+        </div>
+        <div class="trim-control">
+          <label>
+            <span>${escapeHtml(t('nodes.trim.imageControls.aspect'))}</span>
+            <select data-trim-aspect>
+              ${aspectOptions
+                .map(
+                  option => `
+                    <option value="${option}" ${option === session.draftAspectMode ? 'selected' : ''}>
+                      ${escapeHtml(t(`nodes.trim.imageControls.aspectOption.${option}`))}
+                    </option>`
+                )
+                .join('')}
+            </select>
+          </label>
         </div>
       </div>
       <p class="trim-modal-hint">${escapeHtml(t('nodes.trim.modalPlaceholder.image'))}</p>
@@ -785,12 +865,20 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
   };
 
   const initializeTrimImageControls = (session: TrimImageModalState): void => {
-    if (!modalContentElement) {
+    const modalContent = modalContentElement;
+    if (!modalContent) {
       return;
     }
-    const stage = modalContentElement.querySelector<HTMLElement>('[data-trim-stage]');
-    const cropBox = modalContentElement.querySelector<HTMLElement>('[data-trim-box]');
-    const imageElement = modalContentElement.querySelector<HTMLImageElement>('.trim-image-stage img');
+    const stage = modalContent.querySelector<HTMLElement>('[data-trim-stage]');
+    const cropBox = modalContent.querySelector<HTMLElement>('[data-trim-box]');
+    const imageElement = modalContent.querySelector<HTMLImageElement>('.trim-image-stage img');
+    const gridOverlay = modalContent.querySelector<HTMLElement>('[data-trim-grid-overlay]');
+    const rotationRange = modalContent.querySelector<HTMLInputElement>('[data-trim-rotation-range]');
+    const rotationInput = modalContent.querySelector<HTMLInputElement>('[data-trim-rotation-input]');
+    const zoomRange = modalContent.querySelector<HTMLInputElement>('[data-trim-zoom-range]');
+    const zoomLabel = modalContent.querySelector<HTMLElement>('[data-trim-zoom-label]');
+    const aspectSelect = modalContent.querySelector<HTMLSelectElement>('[data-trim-aspect]');
+    const toolbarButtons = modalContent.querySelectorAll<HTMLButtonElement>('[data-trim-tool]');
     if (!stage || !cropBox) {
       return;
     }
@@ -808,6 +896,78 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       stage.style.setProperty('--trim-image-aspect', ratioValue);
     };
     applyStageAspectRatio();
+
+    const clampRotation = (value: number): number => Math.max(-180, Math.min(180, value));
+    const clampZoom = (value: number): number => Math.max(0.25, Math.min(4, value));
+
+    const updateZoomLabel = (): void => {
+      if (!zoomLabel) return;
+      const zoomPercent = Math.round((session.draftZoom ?? 1) * 100);
+      zoomLabel.textContent = `${zoomPercent}%`;
+    };
+
+    const updateTransformStyles = (): void => {
+      if (!imageElement) {
+        return;
+      }
+      const rotation = clampRotation(session.draftRotationDeg ?? 0);
+      const zoomValue = clampZoom(session.draftZoom ?? 1);
+      session.draftRotationDeg = rotation;
+      session.draftZoom = zoomValue;
+      const flipX = session.draftFlipHorizontal ? -1 : 1;
+      const flipY = session.draftFlipVertical ? -1 : 1;
+      imageElement.style.transform = `rotate(${rotation}deg) scaleX(${zoomValue * flipX}) scaleY(${zoomValue * flipY})`;
+      if (gridOverlay) {
+        gridOverlay.classList.toggle('is-visible', session.showGrid);
+        gridOverlay.style.transform = `rotate(${rotation}deg)`;
+      }
+      updateZoomLabel();
+    };
+
+    const syncRotationControls = (): void => {
+      const value = String(clampRotation(session.draftRotationDeg ?? 0));
+      if (rotationRange) rotationRange.value = value;
+      if (rotationInput) rotationInput.value = value;
+    };
+
+    const syncZoomControls = (): void => {
+      if (zoomRange) {
+        zoomRange.value = String(clampZoom(session.draftZoom ?? 1));
+      }
+      updateZoomLabel();
+    };
+
+    const setRotation = (value: number): void => {
+      session.draftRotationDeg = clampRotation(value);
+      syncRotationControls();
+      updateTransformStyles();
+    };
+
+    const setZoom = (value: number): void => {
+      session.draftZoom = clampZoom(value);
+      syncZoomControls();
+      updateTransformStyles();
+    };
+
+    const toggleFlip = (axis: 'horizontal' | 'vertical'): void => {
+      if (axis === 'horizontal') {
+        session.draftFlipHorizontal = !session.draftFlipHorizontal;
+      } else {
+        session.draftFlipVertical = !session.draftFlipVertical;
+      }
+      updateTransformStyles();
+    };
+
+    const toggleGrid = (): void => {
+      session.showGrid = !session.showGrid;
+      updateTransformStyles();
+      const gridButton = modalContent.querySelector<HTMLButtonElement>('[data-trim-tool="grid"]');
+      gridButton?.setAttribute('data-active', String(session.showGrid));
+    };
+
+    syncRotationControls();
+    syncZoomControls();
+    updateTransformStyles();
 
     const clampValue = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -916,21 +1076,96 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       }
     });
 
-    modalContentElement.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
+    modalContent.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
       session.draftRegion = { ...DEFAULT_TRIM_REGION };
+      session.draftRotationDeg = 0;
+      session.draftZoom = 1;
+      session.draftFlipHorizontal = false;
+      session.draftFlipVertical = false;
+      session.draftAspectMode = 'free';
+      session.showGrid = false;
+      const gridButton = modalContent.querySelector<HTMLButtonElement>('[data-trim-tool="grid"]');
+      gridButton?.setAttribute('data-active', 'false');
+      syncRotationControls();
+      syncZoomControls();
+      updateTransformStyles();
+      if (aspectSelect) {
+        aspectSelect.value = 'free';
+      }
       updateCropBoxStyles();
     });
-    modalContentElement.querySelector('[data-trim-cancel]')?.addEventListener('click', () => {
+    modalContent.querySelector('[data-trim-cancel]')?.addEventListener('click', () => {
       closeActiveModal();
     });
-    modalContentElement.querySelector('[data-trim-save]')?.addEventListener('click', () => {
+    modalContent.querySelector('[data-trim-save]')?.addEventListener('click', () => {
       persistTrimSettings(
         session.nodeId,
         settings => {
           settings.region = { ...session.draftRegion };
+          settings.rotationDeg = clampTrimRotation(session.draftRotationDeg ?? 0);
+          settings.zoom = clampTrimZoom(session.draftZoom ?? 1);
+          settings.flipHorizontal = Boolean(session.draftFlipHorizontal);
+          settings.flipVertical = Boolean(session.draftFlipVertical);
+          settings.aspectMode = session.draftAspectMode ?? 'free';
         },
         'nodes.trim.toast.imageSaved'
       );
+    });
+
+    rotationRange?.addEventListener('input', event => {
+      const value = Number((event.target as HTMLInputElement).value);
+      setRotation(value);
+    });
+    rotationInput?.addEventListener('change', event => {
+      const value = Number((event.target as HTMLInputElement).value);
+      setRotation(value);
+    });
+    zoomRange?.addEventListener('input', event => {
+      const value = Number((event.target as HTMLInputElement).value);
+      setZoom(value);
+    });
+    aspectSelect?.addEventListener('change', event => {
+      const value = (event.target as HTMLSelectElement).value as TrimNodeSettings['aspectMode'];
+      session.draftAspectMode = value;
+    });
+    toolbarButtons.forEach(button => {
+      const tool = button.dataset.trimTool;
+      button.addEventListener('click', () => {
+        switch (tool) {
+          case 'zoom-in':
+            setZoom((session.draftZoom ?? 1) + 0.1);
+            break;
+          case 'zoom-out':
+            setZoom((session.draftZoom ?? 1) - 0.1);
+            break;
+          case 'grid':
+            toggleGrid();
+            break;
+          case 'rotate-left':
+            setRotation((session.draftRotationDeg ?? 0) - 90);
+            break;
+          case 'rotate-right':
+            setRotation((session.draftRotationDeg ?? 0) + 90);
+            break;
+          case 'flip-horizontal':
+            toggleFlip('horizontal');
+            break;
+          case 'flip-vertical':
+            toggleFlip('vertical');
+            break;
+          case 'reset-transform':
+            session.draftRotationDeg = 0;
+            session.draftZoom = 1;
+            session.draftFlipHorizontal = false;
+            session.draftFlipVertical = false;
+            syncRotationControls();
+            syncZoomControls();
+            updateTransformStyles();
+            break;
+          default:
+            break;
+        }
+      });
     });
 
     updateCropBoxStyles();
@@ -1327,7 +1562,13 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         mode: 'image',
         nodeId,
         draftRegion: { ...(settings.region ?? DEFAULT_TRIM_REGION) },
-        sourcePreview: sourcePreview && sourcePreview.kind === 'image' ? sourcePreview : null
+        sourcePreview: sourcePreview && sourcePreview.kind === 'image' ? sourcePreview : null,
+        draftRotationDeg: settings.rotationDeg ?? 0,
+        draftZoom: settings.zoom ?? 1,
+        draftFlipHorizontal: settings.flipHorizontal ?? false,
+        draftFlipVertical: settings.flipVertical ?? false,
+        draftAspectMode: settings.aspectMode ?? 'free',
+        showGrid: false
       };
     } else {
       const sourcePreview = findTrimSourcePreview(nodeId);
@@ -1976,6 +2217,39 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
   };
 
   const clampRegionValue = (value: number, min = 0, max = 1): number => Math.min(max, Math.max(min, value));
+  const clampTrimRotation = (value: number | null | undefined): number => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return 0;
+    }
+    return Math.max(-180, Math.min(180, value));
+  };
+  const clampTrimZoom = (value: number | null | undefined): number => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return 1;
+    }
+    return Math.max(0.25, Math.min(4, value));
+  };
+
+  const applyTrimTransforms = (sourceCanvas: HTMLCanvasElement, settings: TrimNodeSettings): HTMLCanvasElement => {
+    const rotationDeg = clampTrimRotation(settings.rotationDeg);
+    const zoomValue = clampTrimZoom(settings.zoom);
+    const flipX = settings.flipHorizontal ? -1 : 1;
+    const flipY = settings.flipVertical ? -1 : 1;
+    const canvas = document.createElement('canvas');
+    canvas.width = sourceCanvas.width;
+    canvas.height = sourceCanvas.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return sourceCanvas;
+    }
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((rotationDeg * Math.PI) / 180);
+    ctx.scale(zoomValue * flipX, zoomValue * flipY);
+    ctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
+    ctx.restore();
+    return canvas;
+  };
 
   const cropCanvasToRegion = (
     sourceCanvas: HTMLCanvasElement,
@@ -2016,7 +2290,12 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       region.x ?? 0,
       region.y ?? 0,
       region.width ?? 1,
-      region.height ?? 1
+      region.height ?? 1,
+      clampTrimRotation(settings.rotationDeg),
+      clampTrimZoom(settings.zoom),
+      settings.flipHorizontal ? 'fh' : 'nh',
+      settings.flipVertical ? 'fv' : 'nv',
+      settings.aspectMode ?? 'free'
     ].join('|');
   };
 
@@ -2059,7 +2338,8 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       renderNodes();
       return;
     }
-    const croppedCanvas = cropCanvasToRegion(frameCanvas, settings.region);
+    const transformedCanvas = applyTrimTransforms(frameCanvas, settings);
+    const croppedCanvas = cropCanvasToRegion(transformedCanvas, settings.region);
     const dataUrl = croppedCanvas.toDataURL('image/png');
     cleanupMediaPreview(node.id);
     state.mediaPreviews.set(node.id, {

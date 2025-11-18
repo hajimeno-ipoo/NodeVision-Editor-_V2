@@ -22,7 +22,12 @@ describe('DEFAULT_NODE_TEMPLATES', () => {
       startMs: null,
       endMs: null,
       strictCut: false,
-      region: null
+      region: null,
+      rotationDeg: 0,
+      zoom: 1,
+      flipHorizontal: false,
+      flipVertical: false,
+      aspectMode: 'free'
     });
   });
 });
