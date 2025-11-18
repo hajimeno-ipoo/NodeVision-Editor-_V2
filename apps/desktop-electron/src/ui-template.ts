@@ -1082,104 +1082,345 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         color: rgba(48, 48, 60, 0.85);
         font-weight: 600;
       }
-      .node-type-trim .trim-panel {
+      .node-media-hints {
+        margin: 6px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .node-media-hint {
+        margin: 0;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .node-media-hint.accent {
+        font-weight: 600;
+        color: rgba(255, 224, 137, 0.9);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .trim-launcher {
         margin-top: 16px;
         padding: 16px;
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.12));
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.12));
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
-      .trim-panel-header {
+      .trim-launcher-buttons {
         display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
+        gap: 12px;
         flex-wrap: wrap;
-        gap: 12px;
       }
-      .trim-timecode {
-        display: flex;
-        gap: 12px;
+      .trim-launcher-btn {
+        flex: 1 1 120px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        font-weight: 600;
+        padding: 10px 16px;
+        cursor: pointer;
+        transition: background 150ms ease, border-color 150ms ease;
       }
-      .trim-timecode label {
-        display: flex;
-        flex-direction: column;
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.8);
-        gap: 4px;
+      .trim-launcher-btn:hover,
+      .trim-launcher-btn:focus-visible {
+        border-color: rgba(255, 224, 137, 0.9);
+        background: rgba(255, 224, 137, 0.15);
+        outline: none;
       }
-      .trim-timecode input[type='text'] {
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        background: rgba(0, 0, 0, 0.35);
-        color: #fff;
-        font-size: 14px;
-        padding: 6px 10px;
-        min-width: 96px;
-      }
-      .trim-timecode input[type='text']:focus-visible {
-        outline: 2px solid #7dc3ff;
-        border-color: transparent;
-      }
-      .trim-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
+      .trim-launcher-status {
+        margin: 0;
         font-size: 13px;
         color: rgba(255, 255, 255, 0.85);
+      }
+      .nv-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 6, 10, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 24px;
+      }
+      .nv-modal-backdrop[data-open='true'] {
+        display: flex;
+      }
+      .nv-modal {
+        width: min(720px, 100%);
+        max-height: min(90vh, 720px);
+        overflow: auto;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #11121a;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px 24px 28px;
+      }
+      .nv-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .nv-modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .nv-modal-close {
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: inherit;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        font-size: 18px;
         cursor: pointer;
       }
-      .trim-toggle input {
-        width: 16px;
-        height: 16px;
+      .nv-modal-close:hover,
+      .nv-modal-close:focus-visible {
+        background: rgba(255, 224, 137, 0.3);
+        outline: none;
       }
-      .trim-timeline {
-        width: 100%;
-        padding: 8px 0;
+      .nv-modal-content {
+        flex: 1;
       }
-      .trim-track {
+      .trim-modal-placeholder {
+        margin: 0;
+        padding: 40px 0;
+        text-align: center;
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .trim-image-stage {
         position: relative;
         width: 100%;
-        height: 32px;
+        border-radius: 20px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.04);
+        margin-bottom: 12px;
+      }
+      .trim-image-stage img {
+        width: 100%;
+        display: block;
+        user-select: none;
+        pointer-events: none;
+      }
+      .trim-crop-box {
+        position: absolute;
+        border: 2px solid #ffe089;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+        cursor: move;
+      }
+      .trim-crop-handle {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        background: #ffe089;
+        border: 2px solid #11121a;
+        border-radius: 999px;
+      }
+      .trim-crop-handle[data-trim-handle='nw'] {
+        top: -9px;
+        left: -9px;
+        cursor: nwse-resize;
+      }
+      .trim-crop-handle[data-trim-handle='ne'] {
+        top: -9px;
+        right: -9px;
+        cursor: nesw-resize;
+      }
+      .trim-crop-handle[data-trim-handle='sw'] {
+        bottom: -9px;
+        left: -9px;
+        cursor: nesw-resize;
+      }
+      .trim-crop-handle[data-trim-handle='se'] {
+        bottom: -9px;
+        right: -9px;
+        cursor: nwse-resize;
+      }
+      .trim-modal-hint {
+        margin: 0 0 12px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.75);
+        text-align: center;
+      }
+      .trim-modal-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .trim-modal-actions-spacer {
+        flex: 1;
+      }
+      .trim-video-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      @media (min-width: 720px) {
+        .trim-video-layout {
+          flex-direction: row;
+        }
+      }
+      .trim-video-preview {
+        flex: 1;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.03);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .trim-video-preview.is-empty {
+        border-style: dashed;
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      .trim-video-preview video {
+        width: 100%;
+        border-radius: 16px;
+        background: #000;
+        display: block;
+        min-height: 200px;
+      }
+      .trim-video-preview-empty {
+        min-height: 200px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+      .trim-video-preview-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        gap: 12px;
+      }
+      .trim-video-preview-name {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .trim-video-fields {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+      .trim-video-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .trim-video-field input {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+        padding: 10px 12px;
+        color: inherit;
+        font-size: 14px;
+        font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+      }
+      .trim-video-field input:disabled {
+        opacity: 0.5;
+      }
+      .trim-video-checkbox {
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .trim-video-checkbox input {
+        margin-top: 4px;
+      }
+      .trim-video-checkbox small {
+        display: block;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .trim-video-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .trim-video-timeline[data-disabled='true'] {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      .trim-video-track {
+        position: relative;
+        height: 36px;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.04);
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
-      .trim-window {
+      .trim-video-range {
         position: absolute;
-        left: var(--trim-start, 0%);
-        right: calc(100% - var(--trim-end, 100%));
         top: 4px;
         bottom: 4px;
+        left: 12px;
+        width: calc(100% - 24px);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.16);
-        pointer-events: none;
+        background: rgba(255, 224, 137, 0.2);
+        border: 1px solid rgba(255, 224, 137, 0.9);
       }
-      .trim-handle {
+      .trim-video-handle {
         position: absolute;
-        top: 0;
-        width: 20px;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        top: -6px;
+        width: 14px;
+        height: 48px;
+        border-radius: 999px;
+        border: none;
+        background: #ffe089;
         cursor: ew-resize;
       }
-      .trim-handle::after {
-        content: '';
-        width: 8px;
-        height: 60%;
-        border-radius: 8px;
+      .trim-video-handle[data-trim-video-handle='start'] {
+        left: -7px;
+      }
+      .trim-video-handle[data-trim-video-handle='end'] {
+        right: -7px;
+      }
+      .trim-video-timecodes {
+        display: flex;
+        justify-content: space-between;
+        font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .trim-video-actions {
+        flex-wrap: wrap;
+      }
+      .trim-video-transport {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .pill-button.primary {
         background: #ffe089;
-        box-shadow: 0 0 12px rgba(255, 224, 137, 0.55);
-      }
-      .trim-handle-start {
-        left: 0;
-      }
-      .trim-handle-end {
-        right: 0;
+        color: #11121a;
+        border: none;
       }
       button, .pill-button {
         border: none;

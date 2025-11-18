@@ -767,6 +767,346 @@
         color: rgba(48, 48, 60, 0.85);
         font-weight: 600;
       }
+      .node-media-hints {
+        margin: 6px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .node-media-hint {
+        margin: 0;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .node-media-hint.accent {
+        font-weight: 600;
+        color: rgba(255, 224, 137, 0.9);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .trim-launcher {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.12));
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .trim-launcher-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .trim-launcher-btn {
+        flex: 1 1 120px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        font-weight: 600;
+        padding: 10px 16px;
+        cursor: pointer;
+        transition: background 150ms ease, border-color 150ms ease;
+      }
+      .trim-launcher-btn:hover,
+      .trim-launcher-btn:focus-visible {
+        border-color: rgba(255, 224, 137, 0.9);
+        background: rgba(255, 224, 137, 0.15);
+        outline: none;
+      }
+      .trim-launcher-status {
+        margin: 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .nv-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 6, 10, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 24px;
+      }
+      .nv-modal-backdrop[data-open='true'] {
+        display: flex;
+      }
+      .nv-modal {
+        width: min(720px, 100%);
+        max-height: min(90vh, 720px);
+        overflow: auto;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #11121a;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px 24px 28px;
+      }
+      .nv-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .nv-modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .nv-modal-close {
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        color: inherit;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        font-size: 18px;
+        cursor: pointer;
+      }
+      .nv-modal-close:hover,
+      .nv-modal-close:focus-visible {
+        background: rgba(255, 224, 137, 0.3);
+        outline: none;
+      }
+      .nv-modal-content {
+        flex: 1;
+      }
+      .trim-modal-placeholder {
+        margin: 0;
+        padding: 40px 0;
+        text-align: center;
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .trim-image-stage {
+        position: relative;
+        width: 100%;
+        border-radius: 20px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.04);
+        margin-bottom: 12px;
+      }
+      .trim-image-stage img {
+        width: 100%;
+        display: block;
+        user-select: none;
+        pointer-events: none;
+      }
+      .trim-crop-box {
+        position: absolute;
+        border: 2px solid #ffe089;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+        cursor: move;
+      }
+      .trim-crop-handle {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        background: #ffe089;
+        border: 2px solid #11121a;
+        border-radius: 999px;
+      }
+      .trim-crop-handle[data-trim-handle='nw'] {
+        top: -9px;
+        left: -9px;
+        cursor: nwse-resize;
+      }
+      .trim-crop-handle[data-trim-handle='ne'] {
+        top: -9px;
+        right: -9px;
+        cursor: nesw-resize;
+      }
+      .trim-crop-handle[data-trim-handle='sw'] {
+        bottom: -9px;
+        left: -9px;
+        cursor: nesw-resize;
+      }
+      .trim-crop-handle[data-trim-handle='se'] {
+        bottom: -9px;
+        right: -9px;
+        cursor: nwse-resize;
+      }
+      .trim-modal-hint {
+        margin: 0 0 12px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.75);
+        text-align: center;
+      }
+      .trim-modal-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .trim-modal-actions-spacer {
+        flex: 1;
+      }
+      .trim-video-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      @media (min-width: 720px) {
+        .trim-video-layout {
+          flex-direction: row;
+        }
+      }
+      .trim-video-preview {
+        flex: 1;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.03);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .trim-video-preview.is-empty {
+        border-style: dashed;
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+      .trim-video-preview video {
+        width: 100%;
+        border-radius: 16px;
+        background: #000;
+        display: block;
+        min-height: 200px;
+      }
+      .trim-video-preview-empty {
+        min-height: 200px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+      .trim-video-preview-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        gap: 12px;
+      }
+      .trim-video-preview-name {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .trim-video-fields {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+      .trim-video-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .trim-video-field input {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+        padding: 10px 12px;
+        color: inherit;
+        font-size: 14px;
+        font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+      }
+      .trim-video-field input:disabled {
+        opacity: 0.5;
+      }
+      .trim-video-checkbox {
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .trim-video-checkbox input {
+        margin-top: 4px;
+      }
+      .trim-video-checkbox small {
+        display: block;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .trim-video-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .trim-video-timeline[data-disabled='true'] {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      .trim-video-track {
+        position: relative;
+        height: 36px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .trim-video-range {
+        position: absolute;
+        top: 4px;
+        bottom: 4px;
+        left: 12px;
+        width: calc(100% - 24px);
+        border-radius: 999px;
+        background: rgba(255, 224, 137, 0.2);
+        border: 1px solid rgba(255, 224, 137, 0.9);
+      }
+      .trim-video-handle {
+        position: absolute;
+        top: -6px;
+        width: 14px;
+        height: 48px;
+        border-radius: 999px;
+        border: none;
+        background: #ffe089;
+        cursor: ew-resize;
+      }
+      .trim-video-handle[data-trim-video-handle='start'] {
+        left: -7px;
+      }
+      .trim-video-handle[data-trim-video-handle='end'] {
+        right: -7px;
+      }
+      .trim-video-timecodes {
+        display: flex;
+        justify-content: space-between;
+        font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .trim-video-actions {
+        flex-wrap: wrap;
+      }
+      .trim-video-transport {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .pill-button.primary {
+        background: #ffe089;
+        color: #11121a;
+        border: none;
+      }
       button, .pill-button {
         border: none;
         border-radius: 999px;
@@ -1833,8 +2173,8 @@
       </div>
     </div>
     <script>
-      window.__NODEVISION_BOOTSTRAP__ = JSON.parse(decodeURIComponent('%7B%22status%22%3A%7B%22settings%22%3A%7B%22schemaVersion%22%3A%221.0.7%22%2C%22tempRoot%22%3A%22%2Ftmp%2Fnodevision%22%2C%22ffmpegPath%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22ffprobePath%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22locale%22%3A%22ja-JP%22%2C%22http%22%3A%7B%22enabled%22%3Afalse%2C%22tokenLabel%22%3A%22default%22%2C%22port%22%3A3921%7D%2C%22presets%22%3A%7B%22videoBitrate%22%3A%228M%22%2C%22audioBitrate%22%3A%22320k%22%2C%22container%22%3A%22mp4%22%7D%2C%22diagnostics%22%3A%7B%22lastTokenPreview%22%3Anull%2C%22collectCrashDumps%22%3Afalse%2C%22lastLogExportPath%22%3Anull%7D%2C%22createdAt%22%3A%222025-11-18T00%3A29%3A19.796Z%22%2C%22updatedAt%22%3A%222025-11-18T00%3A29%3A19.796Z%22%7D%2C%22ffmpeg%22%3A%7B%22ffmpeg%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%2C%22ffprobe%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%7D%2C%22token%22%3A%7B%22label%22%3A%22default%22%2C%22value%22%3A%22abcd1234%22%2C%22expiresAt%22%3A%222025-11-19T00%3A29%3A19.799Z%22%2C%22createdAt%22%3A%222025-11-18T00%3A29%3A19.796Z%22%2C%22updatedAt%22%3A%222025-11-18T00%3A29%3A19.796Z%22%7D%2C%22distribution%22%3A%7B%22ffmpeg%22%3A%7B%22origin%22%3A%22external%22%2C%22license%22%3A%22lgpl%22%2C%22licenseUrl%22%3A%22https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fold-licenses%2Flgpl-2.1.en.html%22%2C%22sourceUrl%22%3A%22https%3A%2F%2Fffmpeg.org%2Fdownload.html%23sources%22%7D%7D%7D%2C%22templates%22%3A%5B%7B%22typeId%22%3A%22load%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%20Media%22%2C%22category%22%3A%22Input%22%2C%22description%22%3A%22Import%20image%2Fvideo%20files%22%2C%22keywords%22%3A%5B%22load%22%2C%22input%22%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22category%22%3A%22Edit%22%2C%22description%22%3A%22Set%20in%2Fout%20points%22%2C%22keywords%22%3A%5B%22trim%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22preview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22category%22%3A%22Output%22%2C%22description%22%3A%22Preview%20media%22%2C%22keywords%22%3A%5B%22preview%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%5D%2C%22nodes%22%3A%5B%7B%22id%22%3A%22n-load%22%2C%22typeId%22%3A%22load%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%22%2C%22position%22%3A%7B%22x%22%3A0%2C%22y%22%3A0%7D%2C%22width%22%3A220%2C%22height%22%3A120%2C%22inputs%22%3A%5B%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22load%22%5D%7D%2C%7B%22id%22%3A%22n-trim%22%2C%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22position%22%3A%7B%22x%22%3A280%2C%22y%22%3A40%7D%2C%22width%22%3A220%2C%22height%22%3A140%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22trim%22%5D%7D%2C%7B%22id%22%3A%22n-preview%22%2C%22typeId%22%3A%22preview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22position%22%3A%7B%22x%22%3A580%2C%22y%22%3A-20%7D%2C%22width%22%3A240%2C%22height%22%3A160%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%5D%2C%22searchTokens%22%3A%5B%22preview%22%5D%7D%5D%2C%22connections%22%3A%5B%7B%22id%22%3A%22c1%22%2C%22fromNodeId%22%3A%22n-load%22%2C%22fromPortId%22%3A%22media%22%2C%22toNodeId%22%3A%22n-trim%22%2C%22toPortId%22%3A%22source%22%7D%2C%7B%22id%22%3A%22c2%22%2C%22fromNodeId%22%3A%22n-trim%22%2C%22fromPortId%22%3A%22result%22%2C%22toNodeId%22%3A%22n-preview%22%2C%22toPortId%22%3A%22source%22%7D%5D%2C%22queue%22%3A%7B%22active%22%3A%5B%5D%2C%22queued%22%3A%5B%5D%2C%22history%22%3A%5B%5D%2C%22warnings%22%3A%5B%5D%2C%22limits%22%3A%7B%22maxParallelJobs%22%3A1%2C%22maxQueueLength%22%3A4%2C%22queueTimeoutMs%22%3A180000%7D%7D%2C%22diagnostics%22%3A%7B%22collectCrashDumps%22%3Afalse%2C%22lastTokenPreview%22%3Anull%2C%22lastLogExportPath%22%3Anull%2C%22lastExportSha%22%3Anull%2C%22inspectHistory%22%3A%5B%5D%7D%7D'));
-      window.__NODEVISION_TRANSLATIONS__ = {"en-US":{"app.title":"NodeVision Editor","toolbar.alignLeft":"Align left","toolbar.alignTop":"Align top","toolbar.alignCenter":"Align center","toolbar.undo":"Undo","toolbar.redo":"Redo","toolbar.runningMode":"Running mode","toolbar.localeLabel":"Language","toolbar.locale.en":"English","toolbar.locale.ja":"Japanese","workflow.unsaved":"Unsaved Workflow","workflow.menu.rename":"Rename","workflow.menu.fileSave":"Save to file","workflow.menu.fileLoad":"Load from file","workflow.menu.saveAs":"Save as","workflow.menu.clear":"Clear workflow","workflow.menu.openList":"Browse workflows","workflow.context.delete":"Delete workflow","workflow.modal.title":"Workflow name","workflow.modal.placeholder":"Name your workflow…","workflow.modal.cancel":"Cancel","workflow.modal.confirm":"Save","workflow.promptName":"Workflow name","workflow.confirmDelete":"Delete workflow \"{{name}}\"?","workflow.confirmClear":"Clear the current workflow? This removes all nodes.","workflow.errorNameRequired":"Please enter a workflow name.","workflows.title":"Workflows","workflows.saveCurrent":"Save current workflow","workflows.searchLabel":"Search workflows","workflows.searchPlaceholder":"Search workflows…","workflows.empty":"No saved workflows yet","autosave.pending":"Waiting for changes...","autosave.running":"Monitoring changes while running ({{seconds}}s)","autosave.idle":"Watching for edits ({{seconds}}s)","autosave.saved":"Autosaved at {{time}}","sidebar.ariaLabel":"Node search and help","sidebar.searchLabel":"Node search","sidebar.searchPlaceholder":"Load, Trim, Resize...","sidebar.suggestionsLabel":"Node suggestions","help.shortcutsTitle":"Shortcuts","help.copy":"Copy node","help.paste":"Paste (4px snap)","help.duplicate":"Duplicate","help.zoomReset":"Zoom 100%","help.fitSelection":"Fit selection","help.zoomIn":"Canvas zoom in","help.zoomOut":"Canvas zoom out","help.guideTitle":"Guided actions","help.guideHtml":"• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.","readonly.banner":"Read-only because the schema version differs. Editing is disabled.","queue.ariaLabel":"Job queue","queue.title":"Job queue","queue.demoJob":"Add demo job","queue.cancelAll":"Cancel all","queue.status.running":"Running","queue.status.queued":"Queued","queue.status.coolingDown":"Cooling down","queue.status.failed":"Failed","queue.status.canceled":"Canceled","queue.historyTitle":"History (20 entries)","queue.emptyActive":"No active jobs","queue.emptyQueued":"No queued jobs","queue.noHistory":"No history yet","queue.noLogs":"No logs yet","queue.defaultJob":"Job","queue.stableTitle":"Queue Stable","queue.stableSummary":"Queued {{queued}}/{{limit}} • Timeout {{timeout}}s","nodes.ariaLabel":"{{title}} node","nodes.load.selectButton":"Choose a file to upload","nodes.load.empty":"No media selected yet","nodes.load.previewMeta":"{{name}} — {{size}} • {{type}}","nodes.load.unknownType":"unknown format","nodes.load.noFile":"No file chosen","nodes.load.aspectUnknown":"Size unknown","nodes.mediaPreview.noInput":"Connect a media node to preview it here.","nodes.mediaPreview.waiting":"Waiting for upstream media…","nodes.mediaPreview.disconnected":"No source connected","nodes.mediaPreview.sourceLabel":"Source: {{title}}","nodes.mediaPreview.metaUnknown":"Size unknown","nodes.delete":"Delete node","nodes.status.connected":"Connected","nodes.status.missing":"Missing","nodes.trim.tip":"Connect a source clip and set in/out handles before applying heavy effects.","nodes.resize.tip":"Keep Resize nodes near export to avoid repeated resampling.","nodes.overlay.tip":"Attach both Base and Layer inputs—alpha channels stay intact.","nodes.text.tip":"Text Overlay renders crisp vector titles on top of the background clip.","nodes.crop.tip":"Crop defines the visible frame; pair it with Resize or Export to lock the aspect.","nodes.speed.tip":"Speed changes alter downstream duration, so reconnect jobs after tweaking ratios.","nodes.changeFps.tip":"Normalize variable frame rate footage before export to keep audio in sync.","nodes.export.tip":"Only flows that reach Export will generate a rendered file.","ports.inputsLabel":"{{title}} inputs","ports.outputsLabel":"{{title}} outputs","ports.emptyInputs":"No inputs","ports.emptyOutputs":"No outputs","ports.direction.input":"Input","ports.direction.output":"Output","ports.portLabel":"{{direction}} port {{label}} ({{dataType}})","connections.title":"Connections","connections.ariaLabel":"Connection list","connections.empty":"No connections yet","connections.ready":"Select an output port to start connecting","connections.remove":"Remove connection","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"Select an input port to finish connection from {{from}}","diagnostics.ariaLabel":"Logs and diagnostics","diagnostics.title":"Logs & diagnostics","diagnostics.crashConsent":"Include crash dumps","diagnostics.passwordPlaceholder":"Export password","diagnostics.exportButton":"Export logs","diagnostics.inspectHistoryTitle":"Inspect history (20 entries)","diagnostics.noExport":"No exports yet","diagnostics.lastExport":"Last export: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"unknown","diagnostics.historyEmpty":"No inspect history yet","diagnostics.noDetails":"No details","diagnostics.defaultToken":"token?","diagnostics.clipCount":"{{count}} clips","diagnostics.defaultPath":"diagnostics folder","json.banner":"Manage JSON saves and loads here. schemaVersion=1.0.7 is preserved.","json.export":"Export JSON","json.import":"Import JSON","json.editorLabel":"JSON for save/load","canvas.ariaLabel":"Node canvas","canvas.controls":"Canvas controls","canvas.toolSelectTooltip":"Select tool (V)","canvas.toolPanTooltip":"Pan view (H)","canvas.fitViewTooltip":"Fit selection (.)","canvas.zoomDisplayLabel":"Zoom options (⌥+~ / ⌥+Shift+; for zoom in · ⌥+= / ⌥+Shift+= for zoom out)","canvas.zoomIn":"Zoom in (⌥+~ / ⌥+Shift+;)","canvas.zoomOut":"Zoom out (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"Zoom to fit selection","canvas.zoomApply":"Apply","canvas.zoomInputLabel":"Zoom percent","canvas.zoomInputPlaceholder":"e.g. 150","toast.queueRefreshFailed":"Failed to refresh queue: {{message}}","toast.demoJobMissing":"Demo job API is unavailable","toast.demoJobAdded":"Demo job added","toast.queueFull":"{{code}}: queue is full","toast.demoJobFailed":"Failed to add job: {{reason}}","toast.cancelAll":"All jobs canceled","toast.mediaSelected":"Loaded {{name}}","toast.mediaFailed":"Could not open the file picker. Try again or restart.","toast.mediaWrongTypeImage":"This node only accepts image files.","toast.mediaWrongTypeVideo":"This node only accepts video files.","toast.exportMissing":"Export API is not connected","toast.exportFailed":"Export failed: {{reason}}","toast.logsExported":"Logs exported to {{path}}{{shaSuffix}}","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"Crash dumps will be included","toast.crashOff":"Crash dumps will be excluded","errors.schemaMissing":"schemaVersion is missing","errors.jsonLoadFailed":"Failed to load JSON: {{reason}}","about.title":"About & licensing","about.ariaLabel":"About and licensing","about.distributionLabel":"FFmpeg distribution","about.licenseLabel":"License","about.pathLabel":"FFmpeg path","about.versionLabel":"FFmpeg version","about.origin.bundled":"Bundled with NodeVision","about.origin.external":"External/system binary","about.noticeBundled":"NodeVision ships FFmpeg compiled under the LGPL v2.1+. Use the links below to review the license text and download matching source code.","about.noticeExternal":"FFmpeg was detected on this system. Confirm that the “{{license}}” license suits your redistribution requirements.","about.licenseLinkLabel":"License text","about.sourceLinkLabel":"FFmpeg source","about.versionUnknown":"Unknown","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"Nonfree build (--enable-nonfree)","about.licenseValue.unknown":"Unknown license","nodeTemplate.loadMedia.title":"Load Media","nodeTemplate.loadMedia.description":"Open a local image or video file","nodeTemplate.loadMedia.port.media":"Media","nodeTemplate.loadImage.title":"Load Image","nodeTemplate.loadImage.description":"Open a local image file","nodeTemplate.loadImage.port.media":"Image","nodeTemplate.loadVideo.title":"Load Video","nodeTemplate.loadVideo.description":"Open a local video file","nodeTemplate.loadVideo.port.media":"Video","nodeTemplate.mediaPreview.title":"Media Preview","nodeTemplate.mediaPreview.description":"Display the connected image or video inside the graph","nodeTemplate.mediaPreview.port.source":"Source","nodeTemplate.trim.title":"Trim","nodeTemplate.trim.description":"Cut media between in/out points","nodeTemplate.trim.port.source":"Source","nodeTemplate.trim.port.result":"Result","nodeTemplate.resize.title":"Resize","nodeTemplate.resize.description":"Resize media with aspect ratio controls","nodeTemplate.resize.port.source":"Source","nodeTemplate.resize.port.resized":"Resized","nodeTemplate.overlay.title":"Overlay","nodeTemplate.overlay.description":"Blend two sources with position controls","nodeTemplate.overlay.port.base":"Base","nodeTemplate.overlay.port.layer":"Layer","nodeTemplate.overlay.port.composite":"Composite","nodeTemplate.text.title":"Text Overlay","nodeTemplate.text.description":"Render titles or captions with font and color controls","nodeTemplate.text.port.background":"Background","nodeTemplate.text.port.titled":"Titled","nodeTemplate.crop.title":"Crop","nodeTemplate.crop.description":"Trim the visible area to a custom frame","nodeTemplate.crop.port.source":"Source","nodeTemplate.crop.port.cropped":"Cropped","nodeTemplate.speed.title":"Speed","nodeTemplate.speed.description":"Ramp playback speed for slow/fast motion","nodeTemplate.speed.port.source":"Source","nodeTemplate.speed.port.retimed":"Retimed","nodeTemplate.changeFps.title":"Change FPS","nodeTemplate.changeFps.description":"Convert variable frame rate clips to constant FPS","nodeTemplate.changeFps.port.source":"Source","nodeTemplate.changeFps.port.normalized":"Normalized","nodeTemplate.export.title":"Export Media","nodeTemplate.export.description":"Finalize and export the edited result","nodeTemplate.export.port.program":"Program","nodeTemplate.export.port.delivery":"Exported","demo.jobName":"FFmpeg demo render"},"ja-JP":{"app.title":"NodeVisionエディター","toolbar.alignLeft":"左揃え","toolbar.alignTop":"上揃え","toolbar.alignCenter":"中央揃え","toolbar.undo":"元に戻す","toolbar.redo":"やり直し","toolbar.runningMode":"実行中モード","toolbar.localeLabel":"言語","toolbar.locale.en":"英語","toolbar.locale.ja":"日本語","workflow.unsaved":"未保存のワークフロー","workflow.menu.rename":"名前を変更","workflow.menu.fileSave":"ファイル保存","workflow.menu.fileLoad":"ファイル読込","workflow.menu.saveAs":"名前を付けて保存","workflow.menu.clear":"ワークフローをクリア","workflow.menu.openList":"ワークフローを表示","workflow.context.delete":"ワークフローを削除","workflow.modal.title":"ワークフロー名","workflow.modal.placeholder":"名前を入力してください","workflow.modal.cancel":"キャンセル","workflow.modal.confirm":"保存","workflow.promptName":"ワークフロー名","workflow.confirmDelete":"ワークフロー「{{name}}」を削除しますか？","workflow.confirmClear":"現在のワークフローをクリアしますか？すべてのノードが削除されます。","workflow.errorNameRequired":"ワークフロー名を入力してください。","workflows.title":"ワークフロー","workflows.saveCurrent":"現在のワークフローを保存","workflows.searchLabel":"ワークフローを検索","workflows.searchPlaceholder":"ワークフローを検索…","workflows.empty":"保存されたワークフローはまだありません","autosave.pending":"変更待ち...","autosave.running":"実行中…変更を監視中 ({{seconds}}秒)","autosave.idle":"変更検知 ({{seconds}}秒)","autosave.saved":"{{time}} に自動保存したよ","sidebar.ariaLabel":"ノード検索とヘルプ","sidebar.searchLabel":"ノード検索","sidebar.searchPlaceholder":"ロード、トリム、リサイズ…","sidebar.suggestionsLabel":"ノード候補","help.shortcutsTitle":"ショートカット","help.copy":"ノードをコピー","help.paste":"貼り付け（4pxスナップ）","help.duplicate":"複製","help.zoomReset":"ズーム 100%","help.fitSelection":"選択範囲にフィット","help.zoomIn":"キャンバスを拡大","help.zoomOut":"キャンバスを縮小","help.guideTitle":"操作ガイド","help.guideHtml":"・ドラッグでノード移動（4pxスナップ）<br />・Enterで候補を追加<br />・Tabでカードにフォーカスできます。","readonly.banner":"スキーマ差分のため読み取り専用です（編集は無効化）。","queue.ariaLabel":"ジョブキュー","queue.title":"ジョブキュー","queue.demoJob":"デモジョブ追加","queue.cancelAll":"すべてキャンセル","queue.status.running":"実行中","queue.status.queued":"待機中","queue.status.coolingDown":"クールダウン","queue.status.failed":"失敗","queue.status.canceled":"キャンセル済み","queue.historyTitle":"履歴 (20件)","queue.emptyActive":"実行中のジョブはありません","queue.emptyQueued":"待機ジョブなし","queue.noHistory":"履歴はまだありません","queue.noLogs":"ログなし","queue.defaultJob":"ジョブ","queue.stableTitle":"キューは安定","queue.stableSummary":"待機 {{queued}}/{{limit}} ・ タイムアウト {{timeout}}秒","nodes.ariaLabel":"{{title}} ノード","nodes.load.selectButton":"アップロードするファイルを選択","nodes.load.empty":"まだメディアが選ばれていません","nodes.load.previewMeta":"{{name}} ／ {{size}} ・ {{type}}","nodes.load.unknownType":"形式不明","nodes.load.noFile":"ファイル未選択","nodes.load.aspectUnknown":"サイズ未取得","nodes.mediaPreview.noInput":"ここに表示したいメディアを接続してね","nodes.mediaPreview.waiting":"接続済みのノードからプレビューを待機中…","nodes.mediaPreview.disconnected":"入力が未接続","nodes.mediaPreview.sourceLabel":"ソース: {{title}}","nodes.mediaPreview.metaUnknown":"サイズ未取得","nodes.delete":"ノードを削除","nodes.status.connected":"接続済み","nodes.status.missing":"未接続","nodes.trim.tip":"ソースをつないでIN/OUTを決めておくと、その後の重い処理が超ラクになるよ。","nodes.resize.tip":"リサイズは書き出し直前に置くとリサンプリング回数を減らせるよ。","nodes.overlay.tip":"ベースとレイヤー両方を接続するとアルファ付きで重ね合わせできるよ。","nodes.text.tip":"テキストノードは背景入力に重ねて、くっきりしたタイトルをGPUで描画するよ。","nodes.crop.tip":"クロップは表示枠を切るだけだから、後段のリサイズや書き出しとセットで使うのが吉。","nodes.speed.tip":"スピード変更は下流の尺も変わるから、繋ぎ直してからキューを流してね。","nodes.changeFps.tip":"可変フレームレート素材は書き出し前にFPS変換で揃えると音ズレ防止になるよ。","nodes.export.tip":"エクスポートまで辿り着いたフローだけがファイルを書き出すから忘れずにつないでね。","ports.inputsLabel":"{{title}} の入力","ports.outputsLabel":"{{title}} の出力","ports.emptyInputs":"入力なし","ports.emptyOutputs":"出力なし","ports.direction.input":"入力","ports.direction.output":"出力","ports.portLabel":"{{direction}}ポート {{label}} ({{dataType}})","connections.title":"接続","connections.ariaLabel":"接続リスト","connections.empty":"接続はまだありません","connections.ready":"出力ポートを選んで接続を始めてね","connections.remove":"接続を削除","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"{{from}} から接続する入力ポートを選択してください","diagnostics.ariaLabel":"ログと診断","diagnostics.title":"ログ & 診断","diagnostics.crashConsent":"クラッシュダンプを含める","diagnostics.passwordPlaceholder":"エクスポート用パスワード","diagnostics.exportButton":"ログを書き出し","diagnostics.inspectHistoryTitle":"inspect履歴 (20件)","diagnostics.noExport":"まだエクスポートしていません","diagnostics.lastExport":"最後のエクスポート: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"不明","diagnostics.historyEmpty":"履歴はまだありません","diagnostics.noDetails":"詳細なし","diagnostics.defaultToken":"トークン?","diagnostics.clipCount":"{{count}} クリップ","diagnostics.defaultPath":"診断フォルダー","json.banner":"JSONプロジェクトの保存/読み込みはここから。schemaVersion=1.0.7 を保持します。","json.export":"JSONを書き出し","json.import":"JSONを読み込み","json.editorLabel":"保存用JSON","canvas.ariaLabel":"ノードキャンバス","canvas.controls":"キャンバス操作","canvas.toolSelectTooltip":"選択ツール (V)","canvas.toolPanTooltip":"パンビュー (H)","canvas.fitViewTooltip":"全体表示 (.)","canvas.zoomDisplayLabel":"ズーム設定（拡大: ⌥+〜 / ⌥+Shift+； ・ 縮小: ⌥+= / ⌥+Shift+=）","canvas.zoomIn":"拡大 (⌥+〜 / ⌥+Shift+；)","canvas.zoomOut":"縮小 (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"全体表示にズーム","canvas.zoomApply":"適用","canvas.zoomInputLabel":"ズーム %","canvas.zoomInputPlaceholder":"例: 150","toast.queueRefreshFailed":"キュー更新に失敗: {{message}}","toast.demoJobMissing":"デモジョブAPIがみつからないよ","toast.demoJobAdded":"デモジョブを追加したよ","toast.queueFull":"{{code}}: 待機キューが満杯だよ","toast.demoJobFailed":"ジョブ追加に失敗したよ: {{reason}}","toast.cancelAll":"全ジョブをキャンセルしたよ","toast.mediaSelected":"{{name}} を読み込んだよ","toast.mediaFailed":"ファイル選択を開けなかったよ。もう一度試してね。","toast.mediaWrongTypeImage":"このノードは画像ファイル専用だよ","toast.mediaWrongTypeVideo":"このノードは動画ファイル専用だよ","toast.exportMissing":"Export APIが未接続だよ","toast.exportFailed":"エクスポートに失敗したよ: {{reason}}","toast.logsExported":"ログを {{path}}{{shaSuffix}} にエクスポートしたよ","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"クラッシュダンプを含めるよ","toast.crashOff":"クラッシュダンプを除外するよ","errors.schemaMissing":"schemaVersion がありません","errors.jsonLoadFailed":"JSONの読み込みに失敗しました: {{reason}}","about.title":"アバウトとライセンス","about.ariaLabel":"アバウトとライセンス","about.distributionLabel":"FFmpeg配布形態","about.licenseLabel":"ライセンス","about.pathLabel":"FFmpegパス","about.versionLabel":"FFmpegバージョン","about.origin.bundled":"NodeVision同梱 (LGPL)","about.origin.external":"外部/システムのバイナリ","about.noticeBundled":"NodeVisionはLGPL v2.1+準拠でビルドしたFFmpegを同梱しています。下のリンクからライセンス原文と対応するソースコードにアクセスしてください。","about.noticeExternal":"このFFmpegはシステムから検出したものです（ライセンス: {{license}}）。再配布ポリシーに合っているかご確認ください。","about.licenseLinkLabel":"ライセンス原文","about.sourceLinkLabel":"FFmpegソース","about.versionUnknown":"不明","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"非フリー構成 (--enable-nonfree)","about.licenseValue.unknown":"ライセンス不明","nodeTemplate.loadMedia.title":"メディアを読み込み","nodeTemplate.loadMedia.description":"ローカルの画像や動画を開く","nodeTemplate.loadMedia.port.media":"メディア","nodeTemplate.loadImage.title":"画像を読み込み","nodeTemplate.loadImage.description":"ローカルの画像ファイルを開く","nodeTemplate.loadImage.port.media":"画像","nodeTemplate.loadVideo.title":"動画を読み込み","nodeTemplate.loadVideo.description":"ローカルの動画ファイルを開く","nodeTemplate.loadVideo.port.media":"動画","nodeTemplate.mediaPreview.title":"メディアプレビュー","nodeTemplate.mediaPreview.description":"接続中の画像・動画をノードで表示","nodeTemplate.mediaPreview.port.source":"ソース","nodeTemplate.trim.title":"トリム","nodeTemplate.trim.description":"IN/OUT間で素材をカット","nodeTemplate.trim.port.source":"ソース","nodeTemplate.trim.port.result":"出力","nodeTemplate.resize.title":"リサイズ","nodeTemplate.resize.description":"アスペクト比を保ってサイズ変更","nodeTemplate.resize.port.source":"ソース","nodeTemplate.resize.port.resized":"リサイズ後","nodeTemplate.overlay.title":"オーバーレイ","nodeTemplate.overlay.description":"2つの映像を合成して位置を調整","nodeTemplate.overlay.port.base":"ベース","nodeTemplate.overlay.port.layer":"レイヤー","nodeTemplate.overlay.port.composite":"合成結果","nodeTemplate.text.title":"テキストオーバーレイ","nodeTemplate.text.description":"文字や字幕を描画","nodeTemplate.text.port.background":"背景","nodeTemplate.text.port.titled":"テキスト出力","nodeTemplate.crop.title":"クロップ","nodeTemplate.crop.description":"表示範囲をトリミング","nodeTemplate.crop.port.source":"ソース","nodeTemplate.crop.port.cropped":"クロップ後","nodeTemplate.speed.title":"再生速度","nodeTemplate.speed.description":"スロー/早回しを設定","nodeTemplate.speed.port.source":"ソース","nodeTemplate.speed.port.retimed":"速度変更後","nodeTemplate.changeFps.title":"フレームレート変換","nodeTemplate.changeFps.description":"可変フレームを固定フレームに揃える","nodeTemplate.changeFps.port.source":"ソース","nodeTemplate.changeFps.port.normalized":"正規化後","nodeTemplate.export.title":"メディアを書き出し","nodeTemplate.export.description":"最終結果を書き出す","nodeTemplate.export.port.program":"プログラム","nodeTemplate.export.port.delivery":"書き出し結果","demo.jobName":"FFmpeg 合成"}};
+      window.__NODEVISION_BOOTSTRAP__ = JSON.parse(decodeURIComponent('%7B%22status%22%3A%7B%22settings%22%3A%7B%22schemaVersion%22%3A%221.0.7%22%2C%22tempRoot%22%3A%22%2Ftmp%2Fnodevision%22%2C%22ffmpegPath%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22ffprobePath%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22locale%22%3A%22ja-JP%22%2C%22http%22%3A%7B%22enabled%22%3Afalse%2C%22tokenLabel%22%3A%22default%22%2C%22port%22%3A3921%7D%2C%22presets%22%3A%7B%22videoBitrate%22%3A%228M%22%2C%22audioBitrate%22%3A%22320k%22%2C%22container%22%3A%22mp4%22%7D%2C%22diagnostics%22%3A%7B%22lastTokenPreview%22%3Anull%2C%22collectCrashDumps%22%3Afalse%2C%22lastLogExportPath%22%3Anull%7D%2C%22createdAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%2C%22updatedAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%7D%2C%22ffmpeg%22%3A%7B%22ffmpeg%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffmpeg%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%2C%22ffprobe%22%3A%7B%22path%22%3A%22%2Fusr%2Fbin%2Fffprobe%22%2C%22version%22%3A%226.1%22%2C%22license%22%3A%22lgpl%22%7D%7D%2C%22token%22%3A%7B%22label%22%3A%22default%22%2C%22value%22%3A%22abcd1234%22%2C%22expiresAt%22%3A%222025-11-19T07%3A34%3A34.148Z%22%2C%22createdAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%2C%22updatedAt%22%3A%222025-11-18T07%3A34%3A34.143Z%22%7D%2C%22distribution%22%3A%7B%22ffmpeg%22%3A%7B%22origin%22%3A%22external%22%2C%22license%22%3A%22lgpl%22%2C%22licenseUrl%22%3A%22https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fold-licenses%2Flgpl-2.1.en.html%22%2C%22sourceUrl%22%3A%22https%3A%2F%2Fffmpeg.org%2Fdownload.html%23sources%22%7D%7D%7D%2C%22templates%22%3A%5B%7B%22typeId%22%3A%22load%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%20Media%22%2C%22category%22%3A%22Input%22%2C%22description%22%3A%22Import%20image%2Fvideo%20files%22%2C%22keywords%22%3A%5B%22load%22%2C%22input%22%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22category%22%3A%22Edit%22%2C%22description%22%3A%22Set%20in%2Fout%20points%22%2C%22keywords%22%3A%5B%22trim%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%2C%7B%22typeId%22%3A%22preview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22category%22%3A%22Output%22%2C%22description%22%3A%22Preview%20media%22%2C%22keywords%22%3A%5B%22preview%22%5D%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%7D%5D%2C%22nodes%22%3A%5B%7B%22id%22%3A%22n-load%22%2C%22typeId%22%3A%22load%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Load%22%2C%22position%22%3A%7B%22x%22%3A0%2C%22y%22%3A0%7D%2C%22width%22%3A220%2C%22height%22%3A120%2C%22inputs%22%3A%5B%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22media%22%2C%22label%22%3A%22Media%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22load%22%5D%7D%2C%7B%22id%22%3A%22n-trim%22%2C%22typeId%22%3A%22trim%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Trim%22%2C%22position%22%3A%7B%22x%22%3A280%2C%22y%22%3A40%7D%2C%22width%22%3A220%2C%22height%22%3A140%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%7B%22id%22%3A%22result%22%2C%22label%22%3A%22Result%22%2C%22direction%22%3A%22output%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22searchTokens%22%3A%5B%22trim%22%5D%7D%2C%7B%22id%22%3A%22n-preview%22%2C%22typeId%22%3A%22preview%22%2C%22nodeVersion%22%3A%221.0.0%22%2C%22title%22%3A%22Preview%22%2C%22position%22%3A%7B%22x%22%3A580%2C%22y%22%3A-20%7D%2C%22width%22%3A240%2C%22height%22%3A160%2C%22inputs%22%3A%5B%7B%22id%22%3A%22source%22%2C%22label%22%3A%22Source%22%2C%22direction%22%3A%22input%22%2C%22dataType%22%3A%22video%22%7D%5D%2C%22outputs%22%3A%5B%5D%2C%22searchTokens%22%3A%5B%22preview%22%5D%7D%5D%2C%22connections%22%3A%5B%7B%22id%22%3A%22c1%22%2C%22fromNodeId%22%3A%22n-load%22%2C%22fromPortId%22%3A%22media%22%2C%22toNodeId%22%3A%22n-trim%22%2C%22toPortId%22%3A%22source%22%7D%2C%7B%22id%22%3A%22c2%22%2C%22fromNodeId%22%3A%22n-trim%22%2C%22fromPortId%22%3A%22result%22%2C%22toNodeId%22%3A%22n-preview%22%2C%22toPortId%22%3A%22source%22%7D%5D%2C%22queue%22%3A%7B%22active%22%3A%5B%5D%2C%22queued%22%3A%5B%5D%2C%22history%22%3A%5B%5D%2C%22warnings%22%3A%5B%5D%2C%22limits%22%3A%7B%22maxParallelJobs%22%3A1%2C%22maxQueueLength%22%3A4%2C%22queueTimeoutMs%22%3A180000%7D%7D%2C%22diagnostics%22%3A%7B%22collectCrashDumps%22%3Afalse%2C%22lastTokenPreview%22%3Anull%2C%22lastLogExportPath%22%3Anull%2C%22lastExportSha%22%3Anull%2C%22inspectHistory%22%3A%5B%5D%7D%7D'));
+      window.__NODEVISION_TRANSLATIONS__ = {"en-US":{"common.close":"Close","actions.save":"Save","actions.cancel":"Cancel","actions.reset":"Reset","app.title":"NodeVision Editor","toolbar.alignLeft":"Align left","toolbar.alignTop":"Align top","toolbar.alignCenter":"Align center","toolbar.undo":"Undo","toolbar.redo":"Redo","toolbar.runningMode":"Running mode","toolbar.localeLabel":"Language","toolbar.locale.en":"English","toolbar.locale.ja":"Japanese","workflow.unsaved":"Unsaved Workflow","workflow.menu.rename":"Rename","workflow.menu.fileSave":"Save to file","workflow.menu.fileLoad":"Load from file","workflow.menu.saveAs":"Save as","workflow.menu.clear":"Clear workflow","workflow.menu.openList":"Browse workflows","workflow.context.delete":"Delete workflow","workflow.modal.title":"Workflow name","workflow.modal.placeholder":"Name your workflow…","workflow.modal.cancel":"Cancel","workflow.modal.confirm":"Save","workflow.promptName":"Workflow name","workflow.confirmDelete":"Delete workflow \"{{name}}\"?","workflow.confirmClear":"Clear the current workflow? This removes all nodes.","workflow.errorNameRequired":"Please enter a workflow name.","workflows.title":"Workflows","workflows.saveCurrent":"Save current workflow","workflows.searchLabel":"Search workflows","workflows.searchPlaceholder":"Search workflows…","workflows.empty":"No saved workflows yet","autosave.pending":"Waiting for changes...","autosave.running":"Monitoring changes while running ({{seconds}}s)","autosave.idle":"Watching for edits ({{seconds}}s)","autosave.saved":"Autosaved at {{time}}","sidebar.ariaLabel":"Node search and help","sidebar.searchLabel":"Node search","sidebar.searchPlaceholder":"Load, Trim, Resize...","sidebar.suggestionsLabel":"Node suggestions","help.shortcutsTitle":"Shortcuts","help.copy":"Copy node","help.paste":"Paste (4px snap)","help.duplicate":"Duplicate","help.zoomReset":"Zoom 100%","help.fitSelection":"Fit selection","help.zoomIn":"Canvas zoom in","help.zoomOut":"Canvas zoom out","help.guideTitle":"Guided actions","help.guideHtml":"• Drag nodes to move (4px snap)<br />• Press Enter to add highlighted suggestions<br />• Use Tab to focus cards.","readonly.banner":"Read-only because the schema version differs. Editing is disabled.","queue.ariaLabel":"Job queue","queue.title":"Job queue","queue.demoJob":"Add demo job","queue.cancelAll":"Cancel all","queue.status.running":"Running","queue.status.queued":"Queued","queue.status.coolingDown":"Cooling down","queue.status.failed":"Failed","queue.status.canceled":"Canceled","queue.historyTitle":"History (20 entries)","queue.emptyActive":"No active jobs","queue.emptyQueued":"No queued jobs","queue.noHistory":"No history yet","queue.noLogs":"No logs yet","queue.defaultJob":"Job","queue.stableTitle":"Queue Stable","queue.stableSummary":"Queued {{queued}}/{{limit}} • Timeout {{timeout}}s","nodes.ariaLabel":"{{title}} node","nodes.load.selectButton":"Choose a file to upload","nodes.load.empty":"No media selected yet","nodes.load.previewMeta":"{{name}} — {{size}} • {{type}}","nodes.load.unknownType":"unknown format","nodes.load.noFile":"No file chosen","nodes.load.aspectUnknown":"Size unknown","nodes.mediaPreview.noInput":"Connect a media node to preview it here.","nodes.mediaPreview.waiting":"Waiting for upstream media…","nodes.mediaPreview.disconnected":"No source connected","nodes.mediaPreview.sourceLabel":"Source: {{title}}","nodes.mediaPreview.metaUnknown":"Size unknown","nodes.delete":"Delete node","nodes.status.connected":"Connected","nodes.status.missing":"Missing","nodes.trim.tip":"Connect a source clip and edit it using the trim modals before applying heavy effects.","nodes.trim.imageButton":"Image Trim","nodes.trim.videoButton":"Video Trim","nodes.trim.status.empty":"No adjustments yet","nodes.trim.status.imageEdited":"Image crop ready","nodes.trim.status.videoEdited":"Video trim ready","nodes.trim.status.imageSummary":"Image crop {{width}}% × {{height}}%","nodes.trim.status.videoSummary":"Video {{start}} → {{end}}{{strict}}","nodes.trim.status.videoEndLabel":"end","nodes.trim.status.videoStrictSuffix":"(strict)","nodes.trim.modalPlaceholder.image":"Drag the highlighted box or its corners to crop the displayed image.","nodes.trim.modalPlaceholder.video":"Video trim modal is coming soon—set accurate in/out ranges in a dedicated workspace.","nodes.trim.toast.imageSaved":"Image crop updated.","nodes.trim.toast.videoSaved":"Video trim updated.","nodes.trim.modalPlaceholder.noImage":"Load an image source and connect it to this Trim node to enable cropping.","nodes.mediaPreview.trimmedBadge":"Trimmed output","nodes.mediaPreview.trimmedRange":"Range {{start}} → {{end}}{{strict}}","nodes.mediaPreview.trimmedCrop":"Crop {{width}}% × {{height}}%","nodes.trim.modalPlaceholder.noVideo":"Connect a video Load node and capture a preview before trimming.","nodes.trim.modalHint.video":"Use the handles or enter exact timecodes, then save to refresh downstream previews.","nodes.trim.video.previewFallback":"Video source","nodes.trim.video.startLabel":"Start time","nodes.trim.video.endLabel":"End time","nodes.trim.video.durationUnknown":"Duration unknown","nodes.trim.video.strictLabel":"Strict cut","nodes.trim.video.strictHint":"Discard frames outside the saved range.","nodes.trim.video.controls.play":"Play","nodes.trim.video.controls.pause":"Pause","nodes.trim.video.controls.stepBack":"Step back","nodes.trim.video.controls.stepForward":"Step forward","nodes.trim.video.startHandle":"Adjust start handle","nodes.trim.video.endHandle":"Adjust end handle","nodes.resize.tip":"Keep Resize nodes near export to avoid repeated resampling.","nodes.overlay.tip":"Attach both Base and Layer inputs—alpha channels stay intact.","nodes.text.tip":"Text Overlay renders crisp vector titles on top of the background clip.","nodes.crop.tip":"Crop defines the visible frame; pair it with Resize or Export to lock the aspect.","nodes.speed.tip":"Speed changes alter downstream duration, so reconnect jobs after tweaking ratios.","nodes.changeFps.tip":"Normalize variable frame rate footage before export to keep audio in sync.","nodes.export.tip":"Only flows that reach Export will generate a rendered file.","ports.inputsLabel":"{{title}} inputs","ports.outputsLabel":"{{title}} outputs","ports.emptyInputs":"No inputs","ports.emptyOutputs":"No outputs","ports.direction.input":"Input","ports.direction.output":"Output","ports.portLabel":"{{direction}} port {{label}} ({{dataType}})","connections.title":"Connections","connections.ariaLabel":"Connection list","connections.empty":"No connections yet","connections.ready":"Select an output port to start connecting","connections.remove":"Remove connection","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"Select an input port to finish connection from {{from}}","diagnostics.ariaLabel":"Logs and diagnostics","diagnostics.title":"Logs & diagnostics","diagnostics.crashConsent":"Include crash dumps","diagnostics.passwordPlaceholder":"Export password","diagnostics.exportButton":"Export logs","diagnostics.inspectHistoryTitle":"Inspect history (20 entries)","diagnostics.noExport":"No exports yet","diagnostics.lastExport":"Last export: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"unknown","diagnostics.historyEmpty":"No inspect history yet","diagnostics.noDetails":"No details","diagnostics.defaultToken":"token?","diagnostics.clipCount":"{{count}} clips","diagnostics.defaultPath":"diagnostics folder","json.banner":"Manage JSON saves and loads here. schemaVersion=1.0.7 is preserved.","json.export":"Export JSON","json.import":"Import JSON","json.editorLabel":"JSON for save/load","canvas.ariaLabel":"Node canvas","canvas.controls":"Canvas controls","canvas.toolSelectTooltip":"Select tool (V)","canvas.toolPanTooltip":"Pan view (H)","canvas.fitViewTooltip":"Fit selection (.)","canvas.zoomDisplayLabel":"Zoom options (⌥+~ / ⌥+Shift+; for zoom in · ⌥+= / ⌥+Shift+= for zoom out)","canvas.zoomIn":"Zoom in (⌥+~ / ⌥+Shift+;)","canvas.zoomOut":"Zoom out (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"Zoom to fit selection","canvas.zoomApply":"Apply","canvas.zoomInputLabel":"Zoom percent","canvas.zoomInputPlaceholder":"e.g. 150","toast.queueRefreshFailed":"Failed to refresh queue: {{message}}","toast.demoJobMissing":"Demo job API is unavailable","toast.demoJobAdded":"Demo job added","toast.queueFull":"{{code}}: queue is full","toast.demoJobFailed":"Failed to add job: {{reason}}","toast.cancelAll":"All jobs canceled","toast.mediaSelected":"Loaded {{name}}","toast.mediaFailed":"Could not open the file picker. Try again or restart.","toast.mediaWrongTypeImage":"This node only accepts image files.","toast.mediaWrongTypeVideo":"This node only accepts video files.","toast.exportMissing":"Export API is not connected","toast.exportFailed":"Export failed: {{reason}}","toast.logsExported":"Logs exported to {{path}}{{shaSuffix}}","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"Crash dumps will be included","toast.crashOff":"Crash dumps will be excluded","errors.schemaMissing":"schemaVersion is missing","errors.jsonLoadFailed":"Failed to load JSON: {{reason}}","about.title":"About & licensing","about.ariaLabel":"About and licensing","about.distributionLabel":"FFmpeg distribution","about.licenseLabel":"License","about.pathLabel":"FFmpeg path","about.versionLabel":"FFmpeg version","about.origin.bundled":"Bundled with NodeVision","about.origin.external":"External/system binary","about.noticeBundled":"NodeVision ships FFmpeg compiled under the LGPL v2.1+. Use the links below to review the license text and download matching source code.","about.noticeExternal":"FFmpeg was detected on this system. Confirm that the “{{license}}” license suits your redistribution requirements.","about.licenseLinkLabel":"License text","about.sourceLinkLabel":"FFmpeg source","about.versionUnknown":"Unknown","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"Nonfree build (--enable-nonfree)","about.licenseValue.unknown":"Unknown license","nodeTemplate.loadMedia.title":"Load Media","nodeTemplate.loadMedia.description":"Open a local image or video file","nodeTemplate.loadMedia.port.media":"Media","nodeTemplate.loadImage.title":"Load Image","nodeTemplate.loadImage.description":"Open a local image file","nodeTemplate.loadImage.port.media":"Image","nodeTemplate.loadVideo.title":"Load Video","nodeTemplate.loadVideo.description":"Open a local video file","nodeTemplate.loadVideo.port.media":"Video","nodeTemplate.mediaPreview.title":"Media Preview","nodeTemplate.mediaPreview.description":"Display the connected image or video inside the graph","nodeTemplate.mediaPreview.port.source":"Source","nodeTemplate.trim.title":"Trim","nodeTemplate.trim.description":"Cut media between in/out points","nodeTemplate.trim.port.source":"Source","nodeTemplate.trim.port.result":"Result","nodeTemplate.resize.title":"Resize","nodeTemplate.resize.description":"Resize media with aspect ratio controls","nodeTemplate.resize.port.source":"Source","nodeTemplate.resize.port.resized":"Resized","nodeTemplate.overlay.title":"Overlay","nodeTemplate.overlay.description":"Blend two sources with position controls","nodeTemplate.overlay.port.base":"Base","nodeTemplate.overlay.port.layer":"Layer","nodeTemplate.overlay.port.composite":"Composite","nodeTemplate.text.title":"Text Overlay","nodeTemplate.text.description":"Render titles or captions with font and color controls","nodeTemplate.text.port.background":"Background","nodeTemplate.text.port.titled":"Titled","nodeTemplate.crop.title":"Crop","nodeTemplate.crop.description":"Trim the visible area to a custom frame","nodeTemplate.crop.port.source":"Source","nodeTemplate.crop.port.cropped":"Cropped","nodeTemplate.speed.title":"Speed","nodeTemplate.speed.description":"Ramp playback speed for slow/fast motion","nodeTemplate.speed.port.source":"Source","nodeTemplate.speed.port.retimed":"Retimed","nodeTemplate.changeFps.title":"Change FPS","nodeTemplate.changeFps.description":"Convert variable frame rate clips to constant FPS","nodeTemplate.changeFps.port.source":"Source","nodeTemplate.changeFps.port.normalized":"Normalized","nodeTemplate.export.title":"Export Media","nodeTemplate.export.description":"Finalize and export the edited result","nodeTemplate.export.port.program":"Program","nodeTemplate.export.port.delivery":"Exported","demo.jobName":"FFmpeg demo render"},"ja-JP":{"common.close":"閉じる","actions.save":"保存","actions.cancel":"キャンセル","actions.reset":"リセット","app.title":"NodeVisionエディター","toolbar.alignLeft":"左揃え","toolbar.alignTop":"上揃え","toolbar.alignCenter":"中央揃え","toolbar.undo":"元に戻す","toolbar.redo":"やり直し","toolbar.runningMode":"実行中モード","toolbar.localeLabel":"言語","toolbar.locale.en":"英語","toolbar.locale.ja":"日本語","workflow.unsaved":"未保存のワークフロー","workflow.menu.rename":"名前を変更","workflow.menu.fileSave":"ファイル保存","workflow.menu.fileLoad":"ファイル読込","workflow.menu.saveAs":"名前を付けて保存","workflow.menu.clear":"ワークフローをクリア","workflow.menu.openList":"ワークフローを表示","workflow.context.delete":"ワークフローを削除","workflow.modal.title":"ワークフロー名","workflow.modal.placeholder":"名前を入力してください","workflow.modal.cancel":"キャンセル","workflow.modal.confirm":"保存","workflow.promptName":"ワークフロー名","workflow.confirmDelete":"ワークフロー「{{name}}」を削除しますか？","workflow.confirmClear":"現在のワークフローをクリアしますか？すべてのノードが削除されます。","workflow.errorNameRequired":"ワークフロー名を入力してください。","workflows.title":"ワークフロー","workflows.saveCurrent":"現在のワークフローを保存","workflows.searchLabel":"ワークフローを検索","workflows.searchPlaceholder":"ワークフローを検索…","workflows.empty":"保存されたワークフローはまだありません","autosave.pending":"変更待ち...","autosave.running":"実行中…変更を監視中 ({{seconds}}秒)","autosave.idle":"変更検知 ({{seconds}}秒)","autosave.saved":"{{time}} に自動保存したよ","sidebar.ariaLabel":"ノード検索とヘルプ","sidebar.searchLabel":"ノード検索","sidebar.searchPlaceholder":"ロード、トリム、リサイズ…","sidebar.suggestionsLabel":"ノード候補","help.shortcutsTitle":"ショートカット","help.copy":"ノードをコピー","help.paste":"貼り付け（4pxスナップ）","help.duplicate":"複製","help.zoomReset":"ズーム 100%","help.fitSelection":"選択範囲にフィット","help.zoomIn":"キャンバスを拡大","help.zoomOut":"キャンバスを縮小","help.guideTitle":"操作ガイド","help.guideHtml":"・ドラッグでノード移動（4pxスナップ）<br />・Enterで候補を追加<br />・Tabでカードにフォーカスできます。","readonly.banner":"スキーマ差分のため読み取り専用です（編集は無効化）。","queue.ariaLabel":"ジョブキュー","queue.title":"ジョブキュー","queue.demoJob":"デモジョブ追加","queue.cancelAll":"すべてキャンセル","queue.status.running":"実行中","queue.status.queued":"待機中","queue.status.coolingDown":"クールダウン","queue.status.failed":"失敗","queue.status.canceled":"キャンセル済み","queue.historyTitle":"履歴 (20件)","queue.emptyActive":"実行中のジョブはありません","queue.emptyQueued":"待機ジョブなし","queue.noHistory":"履歴はまだありません","queue.noLogs":"ログなし","queue.defaultJob":"ジョブ","queue.stableTitle":"キューは安定","queue.stableSummary":"待機 {{queued}}/{{limit}} ・ タイムアウト {{timeout}}秒","nodes.ariaLabel":"{{title}} ノード","nodes.load.selectButton":"アップロードするファイルを選択","nodes.load.empty":"まだメディアが選ばれていません","nodes.load.previewMeta":"{{name}} ／ {{size}} ・ {{type}}","nodes.load.unknownType":"形式不明","nodes.load.noFile":"ファイル未選択","nodes.load.aspectUnknown":"サイズ未取得","nodes.mediaPreview.noInput":"ここに表示したいメディアを接続してね","nodes.mediaPreview.waiting":"接続済みのノードからプレビューを待機中…","nodes.mediaPreview.disconnected":"入力が未接続","nodes.mediaPreview.sourceLabel":"ソース: {{title}}","nodes.mediaPreview.metaUnknown":"サイズ未取得","nodes.delete":"ノードを削除","nodes.status.connected":"接続済み","nodes.status.missing":"未接続","nodes.trim.tip":"ソースをつないで専用モーダルでIN/OUTやクロップを決めておくと、その後の重い処理が超ラクになるよ。","nodes.trim.imageButton":"画像トリム","nodes.trim.videoButton":"動画トリム","nodes.trim.status.empty":"まだ設定されていません","nodes.trim.status.imageEdited":"画像クロップ済み","nodes.trim.status.videoEdited":"動画トリム済み","nodes.trim.status.imageSummary":"画像 {{width}}% × {{height}}% で表示中","nodes.trim.status.videoSummary":"動画 {{start}} → {{end}}{{strict}}","nodes.trim.status.videoEndLabel":"最後","nodes.trim.status.videoStrictSuffix":"（キッチリ）","nodes.trim.modalPlaceholder.image":"ハイライトされた枠や角をドラッグして、表示中の画像をトリミングしてね。","nodes.trim.modalPlaceholder.video":"動画トリム専用モーダルはまもなく登場。IN/OUTを正確に設定できる編集スペースになるよ。","nodes.trim.modalPlaceholder.noImage":"先に画像ロードノードを接続してメディアを選んでね。","nodes.trim.toast.imageSaved":"画像のトリム設定を保存したよ。","nodes.trim.toast.videoSaved":"動画のトリム設定を保存したよ。","nodes.mediaPreview.trimmedBadge":"トリム結果","nodes.mediaPreview.trimmedRange":"範囲 {{start}} → {{end}}{{strict}}","nodes.mediaPreview.trimmedCrop":"トリム {{width}}% × {{height}}%","nodes.trim.modalPlaceholder.noVideo":"先に動画ロードノードをつなげてプレビューをつくってからトリムしてね。","nodes.trim.modalHint.video":"タイムラインのハンドルか時間入力でIN/OUTを決めて、保存すれば下流にも反映されるよ。","nodes.trim.video.previewFallback":"動画ソース","nodes.trim.video.startLabel":"開始","nodes.trim.video.endLabel":"終了","nodes.trim.video.durationUnknown":"長さは未取得","nodes.trim.video.strictLabel":"キッチリカット","nodes.trim.video.strictHint":"指定範囲の外はフレームごと捨てるよ。","nodes.trim.video.controls.play":"再生","nodes.trim.video.controls.pause":"一時停止","nodes.trim.video.controls.stepBack":"1コマ戻す","nodes.trim.video.controls.stepForward":"1コマ進める","nodes.trim.video.startHandle":"開始ハンドル","nodes.trim.video.endHandle":"終了ハンドル","nodes.resize.tip":"リサイズは書き出し直前に置くとリサンプリング回数を減らせるよ。","nodes.overlay.tip":"ベースとレイヤー両方を接続するとアルファ付きで重ね合わせできるよ。","nodes.text.tip":"テキストノードは背景入力に重ねて、くっきりしたタイトルをGPUで描画するよ。","nodes.crop.tip":"クロップは表示枠を切るだけだから、後段のリサイズや書き出しとセットで使うのが吉。","nodes.speed.tip":"スピード変更は下流の尺も変わるから、繋ぎ直してからキューを流してね。","nodes.changeFps.tip":"可変フレームレート素材は書き出し前にFPS変換で揃えると音ズレ防止になるよ。","nodes.export.tip":"エクスポートまで辿り着いたフローだけがファイルを書き出すから忘れずにつないでね。","ports.inputsLabel":"{{title}} の入力","ports.outputsLabel":"{{title}} の出力","ports.emptyInputs":"入力なし","ports.emptyOutputs":"出力なし","ports.direction.input":"入力","ports.direction.output":"出力","ports.portLabel":"{{direction}}ポート {{label}} ({{dataType}})","connections.title":"接続","connections.ariaLabel":"接続リスト","connections.empty":"接続はまだありません","connections.ready":"出力ポートを選んで接続を始めてね","connections.remove":"接続を削除","connections.itemLabel":"{{from}} → {{to}}","connections.pending":"{{from}} から接続する入力ポートを選択してください","diagnostics.ariaLabel":"ログと診断","diagnostics.title":"ログ & 診断","diagnostics.crashConsent":"クラッシュダンプを含める","diagnostics.passwordPlaceholder":"エクスポート用パスワード","diagnostics.exportButton":"ログを書き出し","diagnostics.inspectHistoryTitle":"inspect履歴 (20件)","diagnostics.noExport":"まだエクスポートしていません","diagnostics.lastExport":"最後のエクスポート: {{path}} (SHA {{sha}})","diagnostics.unknownSha":"不明","diagnostics.historyEmpty":"履歴はまだありません","diagnostics.noDetails":"詳細なし","diagnostics.defaultToken":"トークン?","diagnostics.clipCount":"{{count}} クリップ","diagnostics.defaultPath":"診断フォルダー","json.banner":"JSONプロジェクトの保存/読み込みはここから。schemaVersion=1.0.7 を保持します。","json.export":"JSONを書き出し","json.import":"JSONを読み込み","json.editorLabel":"保存用JSON","canvas.ariaLabel":"ノードキャンバス","canvas.controls":"キャンバス操作","canvas.toolSelectTooltip":"選択ツール (V)","canvas.toolPanTooltip":"パンビュー (H)","canvas.fitViewTooltip":"全体表示 (.)","canvas.zoomDisplayLabel":"ズーム設定（拡大: ⌥+〜 / ⌥+Shift+； ・ 縮小: ⌥+= / ⌥+Shift+=）","canvas.zoomIn":"拡大 (⌥+〜 / ⌥+Shift+；)","canvas.zoomOut":"縮小 (⌥+= / ⌥+Shift+=)","canvas.zoomToFit":"全体表示にズーム","canvas.zoomApply":"適用","canvas.zoomInputLabel":"ズーム %","canvas.zoomInputPlaceholder":"例: 150","toast.queueRefreshFailed":"キュー更新に失敗: {{message}}","toast.demoJobMissing":"デモジョブAPIがみつからないよ","toast.demoJobAdded":"デモジョブを追加したよ","toast.queueFull":"{{code}}: 待機キューが満杯だよ","toast.demoJobFailed":"ジョブ追加に失敗したよ: {{reason}}","toast.cancelAll":"全ジョブをキャンセルしたよ","toast.mediaSelected":"{{name}} を読み込んだよ","toast.mediaFailed":"ファイル選択を開けなかったよ。もう一度試してね。","toast.mediaWrongTypeImage":"このノードは画像ファイル専用だよ","toast.mediaWrongTypeVideo":"このノードは動画ファイル専用だよ","toast.exportMissing":"Export APIが未接続だよ","toast.exportFailed":"エクスポートに失敗したよ: {{reason}}","toast.logsExported":"ログを {{path}}{{shaSuffix}} にエクスポートしたよ","toast.logsExportedSha":" (SHA256: {{sha}})","toast.crashOn":"クラッシュダンプを含めるよ","toast.crashOff":"クラッシュダンプを除外するよ","errors.schemaMissing":"schemaVersion がありません","errors.jsonLoadFailed":"JSONの読み込みに失敗しました: {{reason}}","about.title":"アバウトとライセンス","about.ariaLabel":"アバウトとライセンス","about.distributionLabel":"FFmpeg配布形態","about.licenseLabel":"ライセンス","about.pathLabel":"FFmpegパス","about.versionLabel":"FFmpegバージョン","about.origin.bundled":"NodeVision同梱 (LGPL)","about.origin.external":"外部/システムのバイナリ","about.noticeBundled":"NodeVisionはLGPL v2.1+準拠でビルドしたFFmpegを同梱しています。下のリンクからライセンス原文と対応するソースコードにアクセスしてください。","about.noticeExternal":"このFFmpegはシステムから検出したものです（ライセンス: {{license}}）。再配布ポリシーに合っているかご確認ください。","about.licenseLinkLabel":"ライセンス原文","about.sourceLinkLabel":"FFmpegソース","about.versionUnknown":"不明","about.licenseValue.lgpl":"LGPL v2.1+","about.licenseValue.gpl":"GPL v3+","about.licenseValue.nonfree":"非フリー構成 (--enable-nonfree)","about.licenseValue.unknown":"ライセンス不明","nodeTemplate.loadMedia.title":"メディアを読み込み","nodeTemplate.loadMedia.description":"ローカルの画像や動画を開く","nodeTemplate.loadMedia.port.media":"メディア","nodeTemplate.loadImage.title":"画像を読み込み","nodeTemplate.loadImage.description":"ローカルの画像ファイルを開く","nodeTemplate.loadImage.port.media":"画像","nodeTemplate.loadVideo.title":"動画を読み込み","nodeTemplate.loadVideo.description":"ローカルの動画ファイルを開く","nodeTemplate.loadVideo.port.media":"動画","nodeTemplate.mediaPreview.title":"メディアプレビュー","nodeTemplate.mediaPreview.description":"接続中の画像・動画をノードで表示","nodeTemplate.mediaPreview.port.source":"ソース","nodeTemplate.trim.title":"トリム","nodeTemplate.trim.description":"IN/OUT間で素材をカット","nodeTemplate.trim.port.source":"ソース","nodeTemplate.trim.port.result":"出力","nodeTemplate.resize.title":"リサイズ","nodeTemplate.resize.description":"アスペクト比を保ってサイズ変更","nodeTemplate.resize.port.source":"ソース","nodeTemplate.resize.port.resized":"リサイズ後","nodeTemplate.overlay.title":"オーバーレイ","nodeTemplate.overlay.description":"2つの映像を合成して位置を調整","nodeTemplate.overlay.port.base":"ベース","nodeTemplate.overlay.port.layer":"レイヤー","nodeTemplate.overlay.port.composite":"合成結果","nodeTemplate.text.title":"テキストオーバーレイ","nodeTemplate.text.description":"文字や字幕を描画","nodeTemplate.text.port.background":"背景","nodeTemplate.text.port.titled":"テキスト出力","nodeTemplate.crop.title":"クロップ","nodeTemplate.crop.description":"表示範囲をトリミング","nodeTemplate.crop.port.source":"ソース","nodeTemplate.crop.port.cropped":"クロップ後","nodeTemplate.speed.title":"再生速度","nodeTemplate.speed.description":"スロー/早回しを設定","nodeTemplate.speed.port.source":"ソース","nodeTemplate.speed.port.retimed":"速度変更後","nodeTemplate.changeFps.title":"フレームレート変換","nodeTemplate.changeFps.description":"可変フレームを固定フレームに揃える","nodeTemplate.changeFps.port.source":"ソース","nodeTemplate.changeFps.port.normalized":"正規化後","nodeTemplate.export.title":"メディアを書き出し","nodeTemplate.export.description":"最終結果を書き出す","nodeTemplate.export.port.program":"プログラム","nodeTemplate.export.port.delivery":"書き出し結果","demo.jobName":"FFmpeg 合成"}};
       window.__NODEVISION_SUPPORTED_LOCALES__ = ["en-US","ja-JP"];
       window.__NODEVISION_FALLBACK_LOCALE__ = 'ja-JP';
     </script>
@@ -1847,6 +2187,7 @@
       Object.defineProperty(exports, "__esModule", { value: true });
       const dom_1 = require("./dom");
       const state_1 = require("./state");
+      const trim_shared_1 = require("./nodes/trim-shared");
       const nodes_1 = require("./nodes");
       const ports_1 = require("./ports");
       const preview_layout_1 = require("./nodes/preview-layout");
@@ -1890,6 +2231,21 @@
           }
           const elements = (0, dom_1.captureDomElements)();
           let unsavedWorkflowLabel = 'Unsaved Workflow';
+          let activeModal = null;
+          let modalBackdrop = null;
+          let modalContainer = null;
+          let modalTitleElement = null;
+          let modalContentElement = null;
+          let modalCloseButton = null;
+          let modalLastFocused = null;
+          const MODAL_FOCUSABLE_SELECTORS = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+          const DEFAULT_TRIM_REGION = { x: 0, y: 0, width: 1, height: 1 };
+          const MIN_TRIM_REGION_SIZE = 0.05;
+          const MIN_TRIM_VIDEO_RANGE_MS = 100;
+          const TRIM_VIDEO_JOG_STEP_MS = 500;
+          const TRIM_VIDEO_TIMELINE_PADDING = 12;
+          const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
+          const cloneNodeSettings = (settings) => settings ? (0, state_1.deepClone)(settings) : undefined;
           const getErrorMessage = (error) => (error instanceof Error ? error.message : String(error));
           const readStoredLocale = () => {
               try {
@@ -2221,6 +2577,743 @@
               .replace(/>/g, '&gt;')
               .replace(/"/g, '&quot;')
               .replace(/'/g, '&#39;');
+          const describeTrimDuration = (value) => {
+              if (typeof value !== 'number' || !Number.isFinite(value)) {
+                  return t('nodes.trim.video.durationUnknown');
+              }
+              if (value < 1000) {
+                  return `${value} ms`;
+              }
+              if (value < 60000) {
+                  return `${(value / 1000).toFixed(2)} s`;
+              }
+              const minutes = Math.floor(value / 60000);
+              const remainingSeconds = ((value % 60000) / 1000).toFixed(1);
+              return `${minutes}m ${remainingSeconds}s`;
+          };
+          const parseTrimTimecode = (raw) => {
+              const value = raw.trim().replace(',', '.');
+              if (!value) {
+                  return null;
+              }
+              if (/^\d+(\.\d+)?$/.test(value)) {
+                  const seconds = Number(value);
+                  return Number.isFinite(seconds) ? Math.max(0, Math.round(seconds * 1000)) : null;
+              }
+              const segments = value.split(':').map(part => part.trim());
+              if (!segments.length) {
+                  return null;
+              }
+              let multiplier = 1;
+              let total = 0;
+              while (segments.length) {
+                  const segment = segments.pop();
+                  if (!segment) {
+                      return null;
+                  }
+                  const number = Number(segment);
+                  if (!Number.isFinite(number)) {
+                      return null;
+                  }
+                  total += number * multiplier;
+                  multiplier *= 60;
+              }
+              return Math.max(0, Math.round(total * 1000));
+          };
+          const trapFocusWithinModal = (event) => {
+              if (!modalContainer)
+                  return;
+              const focusable = Array.from(modalContainer.querySelectorAll(MODAL_FOCUSABLE_SELECTORS)).filter(element => !element.hasAttribute('disabled'));
+              if (!focusable.length) {
+                  event.preventDefault();
+                  (modalCloseButton ?? modalContainer).focus();
+                  return;
+              }
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              const active = document.activeElement;
+              if (event.shiftKey) {
+                  if (active === first || !focusable.includes(active)) {
+                      event.preventDefault();
+                      last.focus();
+                  }
+              }
+              else if (active === last) {
+                  event.preventDefault();
+                  first.focus();
+              }
+          };
+          const closeActiveModal = () => {
+              if (!activeModal) {
+                  return;
+              }
+              activeModal = null;
+              modalBackdrop?.setAttribute('data-open', 'false');
+              modalContainer?.setAttribute('aria-hidden', 'true');
+              if (modalTitleElement) {
+                  modalTitleElement.textContent = '';
+              }
+              if (modalContentElement) {
+                  modalContentElement.innerHTML = '';
+              }
+              const focusTarget = modalLastFocused;
+              modalLastFocused = null;
+              if (focusTarget) {
+                  focusTarget.focus();
+              }
+          };
+          const ensureModalHost = () => {
+              if (modalBackdrop) {
+                  return;
+              }
+              modalBackdrop = document.createElement('div');
+              modalBackdrop.className = 'nv-modal-backdrop';
+              modalBackdrop.dataset.open = 'false';
+              modalBackdrop.innerHTML = `
+            <div class="nv-modal" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1">
+              <div class="nv-modal-header">
+                <h2 data-modal-title></h2>
+                <button type="button" class="nv-modal-close" data-modal-close aria-label="${escapeHtml(t('common.close'))}">
+                  ×
+                </button>
+              </div>
+              <div class="nv-modal-content" data-modal-content></div>
+            </div>
+          `;
+              document.body.appendChild(modalBackdrop);
+              modalContainer = modalBackdrop.querySelector('.nv-modal');
+              modalTitleElement = modalBackdrop.querySelector('[data-modal-title]');
+              modalContentElement = modalBackdrop.querySelector('[data-modal-content]');
+              modalCloseButton = modalBackdrop.querySelector('[data-modal-close]');
+              modalBackdrop.addEventListener('click', event => {
+                  if (event.target === modalBackdrop) {
+                      closeActiveModal();
+                  }
+              });
+              modalBackdrop.addEventListener('keydown', event => {
+                  if (event.key === 'Tab') {
+                      trapFocusWithinModal(event);
+                  }
+              });
+              modalCloseButton?.addEventListener('click', () => closeActiveModal());
+              document.addEventListener('keydown', event => {
+                  if (event.key === 'Escape' && activeModal) {
+                      event.preventDefault();
+                      closeActiveModal();
+                  }
+              });
+          };
+          const renderTrimImageModal = (session) => {
+              if (!modalTitleElement || !modalContentElement) {
+                  return;
+              }
+              modalTitleElement.textContent = t('nodes.trim.imageButton');
+              modalContentElement.innerHTML = '';
+              if (!session.sourcePreview) {
+                  const warning = document.createElement('p');
+                  warning.className = 'trim-modal-placeholder';
+                  warning.textContent = t('nodes.trim.modalPlaceholder.noImage');
+                  modalContentElement.appendChild(warning);
+                  return;
+              }
+              modalContentElement.innerHTML = `
+            <div class="trim-image-stage" data-trim-stage>
+              <img src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
+              <div class="trim-crop-box" data-trim-box>
+                ${['nw', 'ne', 'sw', 'se']
+                  .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
+                  .join('')}
+              </div>
+            </div>
+            <p class="trim-modal-hint">${escapeHtml(t('nodes.trim.modalPlaceholder.image'))}</p>
+            <div class="trim-modal-actions">
+              <button type="button" class="pill-button" data-trim-reset>${escapeHtml(t('actions.reset'))}</button>
+              <span class="trim-modal-actions-spacer"></span>
+              <button type="button" class="pill-button" data-trim-cancel>${escapeHtml(t('actions.cancel'))}</button>
+              <button type="button" class="pill-button primary" data-trim-save>${escapeHtml(t('actions.save'))}</button>
+            </div>
+          `;
+              const imageElement = modalContentElement.querySelector('.trim-image-stage img');
+              if (imageElement?.complete ?? false) {
+                  initializeTrimImageControls(session);
+              }
+              else {
+                  imageElement?.addEventListener('load', () => {
+                      initializeTrimImageControls(session);
+                  }, { once: true });
+              }
+          };
+          const renderTrimVideoModal = (session) => {
+              if (!modalTitleElement || !modalContentElement) {
+                  return;
+              }
+              const preview = session.sourcePreview?.kind === 'video' ? session.sourcePreview : null;
+              const hasPreview = Boolean(preview);
+              const disabledAttr = hasPreview ? '' : ' disabled';
+              const startValue = (0, trim_shared_1.formatTrimTimecode)(session.draftStart);
+              const endValue = (0, trim_shared_1.formatTrimTimecode)(session.draftEnd);
+              const previewName = preview?.name ?? t('nodes.trim.video.previewFallback');
+              const durationLabel = describeTrimDuration(session.durationMs ?? preview?.durationMs ?? null);
+              const previewMarkup = preview
+                  ? `<video src="${preview.url}" data-trim-video-player preload="metadata" playsinline muted controls></video>`
+                  : `<div class="trim-video-preview-empty">${escapeHtml(t('nodes.trim.modalPlaceholder.noVideo'))}</div>`;
+              modalTitleElement.textContent = t('nodes.trim.videoButton');
+              modalContentElement.innerHTML = `
+            <div class="trim-video-layout" data-trim-video-ready="${hasPreview}">
+              <div class="trim-video-preview${hasPreview ? '' : ' is-empty'}" data-trim-video-preview>
+                ${previewMarkup}
+                <div class="trim-video-preview-meta">
+                  <span class="trim-video-preview-name" title="${escapeHtml(previewName)}">${escapeHtml(previewName)}</span>
+                  <span class="trim-video-preview-duration" data-trim-video-duration>${escapeHtml(durationLabel)}</span>
+                </div>
+              </div>
+              <div class="trim-video-fields">
+                <label class="trim-video-field">
+                  <span>${escapeHtml(t('nodes.trim.video.startLabel'))}</span>
+                  <input type="text" data-trim-video-start value="${escapeHtml(startValue)}" placeholder="00:00.000" inputmode="decimal"${disabledAttr} />
+                </label>
+                <label class="trim-video-field">
+                  <span>${escapeHtml(t('nodes.trim.video.endLabel'))}</span>
+                  <input type="text" data-trim-video-end value="${escapeHtml(endValue)}" placeholder="00:00.000" inputmode="decimal"${disabledAttr} />
+                </label>
+                <label class="trim-video-checkbox">
+                  <input type="checkbox" data-trim-video-strict${session.draftStrict ? ' checked' : ''}${disabledAttr} />
+                  <div>
+                    <span>${escapeHtml(t('nodes.trim.video.strictLabel'))}</span>
+                    <small>${escapeHtml(t('nodes.trim.video.strictHint'))}</small>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div class="trim-video-timeline"${hasPreview ? '' : ' data-disabled="true"'} data-trim-video-timeline>
+              <div class="trim-video-track" data-trim-video-track>
+                <div class="trim-video-range" data-trim-video-range>
+                  <button type="button" class="trim-video-handle" data-trim-video-handle="start" aria-label="${escapeHtml(t('nodes.trim.video.startHandle'))}"${disabledAttr}></button>
+                  <button type="button" class="trim-video-handle" data-trim-video-handle="end" aria-label="${escapeHtml(t('nodes.trim.video.endHandle'))}"${disabledAttr}></button>
+                </div>
+              </div>
+              <div class="trim-video-timecodes">
+                <span data-trim-video-timecode="start">${escapeHtml(startValue || '00:00.000')}</span>
+                <span data-trim-video-timecode="playhead">00:00.000</span>
+                <span data-trim-video-timecode="end">${escapeHtml(endValue || '--:--.---')}</span>
+              </div>
+            </div>
+            <p class="trim-modal-hint">${escapeHtml(t('nodes.trim.modalHint.video'))}</p>
+            <div class="trim-modal-actions trim-video-actions">
+              <div class="trim-video-transport">
+                <button type="button" class="pill-button" data-trim-video-jog="back"${disabledAttr}>${escapeHtml(t('nodes.trim.video.controls.stepBack'))}</button>
+                <button type="button" class="pill-button" data-trim-video-play${disabledAttr}>${escapeHtml(t('nodes.trim.video.controls.play'))}</button>
+                <button type="button" class="pill-button" data-trim-video-jog="forward"${disabledAttr}>${escapeHtml(t('nodes.trim.video.controls.stepForward'))}</button>
+              </div>
+              <span class="trim-modal-actions-spacer"></span>
+              <button type="button" class="pill-button" data-trim-reset${disabledAttr}>${escapeHtml(t('actions.reset'))}</button>
+              <button type="button" class="pill-button" data-trim-cancel>${escapeHtml(t('actions.cancel'))}</button>
+              <button type="button" class="pill-button primary" data-trim-save${disabledAttr}>${escapeHtml(t('actions.save'))}</button>
+            </div>
+          `;
+              initializeTrimVideoControls(session);
+          };
+          const renderTrimModalView = (state) => {
+              if (!modalContentElement || !modalTitleElement) {
+                  return;
+              }
+              if (state.mode === 'image') {
+                  renderTrimImageModal(state);
+                  return;
+              }
+              renderTrimVideoModal(state);
+          };
+          const persistTrimSettings = (nodeId, mutate, toastKey) => {
+              const targetNode = state.nodes.find(entry => entry.id === nodeId);
+              if (!targetNode) {
+                  closeActiveModal();
+                  return;
+              }
+              const settings = (0, trim_shared_1.ensureTrimSettings)(targetNode);
+              mutate(settings);
+              scheduleTrimPreviewUpdate(targetNode);
+              closeActiveModal();
+              commitState();
+              showToast(t(toastKey));
+          };
+          const initializeTrimImageControls = (session) => {
+              if (!modalContentElement) {
+                  return;
+              }
+              const stage = modalContentElement.querySelector('[data-trim-stage]');
+              const cropBox = modalContentElement.querySelector('[data-trim-box]');
+              if (!stage || !cropBox) {
+                  return;
+              }
+              const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
+              const updateCropBoxStyles = () => {
+                  const region = session.draftRegion;
+                  cropBox.style.left = `${region.x * 100}%`;
+                  cropBox.style.top = `${region.y * 100}%`;
+                  cropBox.style.width = `${region.width * 100}%`;
+                  cropBox.style.height = `${region.height * 100}%`;
+              };
+              const stopInteraction = (pointerMove, pointerUp) => {
+                  window.removeEventListener('pointermove', pointerMove);
+                  window.removeEventListener('pointerup', pointerUp);
+              };
+              const startMove = (event) => {
+                  event.preventDefault();
+                  const rect = stage.getBoundingClientRect();
+                  const pointerId = event.pointerId ?? 1;
+                  const start = { ...session.draftRegion };
+                  const startX = event.clientX;
+                  const startY = event.clientY;
+                  const handleMove = (moveEvent) => {
+                      if (moveEvent.pointerId !== pointerId)
+                          return;
+                      moveEvent.preventDefault();
+                      const deltaX = (moveEvent.clientX - startX) / rect.width;
+                      const deltaY = (moveEvent.clientY - startY) / rect.height;
+                      const nextX = clampValue(start.x + deltaX, 0, 1 - start.width);
+                      const nextY = clampValue(start.y + deltaY, 0, 1 - start.height);
+                      session.draftRegion = { ...start, x: nextX, y: nextY };
+                      updateCropBoxStyles();
+                  };
+                  const handleUp = (moveEvent) => {
+                      if (moveEvent.pointerId !== pointerId)
+                          return;
+                      stopInteraction(handleMove, handleUp);
+                  };
+                  window.addEventListener('pointermove', handleMove);
+                  window.addEventListener('pointerup', handleUp);
+              };
+              const startResize = (handle, event) => {
+                  event.preventDefault();
+                  const rect = stage.getBoundingClientRect();
+                  const pointerId = event.pointerId ?? 1;
+                  const start = { ...session.draftRegion };
+                  const startX = event.clientX;
+                  const startY = event.clientY;
+                  const handleMove = (moveEvent) => {
+                      if (moveEvent.pointerId !== pointerId)
+                          return;
+                      moveEvent.preventDefault();
+                      const deltaX = (moveEvent.clientX - startX) / rect.width;
+                      const deltaY = (moveEvent.clientY - startY) / rect.height;
+                      let next = { ...start };
+                      if (handle.includes('n')) {
+                          const newY = clampValue(start.y + deltaY, 0, start.y + start.height - MIN_TRIM_REGION_SIZE);
+                          next.height = clampValue(start.height + (start.y - newY), MIN_TRIM_REGION_SIZE, 1 - newY);
+                          next.y = newY;
+                      }
+                      if (handle.includes('s')) {
+                          const newHeight = clampValue(start.height + deltaY, MIN_TRIM_REGION_SIZE, 1 - start.y);
+                          next.height = newHeight;
+                      }
+                      if (handle.includes('w')) {
+                          const newX = clampValue(start.x + deltaX, 0, start.x + start.width - MIN_TRIM_REGION_SIZE);
+                          next.width = clampValue(start.width + (start.x - newX), MIN_TRIM_REGION_SIZE, 1 - newX);
+                          next.x = newX;
+                      }
+                      if (handle.includes('e')) {
+                          const newWidth = clampValue(start.width + deltaX, MIN_TRIM_REGION_SIZE, 1 - start.x);
+                          next.width = newWidth;
+                      }
+                      if (next.x + next.width > 1) {
+                          next.width = 1 - next.x;
+                      }
+                      if (next.y + next.height > 1) {
+                          next.height = 1 - next.y;
+                      }
+                      session.draftRegion = next;
+                      updateCropBoxStyles();
+                  };
+                  const handleUp = (moveEvent) => {
+                      if (moveEvent.pointerId !== pointerId)
+                          return;
+                      stopInteraction(handleMove, handleUp);
+                  };
+                  window.addEventListener('pointermove', handleMove);
+                  window.addEventListener('pointerup', handleUp);
+              };
+              cropBox.addEventListener('pointerdown', event => {
+                  const target = event.target;
+                  const handle = target?.dataset.trimHandle;
+                  if (handle) {
+                      startResize(handle, event);
+                  }
+                  else {
+                      startMove(event);
+                  }
+              });
+              modalContentElement.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
+                  session.draftRegion = { ...DEFAULT_TRIM_REGION };
+                  updateCropBoxStyles();
+              });
+              modalContentElement.querySelector('[data-trim-cancel]')?.addEventListener('click', () => {
+                  closeActiveModal();
+              });
+              modalContentElement.querySelector('[data-trim-save]')?.addEventListener('click', () => {
+                  persistTrimSettings(session.nodeId, settings => {
+                      settings.region = { ...session.draftRegion };
+                  }, 'nodes.trim.toast.imageSaved');
+              });
+              updateCropBoxStyles();
+          };
+          const initializeTrimVideoControls = (session) => {
+              if (!modalContentElement) {
+                  return;
+              }
+              const cancelButton = modalContentElement.querySelector('[data-trim-cancel]');
+              cancelButton?.addEventListener('click', () => {
+                  closeActiveModal();
+              });
+              if (!session.sourcePreview || session.sourcePreview.kind !== 'video') {
+                  return;
+              }
+              const videoElement = modalContentElement.querySelector('[data-trim-video-player]');
+              const startInput = modalContentElement.querySelector('[data-trim-video-start]');
+              const endInput = modalContentElement.querySelector('[data-trim-video-end]');
+              const strictInput = modalContentElement.querySelector('[data-trim-video-strict]');
+              const timeline = modalContentElement.querySelector('[data-trim-video-timeline]');
+              const track = modalContentElement.querySelector('[data-trim-video-track]');
+              const range = modalContentElement.querySelector('[data-trim-video-range]');
+              const startHandle = modalContentElement.querySelector('[data-trim-video-handle="start"]');
+              const endHandle = modalContentElement.querySelector('[data-trim-video-handle="end"]');
+              const timecodeStart = modalContentElement.querySelector('[data-trim-video-timecode="start"]');
+              const timecodeEnd = modalContentElement.querySelector('[data-trim-video-timecode="end"]');
+              const timecodePlayhead = modalContentElement.querySelector('[data-trim-video-timecode="playhead"]');
+              const playButton = modalContentElement.querySelector('[data-trim-video-play]');
+              const jogButtons = Array.from(modalContentElement.querySelectorAll('[data-trim-video-jog]'));
+              const resetButton = modalContentElement.querySelector('[data-trim-reset]');
+              const saveButton = modalContentElement.querySelector('[data-trim-save]');
+              if (!videoElement || !startInput || !endInput || !timeline || !track || !range) {
+                  return;
+              }
+              const getDuration = () => {
+                  if (typeof session.durationMs === 'number' && session.durationMs > 0) {
+                      return session.durationMs;
+                  }
+                  const previewDuration = session.sourcePreview?.durationMs;
+                  if (typeof previewDuration === 'number' && previewDuration > 0) {
+                      session.durationMs = previewDuration;
+                      return previewDuration;
+                  }
+                  if (Number.isFinite(videoElement.duration) && videoElement.duration > 0) {
+                      const computed = Math.round(videoElement.duration * 1000);
+                      session.durationMs = computed;
+                      return computed;
+                  }
+                  return 0;
+              };
+              const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
+              const normalizeRangeForSettings = (startValue, endValue, duration) => {
+                  const sanitize = (value) => {
+                      if (typeof value !== 'number' || !Number.isFinite(value)) {
+                          return null;
+                      }
+                      return Math.max(0, Math.round(value));
+                  };
+                  let normalizedStart = sanitize(startValue);
+                  let normalizedEnd = sanitize(endValue);
+                  if (normalizedStart !== null && normalizedStart <= TRIM_VIDEO_DEFAULT_EPSILON_MS) {
+                      normalizedStart = null;
+                  }
+                  if (duration && normalizedEnd !== null && Math.abs(normalizedEnd - duration) <= TRIM_VIDEO_DEFAULT_EPSILON_MS) {
+                      normalizedEnd = null;
+                  }
+                  if (normalizedEnd !== null && normalizedStart !== null && normalizedEnd < normalizedStart) {
+                      normalizedEnd = normalizedStart;
+                  }
+                  return { start: normalizedStart, end: normalizedEnd };
+              };
+              const ensureDraftBounds = () => {
+                  const duration = getDuration();
+                  const defaultEnd = duration > 0 ? duration : MIN_TRIM_VIDEO_RANGE_MS;
+                  if (session.draftStart == null || session.draftStart < 0) {
+                      session.draftStart = 0;
+                  }
+                  if (session.draftEnd == null || session.draftEnd <= session.draftStart) {
+                      session.draftEnd = duration > 0 ? duration : session.draftStart + MIN_TRIM_VIDEO_RANGE_MS;
+                  }
+                  if (duration > 0 && session.draftEnd > duration) {
+                      session.draftEnd = duration;
+                  }
+                  if ((session.draftEnd ?? defaultEnd) - (session.draftStart ?? 0) < MIN_TRIM_VIDEO_RANGE_MS) {
+                      session.draftEnd = Math.min(duration > 0 ? duration : session.draftStart + MIN_TRIM_VIDEO_RANGE_MS, (session.draftStart ?? 0) + MIN_TRIM_VIDEO_RANGE_MS);
+                  }
+                  if (duration > 0 && (session.draftEnd ?? duration) > duration) {
+                      session.draftEnd = duration;
+                  }
+              };
+              const updateInputValues = () => {
+                  startInput.value = (0, trim_shared_1.formatTrimTimecode)(session.draftStart ?? 0) || '00:00.000';
+                  endInput.value =
+                      (0, trim_shared_1.formatTrimTimecode)(session.draftEnd ?? session.draftStart ?? 0) || (0, trim_shared_1.formatTrimTimecode)(session.draftStart ?? 0);
+                  if (strictInput) {
+                      strictInput.checked = Boolean(session.draftStrict);
+                  }
+              };
+              const updateTimelineStyles = () => {
+                  const duration = getDuration();
+                  if (!duration || !track || !range) {
+                      timeline.dataset.disabled = 'true';
+                      return;
+                  }
+                  timeline.dataset.disabled = 'false';
+                  const rect = track.getBoundingClientRect();
+                  const usable = Math.max(1, rect.width - TRIM_VIDEO_TIMELINE_PADDING * 2);
+                  const startRatio = clampValue((session.draftStart ?? 0) / duration, 0, 1);
+                  const endRatio = clampValue((session.draftEnd ?? duration) / duration, startRatio, 1);
+                  const left = TRIM_VIDEO_TIMELINE_PADDING + startRatio * usable;
+                  const width = Math.max(4, (endRatio - startRatio) * usable);
+                  range.style.left = `${left}px`;
+                  range.style.width = `${width}px`;
+              };
+              const updateTimecodeLabels = () => {
+                  if (timecodeStart) {
+                      timecodeStart.textContent = (0, trim_shared_1.formatTrimTimecode)(session.draftStart ?? 0) || '00:00.000';
+                  }
+                  if (timecodeEnd) {
+                      const endValue = session.draftEnd ?? session.draftStart ?? 0;
+                      timecodeEnd.textContent = (0, trim_shared_1.formatTrimTimecode)(endValue) || '--:--.---';
+                  }
+              };
+              const updatePlayheadLabel = () => {
+                  if (timecodePlayhead) {
+                      timecodePlayhead.textContent =
+                          (0, trim_shared_1.formatTrimTimecode)(Math.round(videoElement.currentTime * 1000)) || '00:00.000';
+                  }
+              };
+              const refreshUi = () => {
+                  ensureDraftBounds();
+                  updateInputValues();
+                  updateTimelineStyles();
+                  updateTimecodeLabels();
+                  updatePlayheadLabel();
+              };
+              const setDraftStart = (nextValue) => {
+                  const duration = getDuration();
+                  const maxStart = Math.max(0, (session.draftEnd ?? (duration || MIN_TRIM_VIDEO_RANGE_MS)) - MIN_TRIM_VIDEO_RANGE_MS);
+                  session.draftStart = clampValue(Math.round(nextValue), 0, maxStart);
+                  if ((session.draftEnd ?? session.draftStart) - session.draftStart < MIN_TRIM_VIDEO_RANGE_MS) {
+                      session.draftEnd = session.draftStart + MIN_TRIM_VIDEO_RANGE_MS;
+                  }
+                  if (duration > 0 && (session.draftEnd ?? duration) > duration) {
+                      session.draftEnd = duration;
+                  }
+                  refreshUi();
+              };
+              const setDraftEnd = (nextValue) => {
+                  const duration = getDuration();
+                  const minEnd = (session.draftStart ?? 0) + MIN_TRIM_VIDEO_RANGE_MS;
+                  const maxEnd = duration || Math.max(nextValue, minEnd);
+                  session.draftEnd = clampValue(Math.round(nextValue), minEnd, maxEnd);
+                  refreshUi();
+              };
+              const setFromInput = (kind, raw) => {
+                  const parsed = parseTrimTimecode(raw);
+                  if (parsed == null) {
+                      refreshUi();
+                      return;
+                  }
+                  if (kind === 'start') {
+                      setDraftStart(parsed);
+                  }
+                  else {
+                      setDraftEnd(parsed);
+                  }
+              };
+              startInput.addEventListener('change', () => setFromInput('start', startInput.value));
+              startInput.addEventListener('blur', () => setFromInput('start', startInput.value));
+              endInput.addEventListener('change', () => setFromInput('end', endInput.value));
+              endInput.addEventListener('blur', () => setFromInput('end', endInput.value));
+              strictInput?.addEventListener('change', () => {
+                  session.draftStrict = Boolean(strictInput.checked);
+              });
+              const durationSync = () => {
+                  const duration = getDuration();
+                  if (!duration) {
+                      return;
+                  }
+                  if (session.draftEnd == null || session.draftEnd > duration) {
+                      session.draftEnd = duration;
+                  }
+                  refreshUi();
+              };
+              if (videoElement.readyState >= 1) {
+                  durationSync();
+              }
+              else {
+                  videoElement.addEventListener('loadedmetadata', () => {
+                      durationSync();
+                  });
+              }
+              const handlePointerDrag = (handle, event) => {
+                  const duration = getDuration();
+                  if (!duration) {
+                      return;
+                  }
+                  event.preventDefault();
+                  const rect = track.getBoundingClientRect();
+                  const usable = Math.max(1, rect.width - TRIM_VIDEO_TIMELINE_PADDING * 2);
+                  const pointerId = event.pointerId ?? 1;
+                  const move = (moveEvent) => {
+                      if (moveEvent.pointerId !== pointerId) {
+                          return;
+                      }
+                      moveEvent.preventDefault();
+                      const relative = clampValue(moveEvent.clientX - rect.left - TRIM_VIDEO_TIMELINE_PADDING, 0, usable);
+                      const ratio = relative / usable;
+                      const nextValue = ratio * duration;
+                      if (handle === 'start') {
+                          setDraftStart(nextValue);
+                      }
+                      else {
+                          setDraftEnd(nextValue);
+                      }
+                  };
+                  const stop = (moveEvent) => {
+                      if (moveEvent.pointerId !== pointerId) {
+                          return;
+                      }
+                      window.removeEventListener('pointermove', move);
+                      window.removeEventListener('pointerup', stop);
+                  };
+                  window.addEventListener('pointermove', move);
+                  window.addEventListener('pointerup', stop);
+              };
+              startHandle?.addEventListener('pointerdown', event => handlePointerDrag('start', event));
+              endHandle?.addEventListener('pointerdown', event => handlePointerDrag('end', event));
+              const updatePlayButtonState = () => {
+                  if (!playButton) {
+                      return;
+                  }
+                  playButton.textContent = videoElement.paused
+                      ? t('nodes.trim.video.controls.play')
+                      : t('nodes.trim.video.controls.pause');
+              };
+              const stopPlaybackIfNeeded = () => {
+                  const end = session.draftEnd ?? getDuration();
+                  if (!end) {
+                      return;
+                  }
+                  if (videoElement.currentTime * 1000 >= end - 5) {
+                      videoElement.pause();
+                      videoElement.currentTime = end / 1000;
+                      updatePlayButtonState();
+                  }
+              };
+              playButton?.addEventListener('click', () => {
+                  if (videoElement.paused) {
+                      videoElement.currentTime = (session.draftStart ?? 0) / 1000;
+                      void videoElement.play().catch(error => console.warn('[NodeVision] video preview play failed', error));
+                  }
+                  else {
+                      videoElement.pause();
+                  }
+                  updatePlayButtonState();
+              });
+              videoElement.addEventListener('play', updatePlayButtonState);
+              videoElement.addEventListener('pause', updatePlayButtonState);
+              videoElement.addEventListener('timeupdate', () => {
+                  updatePlayheadLabel();
+                  stopPlaybackIfNeeded();
+              });
+              videoElement.addEventListener('ended', () => {
+                  updatePlayButtonState();
+                  updatePlayheadLabel();
+              });
+              jogButtons.forEach(button => {
+                  const direction = button.dataset.trimVideoJog;
+                  button.addEventListener('click', () => {
+                      const duration = getDuration();
+                      const delta = direction === 'back' ? -TRIM_VIDEO_JOG_STEP_MS : TRIM_VIDEO_JOG_STEP_MS;
+                      const nextValue = clampValue(Math.round(videoElement.currentTime * 1000) + delta, 0, duration || Math.max(session.draftEnd ?? TRIM_VIDEO_JOG_STEP_MS, TRIM_VIDEO_JOG_STEP_MS));
+                      videoElement.pause();
+                      videoElement.currentTime = nextValue / 1000;
+                      updatePlayButtonState();
+                      updatePlayheadLabel();
+                  });
+              });
+              resetButton?.addEventListener('click', () => {
+                  const duration = getDuration();
+                  session.draftStart = 0;
+                  session.draftEnd = duration > 0 ? duration : MIN_TRIM_VIDEO_RANGE_MS;
+                  session.draftStrict = false;
+                  if (strictInput) {
+                      strictInput.checked = false;
+                  }
+                  videoElement.pause();
+                  videoElement.currentTime = 0;
+                  updatePlayButtonState();
+                  refreshUi();
+              });
+              refreshUi();
+              saveButton?.addEventListener('click', () => {
+                  if (saveButton.disabled) {
+                      return;
+                  }
+                  const duration = getDuration() || session.durationMs || session.sourcePreview?.durationMs || null;
+                  const normalized = normalizeRangeForSettings(session.draftStart, session.draftEnd, duration);
+                  persistTrimSettings(session.nodeId, settings => {
+                      settings.startMs = normalized.start;
+                      settings.endMs = normalized.end;
+                      settings.strictCut = Boolean(session.draftStrict);
+                  }, 'nodes.trim.toast.videoSaved');
+              });
+          };
+          const renderActiveModal = () => {
+              if (!modalBackdrop || !modalContainer) {
+                  return;
+              }
+              if (!activeModal) {
+                  modalBackdrop.dataset.open = 'false';
+                  modalContainer.setAttribute('aria-hidden', 'true');
+                  return;
+              }
+              modalBackdrop.dataset.open = 'true';
+              modalContainer.setAttribute('aria-hidden', 'false');
+              if (activeModal.type === 'trim') {
+                  renderTrimModalView(activeModal);
+              }
+              requestAnimationFrame(() => {
+                  const focusTarget = modalContainer?.querySelector(MODAL_FOCUSABLE_SELECTORS) ?? modalCloseButton;
+                  (focusTarget ?? modalContainer)?.focus();
+              });
+          };
+          const openTrimModal = (mode, nodeId) => {
+              ensureModalHost();
+              modalLastFocused =
+                  document.activeElement instanceof HTMLElement ? document.activeElement : null;
+              const targetNode = state.nodes.find(entry => entry.id === nodeId);
+              if (!targetNode) {
+                  console.warn('[NodeVision] trim modal requested for missing node', nodeId);
+                  return;
+              }
+              const settings = (0, trim_shared_1.ensureTrimSettings)(targetNode);
+              if (mode === 'image') {
+                  const sourcePreview = findTrimSourcePreview(nodeId);
+                  activeModal = {
+                      type: 'trim',
+                      mode: 'image',
+                      nodeId,
+                      draftRegion: { ...(settings.region ?? DEFAULT_TRIM_REGION) },
+                      sourcePreview: sourcePreview && sourcePreview.kind === 'image' ? sourcePreview : null
+                  };
+              }
+              else {
+                  const sourcePreview = findTrimSourcePreview(nodeId);
+                  const videoPreview = sourcePreview && sourcePreview.kind === 'video' ? sourcePreview : null;
+                  activeModal = {
+                      type: 'trim',
+                      mode: 'video',
+                      nodeId,
+                      draftStart: settings.startMs ?? null,
+                      draftEnd: settings.endMs ?? null,
+                      draftStrict: settings.strictCut ?? false,
+                      sourcePreview: videoPreview,
+                      durationMs: videoPreview?.durationMs ?? null
+                  };
+              }
+              renderActiveModal();
+          };
           let openSidebarPanel = null;
           let workflowNameDialogResolver = null;
           function getWorkflowDisplayName() {
@@ -2661,7 +3754,7 @@
           };
           const cleanupMediaPreview = (nodeId) => {
               const preview = state.mediaPreviews.get(nodeId);
-              if (preview && typeof URL?.revokeObjectURL === 'function') {
+              if (preview && preview.ownedUrl !== false && typeof URL?.revokeObjectURL === 'function') {
                   URL.revokeObjectURL(preview.url);
               }
               if (preview) {
@@ -2671,11 +3764,241 @@
           const getMediaPreview = (nodeId) => state.mediaPreviews.get(nodeId);
           const cleanupAllMediaPreviews = () => {
               state.mediaPreviews.forEach(preview => {
-                  if (typeof URL?.revokeObjectURL === 'function') {
+                  if (preview.ownedUrl !== false && typeof URL?.revokeObjectURL === 'function') {
                       URL.revokeObjectURL(preview.url);
                   }
               });
               state.mediaPreviews.clear();
+          };
+          const trimPreviewTasks = new Map();
+          const getPreviewWorkbench = () => {
+              if (typeof document === 'undefined') {
+                  return null;
+              }
+              let container = document.getElementById('nodevision-trim-previews');
+              if (!container) {
+                  container = document.createElement('div');
+                  container.id = 'nodevision-trim-previews';
+                  Object.assign(container.style, {
+                      position: 'fixed',
+                      left: '-9999px',
+                      top: '-9999px',
+                      width: '1px',
+                      height: '1px',
+                      overflow: 'hidden'
+                  });
+                  document.body.appendChild(container);
+              }
+              return container;
+          };
+          const captureImageFrame = (preview) => new Promise(resolve => {
+              if (typeof document === 'undefined') {
+                  resolve(null);
+                  return;
+              }
+              const img = new Image();
+              img.decoding = 'async';
+              img.onload = () => {
+                  const canvas = document.createElement('canvas');
+                  const width = img.naturalWidth || img.width;
+                  const height = img.naturalHeight || img.height;
+                  canvas.width = width || 1;
+                  canvas.height = height || 1;
+                  const ctx = canvas.getContext('2d');
+                  if (ctx) {
+                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                      resolve(canvas);
+                      return;
+                  }
+                  resolve(null);
+              };
+              img.onerror = () => resolve(null);
+              img.src = preview.url;
+          });
+          const captureVideoFrame = (preview, startMs) => new Promise(resolve => {
+              if (typeof document === 'undefined') {
+                  resolve(null);
+                  return;
+              }
+              const workbench = getPreviewWorkbench();
+              if (!workbench) {
+                  resolve(null);
+                  return;
+              }
+              const video = document.createElement('video');
+              video.preload = 'auto';
+              video.muted = true;
+              video.playsInline = true;
+              video.controls = false;
+              video.style.width = '1px';
+              video.style.height = '1px';
+              const cleanup = () => {
+                  video.pause();
+                  video.removeAttribute('src');
+                  try {
+                      video.load();
+                  }
+                  catch {
+                      /* noop */
+                  }
+                  video.remove();
+              };
+              const drawFrame = () => {
+                  const width = video.videoWidth || 0;
+                  const height = video.videoHeight || 0;
+                  if (!width || !height) {
+                      cleanup();
+                      resolve(null);
+                      return;
+                  }
+                  const canvas = document.createElement('canvas');
+                  canvas.width = width;
+                  canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) {
+                      cleanup();
+                      resolve(null);
+                      return;
+                  }
+                  ctx.drawImage(video, 0, 0, width, height);
+                  cleanup();
+                  resolve(canvas);
+              };
+              const handleSeeked = () => {
+                  video.removeEventListener('seeked', handleSeeked);
+                  drawFrame();
+              };
+              video.onloadeddata = () => {
+                  if (typeof startMs === 'number' && Number.isFinite(startMs) && startMs > 0) {
+                      const seconds = startMs / 1000;
+                      video.addEventListener('seeked', handleSeeked);
+                      try {
+                          video.currentTime = Math.max(0, seconds);
+                      }
+                      catch {
+                          video.removeEventListener('seeked', handleSeeked);
+                          drawFrame();
+                      }
+                      return;
+                  }
+                  drawFrame();
+              };
+              video.onerror = () => {
+                  cleanup();
+                  resolve(null);
+              };
+              workbench.appendChild(video);
+              try {
+                  video.src = preview.url;
+                  video.load();
+              }
+              catch {
+                  cleanup();
+                  resolve(null);
+              }
+          });
+          const captureFrameForPreview = (preview, startMs) => {
+              if (preview.kind === 'image') {
+                  return captureImageFrame(preview);
+              }
+              return captureVideoFrame(preview, startMs);
+          };
+          const clampRegionValue = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+          const cropCanvasToRegion = (sourceCanvas, region) => {
+              const safeRegion = region ?? { x: 0, y: 0, width: 1, height: 1 };
+              const normalizedWidth = clampRegionValue(safeRegion.width ?? 1, 0.01, 1);
+              const normalizedHeight = clampRegionValue(safeRegion.height ?? 1, 0.01, 1);
+              const startX = clampRegionValue(safeRegion.x ?? 0);
+              const startY = clampRegionValue(safeRegion.y ?? 0);
+              const width = Math.max(1, Math.round(sourceCanvas.width * normalizedWidth));
+              const height = Math.max(1, Math.round(sourceCanvas.height * normalizedHeight));
+              const offsetX = Math.min(sourceCanvas.width - width, Math.max(0, Math.round(sourceCanvas.width * startX)));
+              const offsetY = Math.min(sourceCanvas.height - height, Math.max(0, Math.round(sourceCanvas.height * startY)));
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                  ctx.drawImage(sourceCanvas, offsetX, offsetY, width, height, 0, 0, width, height);
+              }
+              return canvas;
+          };
+          const buildTrimSignature = (sourceNodeId, sourcePreview, settings) => {
+              const region = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+              return [
+                  sourceNodeId,
+                  sourcePreview.url,
+                  sourcePreview.width ?? 'auto',
+                  sourcePreview.height ?? 'auto',
+                  settings.startMs ?? 'null',
+                  settings.endMs ?? 'null',
+                  region.x ?? 0,
+                  region.y ?? 0,
+                  region.width ?? 1,
+                  region.height ?? 1
+              ].join('|');
+          };
+          const findTrimSourcePreview = (nodeId) => {
+              const connection = state.connections.find(conn => conn.toNodeId === nodeId && conn.toPortId === 'source');
+              if (!connection) {
+                  return null;
+              }
+              return state.mediaPreviews.get(connection.fromNodeId) ?? null;
+          };
+          const deriveTrimPreview = async (node) => {
+              if (node.typeId !== 'trim') {
+                  return;
+              }
+              const sourcePreview = findTrimSourcePreview(node.id);
+              if (!sourcePreview) {
+                  cleanupMediaPreview(node.id);
+                  return;
+              }
+              const settings = (0, trim_shared_1.ensureTrimSettings)(node);
+              const sourceId = state.connections.find(conn => conn.toNodeId === node.id && conn.toPortId === 'source')?.fromNodeId;
+              const signature = buildTrimSignature(sourceId ?? node.id, sourcePreview, settings);
+              const existing = state.mediaPreviews.get(node.id);
+              if (existing?.derivedFrom === signature) {
+                  return;
+              }
+              const frameCanvas = await captureFrameForPreview(sourcePreview, settings.startMs ?? null);
+              if (!frameCanvas) {
+                  cleanupMediaPreview(node.id);
+                  state.mediaPreviews.set(node.id, {
+                      ...sourcePreview,
+                      ownedUrl: false,
+                      derivedFrom: signature
+                  });
+                  renderNodes();
+                  return;
+              }
+              const croppedCanvas = cropCanvasToRegion(frameCanvas, settings.region);
+              const dataUrl = croppedCanvas.toDataURL('image/png');
+              cleanupMediaPreview(node.id);
+              state.mediaPreviews.set(node.id, {
+                  ...sourcePreview,
+                  url: dataUrl,
+                  type: 'image/png',
+                  kind: 'image',
+                  width: croppedCanvas.width,
+                  height: croppedCanvas.height,
+                  ownedUrl: true,
+                  derivedFrom: signature,
+                  name: `${sourcePreview.name} (trim)`
+              });
+              renderNodes();
+          };
+          const scheduleTrimPreviewUpdate = (node) => {
+              if (node.typeId !== 'trim') {
+                  return;
+              }
+              if (trimPreviewTasks.has(node.id)) {
+                  return;
+              }
+              const task = deriveTrimPreview(node)
+                  .catch(error => console.warn('[NodeVision] trim preview update failed', error))
+                  .finally(() => trimPreviewTasks.delete(node.id));
+              trimPreviewTasks.set(node.id, task);
           };
           const getNodeChromePadding = (nodeId) => {
               const stored = state.nodeChrome.get(nodeId);
@@ -2761,6 +4084,7 @@
                       }
                       updateNodeMediaPreviewStyles(node, target);
                   });
+                  refreshSelectionOutline();
               });
           }
           const getMinimumHeightForWidth = (nodeId, width) => {
@@ -2846,7 +4170,7 @@
               });
               return needsRerender;
           };
-          const updateMediaPreviewDimensions = (nodeId, width, height) => {
+          const updateMediaPreviewDimensions = (nodeId, width, height, extra) => {
               const preview = state.mediaPreviews.get(nodeId);
               if (!preview) {
                   return;
@@ -2854,7 +4178,8 @@
               state.mediaPreviews.set(nodeId, {
                   ...preview,
                   width,
-                  height
+                  height,
+                  ...(extra ?? {})
               });
               renderNodes();
           };
@@ -3461,6 +4786,7 @@
           const updateCanvasTransform = () => {
               elements.canvas.style.transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.zoom})`;
               updateGridBackdrop();
+              refreshSelectionOutline();
           };
           const updateZoomUi = () => {
               const percent = Math.round(state.zoom * 100);
@@ -3547,6 +4873,7 @@
                   height: node.height ?? NODE_MIN_HEIGHT
               };
           };
+          const getSelectionPadding = () => SELECTION_PADDING / (state.zoom || 1);
           const refreshSelectionOutline = () => {
               if (!elements.selectionOutline)
                   return;
@@ -3554,27 +4881,33 @@
                   elements.selectionOutline.style.display = 'none';
                   return;
               }
-              const targets = state.nodes.filter(node => state.selection.has(node.id));
-              if (!targets.length) {
+              const nodeEls = Array.from(elements.nodeLayer.querySelectorAll('.node.selected'));
+              if (!nodeEls.length) {
                   elements.selectionOutline.style.display = 'none';
                   return;
               }
+              const canvasRect = elements.canvas.getBoundingClientRect();
+              const zoom = state.zoom || 1;
               let minX = Number.POSITIVE_INFINITY;
               let minY = Number.POSITIVE_INFINITY;
               let maxX = Number.NEGATIVE_INFINITY;
               let maxY = Number.NEGATIVE_INFINITY;
-              targets.forEach(node => {
-                  const size = getNodeSizeForSelection(node);
-                  minX = Math.min(minX, node.position.x);
-                  minY = Math.min(minY, node.position.y);
-                  maxX = Math.max(maxX, node.position.x + size.width);
-                  maxY = Math.max(maxY, node.position.y + size.height);
+              nodeEls.forEach(nodeEl => {
+                  const rect = nodeEl.getBoundingClientRect();
+                  const localMinX = (rect.left - canvasRect.left) / zoom;
+                  const localMinY = (rect.top - canvasRect.top) / zoom;
+                  const localMaxX = (rect.right - canvasRect.left) / zoom;
+                  const localMaxY = (rect.bottom - canvasRect.top) / zoom;
+                  minX = Math.min(minX, localMinX);
+                  minY = Math.min(minY, localMinY);
+                  maxX = Math.max(maxX, localMaxX);
+                  maxY = Math.max(maxY, localMaxY);
               });
               if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
                   elements.selectionOutline.style.display = 'none';
                   return;
               }
-              const padding = SELECTION_PADDING;
+              const padding = getSelectionPadding();
               elements.selectionOutline.style.display = 'block';
               elements.selectionOutline.style.transform = `translate(${minX - padding}px, ${minY - padding}px)`;
               elements.selectionOutline.style.width = `${Math.max(0, maxX - minX + padding * 2)}px`;
@@ -4121,6 +5454,9 @@
                   if (nodeResizeObserver && el.querySelector('.node-media')) {
                       nodeResizeObserver.observe(el);
                   }
+                  if (node.typeId === 'trim') {
+                      scheduleTrimPreviewUpdate(node);
+                  }
               });
               const needsSync = !suppressChromeMeasurement && syncNodeChromePadding();
               suppressChromeMeasurement = false;
@@ -4148,7 +5484,8 @@
                   minPreviewHeight: MIN_PREVIEW_HEIGHT,
                   minPreviewWidth: MIN_PREVIEW_WIDTH,
                   getTemplateByType,
-                  getMediaPreview
+                  getMediaPreview,
+                  openTrimModal
               });
               modules.forEach(module => {
                   module.typeIds.forEach(typeId => {
@@ -4519,7 +5856,8 @@
                   typeId: node.typeId,
                   nodeVersion: node.nodeVersion,
                   title: node.title,
-                  position: node.position
+                  position: node.position,
+                  settings: cloneNodeSettings(node.settings)
               })),
               connections: state.connections.map(connection => (0, state_1.deepClone)(connection)),
               metadata: {
@@ -4545,7 +5883,8 @@
                   height: template.height ?? 120,
                   searchTokens: templateTokens,
                   inputs: (0, state_1.clonePorts)(template.inputs),
-                  outputs: (0, state_1.clonePorts)(template.outputs)
+                  outputs: (0, state_1.clonePorts)(template.outputs),
+                  settings: template.defaultSettings ? (0, state_1.deepClone)(template.defaultSettings) : undefined
               };
               state.nodes.push(node);
               state.selection = new Set([node.id]);
@@ -4744,7 +6083,8 @@
                   height: template?.height ?? 120,
                   searchTokens: templateTokens,
                   inputs: (0, state_1.clonePorts)(template?.inputs),
-                  outputs: (0, state_1.clonePorts)(template?.outputs)
+                  outputs: (0, state_1.clonePorts)(template?.outputs),
+                  settings: cloneNodeSettings(node.settings ?? template?.defaultSettings)
               };
           };
           const applyProjectJson = (json, options = {}) => {
@@ -5274,6 +6614,10 @@
       exports.UI_TRANSLATIONS = void 0;
       exports.UI_TRANSLATIONS = {
           'en-US': {
+              'common.close': 'Close',
+              'actions.save': 'Save',
+              'actions.cancel': 'Cancel',
+              'actions.reset': 'Reset',
               'app.title': 'NodeVision Editor',
               'toolbar.alignLeft': 'Align left',
               'toolbar.alignTop': 'Align top',
@@ -5356,7 +6700,38 @@
               'nodes.delete': 'Delete node',
               'nodes.status.connected': 'Connected',
               'nodes.status.missing': 'Missing',
-              'nodes.trim.tip': 'Connect a source clip and set in/out handles before applying heavy effects.',
+              'nodes.trim.tip': 'Connect a source clip and edit it using the trim modals before applying heavy effects.',
+              'nodes.trim.imageButton': 'Image Trim',
+              'nodes.trim.videoButton': 'Video Trim',
+              'nodes.trim.status.empty': 'No adjustments yet',
+              'nodes.trim.status.imageEdited': 'Image crop ready',
+              'nodes.trim.status.videoEdited': 'Video trim ready',
+              'nodes.trim.status.imageSummary': 'Image crop {{width}}% × {{height}}%',
+              'nodes.trim.status.videoSummary': 'Video {{start}} → {{end}}{{strict}}',
+              'nodes.trim.status.videoEndLabel': 'end',
+              'nodes.trim.status.videoStrictSuffix': '(strict)',
+              'nodes.trim.modalPlaceholder.image': 'Drag the highlighted box or its corners to crop the displayed image.',
+              'nodes.trim.modalPlaceholder.video': 'Video trim modal is coming soon—set accurate in/out ranges in a dedicated workspace.',
+              'nodes.trim.toast.imageSaved': 'Image crop updated.',
+              'nodes.trim.toast.videoSaved': 'Video trim updated.',
+              'nodes.trim.modalPlaceholder.noImage': 'Load an image source and connect it to this Trim node to enable cropping.',
+              'nodes.mediaPreview.trimmedBadge': 'Trimmed output',
+              'nodes.mediaPreview.trimmedRange': 'Range {{start}} → {{end}}{{strict}}',
+              'nodes.mediaPreview.trimmedCrop': 'Crop {{width}}% × {{height}}%',
+              'nodes.trim.modalPlaceholder.noVideo': 'Connect a video Load node and capture a preview before trimming.',
+              'nodes.trim.modalHint.video': 'Use the handles or enter exact timecodes, then save to refresh downstream previews.',
+              'nodes.trim.video.previewFallback': 'Video source',
+              'nodes.trim.video.startLabel': 'Start time',
+              'nodes.trim.video.endLabel': 'End time',
+              'nodes.trim.video.durationUnknown': 'Duration unknown',
+              'nodes.trim.video.strictLabel': 'Strict cut',
+              'nodes.trim.video.strictHint': 'Discard frames outside the saved range.',
+              'nodes.trim.video.controls.play': 'Play',
+              'nodes.trim.video.controls.pause': 'Pause',
+              'nodes.trim.video.controls.stepBack': 'Step back',
+              'nodes.trim.video.controls.stepForward': 'Step forward',
+              'nodes.trim.video.startHandle': 'Adjust start handle',
+              'nodes.trim.video.endHandle': 'Adjust end handle',
               'nodes.resize.tip': 'Keep Resize nodes near export to avoid repeated resampling.',
               'nodes.overlay.tip': 'Attach both Base and Layer inputs—alpha channels stay intact.',
               'nodes.text.tip': 'Text Overlay renders crisp vector titles on top of the background clip.',
@@ -5491,6 +6866,10 @@
               'demo.jobName': 'FFmpeg demo render'
           },
           'ja-JP': {
+              'common.close': '閉じる',
+              'actions.save': '保存',
+              'actions.cancel': 'キャンセル',
+              'actions.reset': 'リセット',
               'app.title': 'NodeVisionエディター',
               'toolbar.alignLeft': '左揃え',
               'toolbar.alignTop': '上揃え',
@@ -5573,7 +6952,38 @@
               'nodes.delete': 'ノードを削除',
               'nodes.status.connected': '接続済み',
               'nodes.status.missing': '未接続',
-              'nodes.trim.tip': 'ソースをつないでIN/OUTを決めておくと、その後の重い処理が超ラクになるよ。',
+              'nodes.trim.tip': 'ソースをつないで専用モーダルでIN/OUTやクロップを決めておくと、その後の重い処理が超ラクになるよ。',
+              'nodes.trim.imageButton': '画像トリム',
+              'nodes.trim.videoButton': '動画トリム',
+              'nodes.trim.status.empty': 'まだ設定されていません',
+              'nodes.trim.status.imageEdited': '画像クロップ済み',
+              'nodes.trim.status.videoEdited': '動画トリム済み',
+              'nodes.trim.status.imageSummary': '画像 {{width}}% × {{height}}% で表示中',
+              'nodes.trim.status.videoSummary': '動画 {{start}} → {{end}}{{strict}}',
+              'nodes.trim.status.videoEndLabel': '最後',
+              'nodes.trim.status.videoStrictSuffix': '（キッチリ）',
+              'nodes.trim.modalPlaceholder.image': 'ハイライトされた枠や角をドラッグして、表示中の画像をトリミングしてね。',
+              'nodes.trim.modalPlaceholder.video': '動画トリム専用モーダルはまもなく登場。IN/OUTを正確に設定できる編集スペースになるよ。',
+              'nodes.trim.modalPlaceholder.noImage': '先に画像ロードノードを接続してメディアを選んでね。',
+              'nodes.trim.toast.imageSaved': '画像のトリム設定を保存したよ。',
+              'nodes.trim.toast.videoSaved': '動画のトリム設定を保存したよ。',
+              'nodes.mediaPreview.trimmedBadge': 'トリム結果',
+              'nodes.mediaPreview.trimmedRange': '範囲 {{start}} → {{end}}{{strict}}',
+              'nodes.mediaPreview.trimmedCrop': 'トリム {{width}}% × {{height}}%',
+              'nodes.trim.modalPlaceholder.noVideo': '先に動画ロードノードをつなげてプレビューをつくってからトリムしてね。',
+              'nodes.trim.modalHint.video': 'タイムラインのハンドルか時間入力でIN/OUTを決めて、保存すれば下流にも反映されるよ。',
+              'nodes.trim.video.previewFallback': '動画ソース',
+              'nodes.trim.video.startLabel': '開始',
+              'nodes.trim.video.endLabel': '終了',
+              'nodes.trim.video.durationUnknown': '長さは未取得',
+              'nodes.trim.video.strictLabel': 'キッチリカット',
+              'nodes.trim.video.strictHint': '指定範囲の外はフレームごと捨てるよ。',
+              'nodes.trim.video.controls.play': '再生',
+              'nodes.trim.video.controls.pause': '一時停止',
+              'nodes.trim.video.controls.stepBack': '1コマ戻す',
+              'nodes.trim.video.controls.stepForward': '1コマ進める',
+              'nodes.trim.video.startHandle': '開始ハンドル',
+              'nodes.trim.video.endHandle': '終了ハンドル',
               'nodes.resize.tip': 'リサイズは書き出し直前に置くとリサンプリング回数を減らせるよ。',
               'nodes.overlay.tip': 'ベースとレイヤー両方を接続するとアルファ付きで重ね合わせできるよ。',
               'nodes.text.tip': 'テキストノードは背景入力に重ねて、くっきりしたタイトルをGPUで描画するよ。',
@@ -5921,11 +7331,14 @@
                   }
               };
               video.onloadedmetadata = () => {
-                  updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null);
+                  const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 1000) : null;
+                  updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null, {
+                      durationMs
+                  });
                   cleanup();
               };
               video.onerror = () => {
-                  updateMediaPreviewDimensions(nodeId, null, null);
+                  updateMediaPreviewDimensions(nodeId, null, null, { durationMs: null });
                   cleanup('Failed to read video metadata for preview');
               };
               try {
@@ -5971,7 +7384,8 @@
                   type: resolvedType,
                   kind,
                   width: null,
-                  height: null
+                  height: null,
+                  ownedUrl: true
               });
               renderNodes();
               if (kind === 'image') {
@@ -6089,6 +7503,7 @@
       exports.createMediaPreviewNodeRenderer = void 0;
       const preview_layout_1 = require("./preview-layout");
       const preview_size_1 = require("./preview-size");
+      const trim_shared_1 = require("./trim-shared");
       const MEDIA_PREVIEW_NODE_TYPE = 'mediaPreview';
       const resolveNodeTitle = (node, context) => {
           if (!node) {
@@ -6103,6 +7518,36 @@
       };
       const createMediaPreviewNodeRenderer = (context) => {
           const { state, t, escapeHtml, getNodeChromePadding, getPreviewWidthForNodeWidth, getPreviewAspectRatio, minPreviewHeight, minPreviewWidth, getMediaPreview } = context;
+          const buildTrimHints = (sourceNode) => {
+              if (!sourceNode || sourceNode.typeId !== 'trim') {
+                  return null;
+              }
+              const settings = (0, trim_shared_1.ensureTrimSettings)(sourceNode);
+              const region = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+              const hasImageEdit = region.x !== 0 || region.y !== 0 || region.width !== 1 || region.height !== 1;
+              const hasVideoEdit = settings.startMs !== null || settings.endMs !== null || settings.strictCut;
+              if (!hasImageEdit && !hasVideoEdit) {
+                  return null;
+              }
+              const messages = [];
+              if (hasImageEdit) {
+                  messages.push(t('nodes.mediaPreview.trimmedCrop', {
+                      width: Math.round(region.width * 100),
+                      height: Math.round(region.height * 100)
+                  }));
+              }
+              if (hasVideoEdit) {
+                  const startLabel = (0, trim_shared_1.formatTrimTimecode)(settings.startMs ?? 0);
+                  const endLabel = settings.endMs === null ? t('nodes.trim.status.videoEndLabel') : (0, trim_shared_1.formatTrimTimecode)(settings.endMs);
+                  const strictSuffix = settings.strictCut ? ` ${t('nodes.trim.status.videoStrictSuffix')}` : '';
+                  messages.push(t('nodes.mediaPreview.trimmedRange', {
+                      start: startLabel,
+                      end: endLabel,
+                      strict: strictSuffix
+                  }));
+              }
+              return { badge: t('nodes.mediaPreview.trimmedBadge'), messages };
+          };
           const buildPreviewSection = (node) => {
               const connection = state.connections.find(conn => conn.toNodeId === node.id && conn.toPortId === 'source');
               const sourceNodeId = connection?.fromNodeId ?? null;
@@ -6131,11 +7576,21 @@
               const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
               const sourceTitle = resolveNodeTitle(sourceNode, context);
               const fileLabel = escapeHtml(preview?.name ?? sourceTitle);
+              const trimHints = buildTrimHints(sourceNode);
+              const trimHintHtml = trimHints
+                  ? `
+              <div class="node-media-hints">
+                <p class="node-media-hint accent">${escapeHtml(trimHints.badge)}</p>
+                ${trimHints.messages.map(message => `<p class="node-media-hint">${escapeHtml(message)}</p>`).join('')}
+              </div>
+            `
+                  : '';
               const toolbar = `
             <div class="node-media-toolbar">
               <span class="node-media-filename" title="${fileLabel}">${fileLabel}</span>
             </div>
             <p class="node-media-aspect">${escapeHtml(t('nodes.mediaPreview.sourceLabel', { title: sourceTitle }))}</p>
+            ${trimHintHtml}
           `;
               const aspectText = preview?.width && preview?.height
                   ? `${preview.width} × ${preview.height}`
@@ -6273,7 +7728,43 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.buildNodeInfoSection = void 0;
-      const buildNodeInfoSection = (_node, _context, _options = {}) => '';
+      const translateOrFallback = (key, fallback, t) => {
+          const translated = t(key);
+          return translated === key ? fallback : translated;
+      };
+      const escape = (value, context) => context.escapeHtml(value);
+      const buildNodeInfoSection = (node, context, options = {}) => {
+          const { state, t, getTemplateByType } = context;
+          const template = getTemplateByType(node.typeId);
+          const title = translateOrFallback(`nodeTemplate.${node.typeId}.title`, node.title, t);
+          const description = translateOrFallback(`nodeTemplate.${node.typeId}.description`, template?.description ?? '', t);
+          const ports = template?.inputs ?? node.inputs ?? [];
+          const statuses = ports
+              .map(port => {
+              const portLabel = translateOrFallback(`nodeTemplate.${node.typeId}.port.${port.id}`, port.label, t);
+              const connected = state.connections.some(connection => connection.toNodeId === node.id && connection.toPortId === port.id);
+              const statusLabel = translateOrFallback(connected ? 'nodes.status.connected' : 'nodes.status.missing', connected ? 'Connected' : 'Missing', t);
+              return `<div class="node-status"><span class="node-status-label">${escape(portLabel, context)}</span><span class="node-status-value">${escape(statusLabel, context)}</span></div>`;
+          })
+              .join('');
+          const tip = options.tipKey && options.tipKey.length
+              ? `<p class="node-info-tip">${escape(translateOrFallback(options.tipKey, options.tipKey, t), context)}</p>`
+              : '';
+          const extra = options.extraHtml ?? '';
+          if (!statuses && !tip && !extra) {
+              return '';
+          }
+          const descriptionHtml = description
+              ? `<p class="node-info-desc">${escape(description, context)}</p>`
+              : '';
+          return `<section class="node-info">
+          <div class="node-info-heading">${escape(title, context)}</div>
+          ${descriptionHtml}
+          ${statuses}
+          ${tip}
+          ${extra}
+        </section>`;
+      };
       exports.buildNodeInfoSection = buildNodeInfoSection;
 
         },
@@ -6312,14 +7803,126 @@
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.createTrimNodeRenderer = void 0;
       const shared_1 = require("./shared");
+      const trim_shared_1 = require("./trim-shared");
+      const buildStatusLabel = (node, context) => {
+          const settings = (0, trim_shared_1.ensureTrimSettings)(node);
+          const { t } = context;
+          const region = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+          const hasImageEdit = region.x !== 0 || region.y !== 0 || region.width !== 1 || region.height !== 1;
+          const hasVideoEdit = settings.startMs !== null || settings.endMs !== null || settings.strictCut;
+          if (!hasImageEdit && !hasVideoEdit) {
+              return t('nodes.trim.status.empty');
+          }
+          const parts = [];
+          if (hasImageEdit) {
+              const widthPct = Math.round(region.width * 100);
+              const heightPct = Math.round(region.height * 100);
+              parts.push(t('nodes.trim.status.imageSummary', { width: widthPct, height: heightPct }));
+          }
+          if (hasVideoEdit) {
+              const startLabel = (0, trim_shared_1.formatTrimTimecode)(settings.startMs ?? 0);
+              const endLabel = settings.endMs === null ? t('nodes.trim.status.videoEndLabel') : (0, trim_shared_1.formatTrimTimecode)(settings.endMs);
+              const strictSuffix = settings.strictCut ? ` ${t('nodes.trim.status.videoStrictSuffix')}` : '';
+              parts.push(t('nodes.trim.status.videoSummary', { start: startLabel, end: endLabel, strict: strictSuffix }));
+          }
+          return parts.join(' / ');
+      };
+      const buildLauncher = (node, context) => {
+          const { escapeHtml, t } = context;
+          return `
+          <section class="trim-launcher" data-trim-node="${escapeHtml(node.id)}">
+            <div class="trim-launcher-buttons">
+              <button type="button" class="trim-launcher-btn" data-trim-launch="image" data-node-interactive="true">
+                ${escapeHtml(t('nodes.trim.imageButton'))}
+              </button>
+              <button type="button" class="trim-launcher-btn" data-trim-launch="video" data-node-interactive="true">
+                ${escapeHtml(t('nodes.trim.videoButton'))}
+              </button>
+            </div>
+            <p class="trim-launcher-status">${escapeHtml(buildStatusLabel(node, context))}</p>
+          </section>
+        `;
+      };
+      const bindLauncher = (panel, node, context) => {
+          panel.querySelectorAll('[data-trim-launch]').forEach(button => {
+              button.addEventListener('click', () => {
+                  const mode = button.getAttribute('data-trim-launch') ?? 'image';
+                  context.openTrimModal(mode, node.id);
+              });
+          });
+      };
       const createTrimNodeRenderer = (context) => ({
-          id: 'trim-info',
+          id: 'trim-launcher',
           typeIds: ['trim'],
           render: node => ({
-              afterPortsHtml: (0, shared_1.buildNodeInfoSection)(node, context, { tipKey: 'nodes.trim.tip' })
+              afterPortsHtml: [
+                  buildLauncher(node, context),
+                  (0, shared_1.buildNodeInfoSection)(node, context, { tipKey: 'nodes.trim.tip' })
+              ].join(''),
+              afterRender: element => {
+                  const panel = element.querySelector('.trim-launcher');
+                  if (panel) {
+                      bindLauncher(panel, node, context);
+                  }
+              }
           })
       });
       exports.createTrimNodeRenderer = createTrimNodeRenderer;
+
+        },
+        './nodes/trim-shared': function (exports, require, module) {
+      "use strict";
+      Object.defineProperty(exports, "__esModule", { value: true });
+      exports.formatTrimTimecode = exports.ensureTrimSettings = exports.DEFAULT_TRIM_SETTINGS = void 0;
+      const cloneRegion = (region) => {
+          if (!region) {
+              return { x: 0, y: 0, width: 1, height: 1 };
+          }
+          return {
+              x: region.x ?? 0,
+              y: region.y ?? 0,
+              width: region.width ?? 1,
+              height: region.height ?? 1
+          };
+      };
+      exports.DEFAULT_TRIM_SETTINGS = {
+          kind: 'trim',
+          startMs: null,
+          endMs: null,
+          strictCut: false,
+          region: { x: 0, y: 0, width: 1, height: 1 }
+      };
+      const cloneSettings = () => ({
+          kind: 'trim',
+          startMs: exports.DEFAULT_TRIM_SETTINGS.startMs,
+          endMs: exports.DEFAULT_TRIM_SETTINGS.endMs,
+          strictCut: exports.DEFAULT_TRIM_SETTINGS.strictCut,
+          region: cloneRegion(exports.DEFAULT_TRIM_SETTINGS.region)
+      });
+      const ensureTrimSettings = (node) => {
+          const current = node.settings;
+          if (current && current.kind === 'trim') {
+              current.region = cloneRegion(current.region);
+              return current;
+          }
+          const next = cloneSettings();
+          node.settings = next;
+          return next;
+      };
+      exports.ensureTrimSettings = ensureTrimSettings;
+      const formatTrimTimecode = (value) => {
+          if (typeof value !== 'number' || !Number.isFinite(value)) {
+              return '00:00.000';
+          }
+          const positive = Math.max(0, Math.floor(value));
+          const minutes = Math.floor(positive / 60000);
+          const seconds = Math.floor((positive % 60000) / 1000);
+          const millis = positive % 1000;
+          return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${millis
+              .toString()
+              .padStart(3, '0')}`;
+      };
+      exports.formatTrimTimecode = formatTrimTimecode;
 
         },
         './nodes/types': function (exports, require, module) {

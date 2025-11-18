@@ -1,0 +1,4 @@
+## Step2 完了 (動画モーダルUI骨組み) 2025-11-18
+- 変更ファイル: `apps/desktop-electron/src/renderer/app.ts`, `nodes/trim.ts` 連携部、`renderer/types.ts`, `renderer/i18n.ts`, `ui-template.ts`, `ui-template.test.ts`。
+- 内容: `openTrimModal('video')` が start/end/strict 状態＋プレビューを抱えるようにして、`renderTrimModalView` から新しい `renderTrimVideoModal` を呼び出す構成に更新。動画モーダルにはプレビュー枠・時間入力・strictトグル・タイムライン・再生コントローラの DOM を描画（プレビュー未接続でも disabled 状態で骨組み表示）。NodeMediaPreview に `durationMs` をオプション追加。i18n/CSS も動画UI用のラベル＆スタイルを追加し、Vitest でモーダル要素が出ることを検証。
+- テスト: `pnpm --filter desktop-electron build` → `pnpm vitest run apps/desktop-electron/src/ui-template.test.ts apps/desktop-electron/src/ui-template.a11y.test.ts` ✅（jsdom の DOMException/canvas警告は既知）。

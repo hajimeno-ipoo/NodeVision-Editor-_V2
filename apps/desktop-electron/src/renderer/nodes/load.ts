@@ -156,12 +156,15 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
     };
 
     video.onloadedmetadata = () => {
-      updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null);
+      const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 1000) : null;
+      updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null, {
+        durationMs
+      });
       cleanup();
     };
 
     video.onerror = () => {
-      updateMediaPreviewDimensions(nodeId, null, null);
+      updateMediaPreviewDimensions(nodeId, null, null, { durationMs: null });
       cleanup('Failed to read video metadata for preview');
     };
 

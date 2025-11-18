@@ -358,27 +358,81 @@ describe('load media node UI', () => {
     dom.window.close();
   });
 
-  it('renders node info cards with input status for downstream nodes', async () => {
+  it('renders trim launcher with status summary', async () => {
     const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
-    const info = dom.window.document.querySelector('.node[data-id="n2"] .node-info');
-    expect(info).toBeTruthy();
-    expect(info?.textContent).toContain('IN/OUT間で素材をカット');
-    const status = info?.querySelector('.node-status');
-    expect(status?.textContent).toContain('ソース');
-    expect(status?.textContent).toContain('未接続');
+    const launcher = dom.window.document.querySelector('.node[data-id="n2"] .trim-launcher');
+    expect(launcher).toBeTruthy();
+    const status = launcher?.querySelector('.trim-launcher-status');
+    expect(status?.textContent).toContain('まだ設定されていません');
     dom.window.close();
   });
 
-  it('renders trim timeline controls with inputs and handles', async () => {
+  it('shows detailed trim status when edits exist', async () => {
+    const editedNodes = [
+      { ...MEDIA_NODES[0] },
+      {
+        ...MEDIA_NODES[1],
+        settings: {
+          kind: 'trim',
+          startMs: 1500,
+          endMs: 5000,
+          strictCut: true,
+          region: { x: 0.05, y: 0.1, width: 0.75, height: 0.65 }
+        }
+      }
+    ];
+    const dom = renderDom({ ...basePayload, nodes: editedNodes });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const status = dom.window.document.querySelector('.node[data-id="n2"] .trim-launcher-status');
+    expect(status?.textContent).toContain('動画');
+    expect(status?.textContent).toContain('00:01.500');
+    expect(status?.textContent).toContain('00:05.000');
+    dom.window.close();
+  });
+
+  it('exposes buttons for image/video trim modals', async () => {
     const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
-    const panel = dom.window.document.querySelector('.node[data-id="n2"] .trim-panel');
-    expect(panel).toBeTruthy();
-    const inputs = panel?.querySelectorAll('input[type="text"]');
-    expect(inputs?.length).toBe(2);
-    const handles = panel?.querySelectorAll('.trim-handle');
-    expect(handles?.length).toBe(2);
+    const buttons = [
+      ...dom.window.document.querySelectorAll<HTMLButtonElement>('.node[data-id="n2"] .trim-launcher-btn')
+    ];
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]?.textContent).toContain('画像トリム');
+    expect(buttons[1]?.textContent).toContain('動画トリム');
+    dom.window.close();
+  });
+
+  it('opens placeholder modal when clicking the image trim button', async () => {
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const button = dom.window.document.querySelector<HTMLButtonElement>(
+      '.node[data-id="n2"] [data-trim-launch="image"]'
+    );
+    button?.dispatchEvent(new dom.window.Event('click', { bubbles: true }));
+    const modal = dom.window.document.querySelector('.nv-modal-backdrop');
+    expect(modal?.getAttribute('data-open')).toBe('true');
+    expect(modal?.textContent).toContain('画像ロードノード');
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape' }));
+    dom.window.close();
+  });
+
+  it('renders video trim modal skeleton with disabled controls when no preview is connected', async () => {
+    const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
+    await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
+    const button = dom.window.document.querySelector<HTMLButtonElement>(
+      '.node[data-id="n2"] [data-trim-launch="video"]'
+    );
+    button?.dispatchEvent(new dom.window.Event('click', { bubbles: true }));
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+    const startInput = dom.window.document.querySelector<HTMLInputElement>('[data-trim-video-start]');
+    expect(startInput).toBeTruthy();
+    expect(startInput?.disabled).toBe(true);
+    const previewMessage = dom.window.document.querySelector('.trim-video-preview-empty');
+    expect(previewMessage?.textContent).toContain('動画ロードノード');
+    const timeline = dom.window.document.querySelector<HTMLElement>('.trim-video-timeline');
+    expect(timeline?.getAttribute('data-disabled')).toBe('true');
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape' }));
     dom.window.close();
   });
 });

@@ -40,3 +40,16 @@ export const ensureTrimSettings = (node: RendererNode): TrimNodeSettings => {
   node.settings = next;
   return next;
 };
+
+export const formatTrimTimecode = (value: number | null): string => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return '00:00.000';
+  }
+  const positive = Math.max(0, Math.floor(value));
+  const minutes = Math.floor(positive / 60000);
+  const seconds = Math.floor((positive % 60000) / 1000);
+  const millis = positive % 1000;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${millis
+    .toString()
+    .padStart(3, '0')}`;
+};

@@ -19,7 +19,12 @@ export interface NodeRendererContext {
   showToast: (message: string, type?: 'info' | 'error') => void;
   renderNodes: () => void;
   cleanupMediaPreview: (nodeId: string) => void;
-  updateMediaPreviewDimensions: (nodeId: string, width: number | null, height: number | null) => void;
+  updateMediaPreviewDimensions: (
+    nodeId: string,
+    width: number | null,
+    height: number | null,
+    extra?: Partial<NodeMediaPreview>
+  ) => void;
   getNodeChromePadding: (nodeId: string) => number;
   getPreviewWidthForNodeWidth: (width: number) => number;
   getPreviewAspectRatio: (nodeId: string) => number;
@@ -27,4 +32,5 @@ export interface NodeRendererContext {
   minPreviewWidth: number;
   getTemplateByType: (typeId: string) => NodeTemplate | undefined;
   getMediaPreview: (nodeId: string) => NodeMediaPreview | undefined;
+  openTrimModal: (mode: 'image' | 'video', nodeId: string) => void;
 }

@@ -2,6 +2,7 @@ import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { getMediaPreviewReservedHeight } from './preview-layout';
 import { calculatePreviewSize } from './preview-size';
+import { ensureTrimSettings, formatTrimTimecode } from './trim-shared';
 
 const MEDIA_PREVIEW_NODE_TYPE = 'mediaPreview';
 
@@ -29,6 +30,44 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     minPreviewWidth,
     getMediaPreview
   } = context;
+
+  const buildTrimHints = (
+    sourceNode: RendererNode | undefined
+  ): { badge: string; messages: string[] } | null => {
+    if (!sourceNode || sourceNode.typeId !== 'trim') {
+      return null;
+    }
+    const settings = ensureTrimSettings(sourceNode);
+    const region = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+    const hasImageEdit = region.x !== 0 || region.y !== 0 || region.width !== 1 || region.height !== 1;
+    const hasVideoEdit = settings.startMs !== null || settings.endMs !== null || settings.strictCut;
+    if (!hasImageEdit && !hasVideoEdit) {
+      return null;
+    }
+    const messages: string[] = [];
+    if (hasImageEdit) {
+      messages.push(
+        t('nodes.mediaPreview.trimmedCrop', {
+          width: Math.round(region.width * 100),
+          height: Math.round(region.height * 100)
+        })
+      );
+    }
+    if (hasVideoEdit) {
+      const startLabel = formatTrimTimecode(settings.startMs ?? 0);
+      const endLabel =
+        settings.endMs === null ? t('nodes.trim.status.videoEndLabel') : formatTrimTimecode(settings.endMs);
+      const strictSuffix = settings.strictCut ? ` ${t('nodes.trim.status.videoStrictSuffix')}` : '';
+      messages.push(
+        t('nodes.mediaPreview.trimmedRange', {
+          start: startLabel,
+          end: endLabel,
+          strict: strictSuffix
+        })
+      );
+    }
+    return { badge: t('nodes.mediaPreview.trimmedBadge'), messages };
+  };
 
   const buildPreviewSection = (node: RendererNode): string => {
     const connection = state.connections.find(
@@ -60,11 +99,21 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
     const sourceTitle = resolveNodeTitle(sourceNode, context);
     const fileLabel = escapeHtml(preview?.name ?? sourceTitle);
+    const trimHints = buildTrimHints(sourceNode);
+    const trimHintHtml = trimHints
+      ? `
+        <div class="node-media-hints">
+          <p class="node-media-hint accent">${escapeHtml(trimHints.badge)}</p>
+          ${trimHints.messages.map(message => `<p class="node-media-hint">${escapeHtml(message)}</p>`).join('')}
+        </div>
+      `
+      : '';
     const toolbar = `
       <div class="node-media-toolbar">
         <span class="node-media-filename" title="${fileLabel}">${fileLabel}</span>
       </div>
       <p class="node-media-aspect">${escapeHtml(t('nodes.mediaPreview.sourceLabel', { title: sourceTitle }))}</p>
+      ${trimHintHtml}
     `;
     const aspectText = preview?.width && preview?.height
       ? `${preview.width} × ${preview.height}`

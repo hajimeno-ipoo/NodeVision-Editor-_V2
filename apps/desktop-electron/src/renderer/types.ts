@@ -51,6 +51,7 @@ export interface NodeMediaPreview {
   kind: 'image' | 'video';
   width: number | null;
   height: number | null;
+  durationMs?: number | null;
   ownedUrl?: boolean;
   derivedFrom?: string;
 }
