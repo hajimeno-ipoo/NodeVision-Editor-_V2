@@ -1,0 +1,3 @@
+## 2025-11-19 Aspect fix step1
+- Updated applyAspectConstraint (apps/desktop-electron/src/renderer/app.ts) so widthFromHeight/heightFromWidth are computed purely in image-normalized space (targetRatio * height, width / targetRatio) instead of mixing displayWidth/displayHeight, eliminating letterbox distortion.
+- Tests: `pnpm test` (Vitest full run) succeeded; only existing jsdom DOMException warnings observed.

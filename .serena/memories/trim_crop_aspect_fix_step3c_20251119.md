@@ -1,0 +1,3 @@
+## 2025-11-19 Trim aspect fix redo step3
+- Added explicit pointerdown listeners on each handle to update debug metadata + startResize, and simplified stage pointerdown to always startMove unless a handle element caught the event. All enforceAspect callers now pass `null` when not dragging so axis memory only comes from user drags.
+- Tests: `pnpm test` again (full Vitest run) succeeded; only known jsdom DOMException warnings appeared.

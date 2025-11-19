@@ -1,0 +1,3 @@
+## 2025-11-19 Aspect fix step5
+- Expanded ASPECT_RATIO_MAP + UI options to include 2:1, 3:1, 3:2, 5:4, 16:10, and 1.618:1 (golden ratio). Added matching i18n strings (en/ja) and updated the dropdown sequence.
+- Tests: `pnpm test` succeeded; `pnpm test:playwright tests/playwright/trim-aspect-ratio.spec.ts` still fails because the actual crop ratio deviates ~0.47 from the expected presets (bug persists pending deeper fix).

@@ -18,7 +18,19 @@ export interface TrimRegion {
   height: number;
 }
 
-export type TrimAspectMode = 'free' | 'original' | 'square' | '4:3' | '16:9' | '9:16';
+export type TrimAspectMode =
+  | 'free'
+  | 'original'
+  | 'square'
+  | '2:1'
+  | '3:1'
+  | '3:2'
+  | '4:3'
+  | '5:4'
+  | '16:9'
+  | '16:10'
+  | '9:16'
+  | '1.618:1';
 
 export interface TrimNodeSettings {
   kind: 'trim';

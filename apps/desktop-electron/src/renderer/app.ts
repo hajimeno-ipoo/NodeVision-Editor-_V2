@@ -94,6 +94,7 @@ type TrimImageModalState = {
   draftFlipVertical: boolean;
   draftAspectMode: TrimNodeSettings['aspectMode'];
   showGrid: boolean;
+  lastPreferredAxis: 'width' | 'height' | null;
 };
 
 type TrimVideoModalState = {
@@ -651,7 +652,20 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     }
     const rotationValue = Math.round(session.draftRotationDeg || 0);
     const zoomPercent = Math.round((session.draftZoom || 1) * 100);
-    const aspectOptions: TrimNodeSettings['aspectMode'][] = ['free', 'original', 'square', '4:3', '16:9', '9:16'];
+    const aspectOptions: TrimNodeSettings['aspectMode'][] = [
+      'free',
+      'original',
+      'square',
+      '2:1',
+      '3:1',
+      '3:2',
+      '4:3',
+      '5:4',
+      '16:9',
+      '16:10',
+      '9:16',
+      '1.618:1'
+    ];
     modalContentElement.innerHTML = `
       <div class="trim-image-toolbar" role="toolbar">
         <div class="trim-image-toolbar-group">
@@ -875,11 +889,14 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     showToast(t(toastKey));
   };
 
-  const initializeTrimImageControls = (session: TrimImageModalState): void => {
-    const modalContent = modalContentElement;
-    if (!modalContent) {
-      return;
-    }
+    const initializeTrimImageControls = (session: TrimImageModalState): void => {
+      const modalContent = modalContentElement;
+      if (!modalContent) {
+        return;
+      }
+      (rendererWindow as RendererBootstrapWindow & {
+        __NODEVISION_TRIM_SESSION?: TrimImageModalState;
+      }).__NODEVISION_TRIM_SESSION = session;
     const stage = modalContent.querySelector<HTMLElement>('[data-trim-stage]');
     const cropBox = modalContent.querySelector<HTMLElement>('[data-trim-box]');
     const imageElement = modalContent.querySelector<HTMLImageElement>('.trim-image-stage img');
@@ -909,9 +926,15 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       free: null,
       original: null,
       square: 1,
+      '2:1': 2,
+      '3:1': 3,
+      '3:2': 3 / 2,
       '4:3': 4 / 3,
+      '5:4': 5 / 4,
       '16:9': 16 / 9,
-      '9:16': 9 / 16
+      '16:10': 16 / 10,
+      '9:16': 9 / 16,
+      '1.618:1': 1.61803398875
     };
 
     const getSelectedAspectRatio = (): number | null => {
@@ -924,6 +947,20 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
 
 
     const clampSize = (value: number): number => clampValue(value, MIN_TRIM_REGION_SIZE, 1);
+
+    const clampPixelSize = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+    const normalizedToPixels = (normalized: number, displaySize: number): number => {
+      const minPixelSize = MIN_TRIM_REGION_SIZE * displaySize;
+      return clampPixelSize(normalized * displaySize, minPixelSize, displaySize);
+    };
+
+    const pixelsToNormalized = (pixels: number, displaySize: number): number => {
+      if (!displaySize) {
+        return MIN_TRIM_REGION_SIZE;
+      }
+      return clampSize(pixels / displaySize);
+    };
 
     const clampRegionPosition = (region: NonNullable<TrimNodeSettings['region']>): NonNullable<TrimNodeSettings['region']> => {
       return {
@@ -969,7 +1006,11 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       }
       const offsetX = (containerWidth - displayWidth) / 2;
       const offsetY = (containerHeight - displayHeight) / 2;
-      return { stageRect, displayWidth, displayHeight, offsetX, offsetY };
+      const metricsResult: ImageStageMetrics = { stageRect, displayWidth, displayHeight, offsetX, offsetY };
+      (rendererWindow as RendererBootstrapWindow & {
+        __NODEVISION_LAST_STAGE_METRICS?: ImageStageMetrics;
+      }).__NODEVISION_LAST_STAGE_METRICS = metricsResult;
+      return metricsResult;
     };
 
     const convertStageRegionToImageRegion = (
@@ -995,6 +1036,10 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       };
       return clampRegionPosition(imageRegion);
     };
+
+    (rendererWindow as RendererBootstrapWindow & {
+      __NODEVISION_DEBUG_CONVERT_STAGE_TO_IMAGE?: typeof convertStageRegionToImageRegion;
+    }).__NODEVISION_DEBUG_CONVERT_STAGE_TO_IMAGE = convertStageRegionToImageRegion;
 
     const convertImageRegionToStageRegion = (
       region: NonNullable<TrimNodeSettings['region']>,
@@ -1124,79 +1169,123 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         return clampRegionPosition(referenceStage);
       }
       const referenceImage = convertStageRegionToImageRegion(referenceStage, metrics);
-      const imageBaseWidth = clampSize(referenceImage.width);
-      const imageBaseHeight = clampSize(referenceImage.height);
-      const widthFromHeight = clampSize(
-        (targetRatio * imageBaseHeight * metrics.displayHeight) / metrics.displayWidth
-      );
-      const heightFromWidth = clampSize(
-        (imageBaseWidth * metrics.displayWidth) / (targetRatio * metrics.displayHeight)
-      );
-      const regionByWidth = clampRegionPosition(
-        buildRegionFromAnchor(widthFromHeight, imageBaseHeight, handle, referenceImage, 'width')
-      );
-      const regionByHeight = clampRegionPosition(
-        buildRegionFromAnchor(imageBaseWidth, heightFromWidth, handle, referenceImage, 'height')
-      );
+      const imageBaseWidthNorm = clampSize(referenceImage.width);
+      const imageBaseHeightNorm = clampSize(referenceImage.height);
+      const baseWidthPx = normalizedToPixels(imageBaseWidthNorm, metrics.displayWidth);
+      const baseHeightPx = normalizedToPixels(imageBaseHeightNorm, metrics.displayHeight);
+      const minWidthPx = MIN_TRIM_REGION_SIZE * metrics.displayWidth;
+      const minHeightPx = MIN_TRIM_REGION_SIZE * metrics.displayHeight;
+      const maxWidthPx = metrics.displayWidth;
+      const maxHeightPx = metrics.displayHeight;
 
-      const computePixelRatio = (candidate: NonNullable<TrimNodeSettings['region']>): number => {
-        const widthPx = candidate.width * metrics.displayWidth;
-        const heightPx = candidate.height * metrics.displayHeight;
-        if (!heightPx) {
-          return targetRatio;
-        }
-        return widthPx / heightPx;
-      };
+      type PixelCandidate = { widthPx: number; heightPx: number; touchesBoundary: boolean };
 
-      const projectCandidate = (
-        candidate: NonNullable<TrimNodeSettings['region']>
-      ): {
-        stage: NonNullable<TrimNodeSettings['region']>;
-        ratioError: number;
-        touchesBoundary: boolean;
-      } => {
-        const stageRegion = convertImageRegionToStageRegion(candidate, metrics);
-        const normalizedStage = clampRegionPosition(stageRegion);
-        const reconvertedImage = convertStageRegionToImageRegion(normalizedStage, metrics);
-        const ratioError = Math.abs(computePixelRatio(reconvertedImage) - targetRatio);
-        const EPSILON = 0.0001;
+      const recordPixelCandidate = (widthPx: number, heightPx: number): PixelCandidate => {
+        const boundaryThreshold = 0.5;
         const touchesBoundary =
-          normalizedStage.x <= EPSILON ||
-          normalizedStage.y <= EPSILON ||
-          normalizedStage.x + normalizedStage.width >= 1 - EPSILON ||
-          normalizedStage.y + normalizedStage.height >= 1 - EPSILON;
-        return { stage: normalizedStage, ratioError, touchesBoundary };
+          widthPx <= minWidthPx + boundaryThreshold ||
+          widthPx >= maxWidthPx - boundaryThreshold ||
+          heightPx <= minHeightPx + boundaryThreshold ||
+          heightPx >= maxHeightPx - boundaryThreshold;
+        return { widthPx, heightPx, touchesBoundary };
       };
 
-      const widthCandidate = projectCandidate(regionByWidth);
-      const heightCandidate = projectCandidate(regionByHeight);
+      const solveFromHeight = (heightPx: number): PixelCandidate => {
+        const minHeightAllowed = Math.max(minHeightPx, minWidthPx / targetRatio);
+        const maxHeightAllowed = Math.min(maxHeightPx, maxWidthPx / targetRatio);
+        const hasRange = minHeightAllowed <= maxHeightAllowed;
+        let workingHeight = clampPixelSize(heightPx, hasRange ? minHeightAllowed : minHeightPx, hasRange ? maxHeightAllowed : maxHeightPx);
+        if (!hasRange) {
+          workingHeight = clampPixelSize(maxHeightPx, minHeightPx, maxHeightPx);
+        }
+        let widthPx = targetRatio * workingHeight;
+        if (widthPx > maxWidthPx) {
+          widthPx = maxWidthPx;
+          workingHeight = clampPixelSize(widthPx / targetRatio, minHeightPx, maxHeightPx);
+        }
+        if (widthPx < minWidthPx) {
+          widthPx = minWidthPx;
+          workingHeight = clampPixelSize(widthPx / targetRatio, minHeightPx, maxHeightPx);
+        }
+        return recordPixelCandidate(widthPx, workingHeight);
+      };
+
+      const solveFromWidth = (widthPx: number): PixelCandidate => {
+        const minWidthAllowed = Math.max(minWidthPx, minHeightPx * targetRatio);
+        const maxWidthAllowed = Math.min(maxWidthPx, maxHeightPx * targetRatio);
+        const hasRange = minWidthAllowed <= maxWidthAllowed;
+        let workingWidth = clampPixelSize(widthPx, hasRange ? minWidthAllowed : minWidthPx, hasRange ? maxWidthAllowed : maxWidthPx);
+        if (!hasRange) {
+          workingWidth = clampPixelSize(maxWidthPx, minWidthPx, maxWidthPx);
+        }
+        let heightPx = workingWidth / targetRatio;
+        if (heightPx > maxHeightPx) {
+          heightPx = maxHeightPx;
+          workingWidth = clampPixelSize(heightPx * targetRatio, minWidthPx, maxWidthPx);
+        }
+        if (heightPx < minHeightPx) {
+          heightPx = minHeightPx;
+          workingWidth = clampPixelSize(heightPx * targetRatio, minWidthPx, maxWidthPx);
+        }
+        return recordPixelCandidate(workingWidth, heightPx);
+      };
+
+      const toImageRegionFromPixels = (
+        dims: PixelCandidate,
+        axisHint: 'width' | 'height'
+      ): { region: NonNullable<TrimNodeSettings['region']>; touchesBoundary: boolean } => {
+        const normalizedWidth = pixelsToNormalized(dims.widthPx, metrics.displayWidth);
+        const normalizedHeight = pixelsToNormalized(dims.heightPx, metrics.displayHeight);
+        return {
+          region: clampRegionPosition(
+            buildRegionFromAnchor(normalizedWidth, normalizedHeight, handle, referenceImage, axisHint)
+          ),
+          touchesBoundary: dims.touchesBoundary
+        };
+      };
+
+      const imageCandidateFromHeight = toImageRegionFromPixels(solveFromHeight(baseHeightPx), 'width');
+      const imageCandidateFromWidth = toImageRegionFromPixels(solveFromWidth(baseWidthPx), 'height');
+
+      const ratioError = (candidate: { region: NonNullable<TrimNodeSettings['region']> }): number => {
+        if (!candidate.region.height) {
+          return Number.POSITIVE_INFINITY;
+        }
+        return Math.abs(candidate.region.width / candidate.region.height - targetRatio);
+      };
+      const touchesBoundary = (candidate: { touchesBoundary: boolean }): boolean => candidate.touchesBoundary;
+
       const forceWidth = preferredAxis === 'width';
       const forceHeight = preferredAxis === 'height';
-
-      const pickCandidate = (): ReturnType<typeof projectCandidate> => {
-        if (forceWidth && !widthCandidate.touchesBoundary) {
-          return widthCandidate;
+      const pickImageCandidate = (): { region: NonNullable<TrimNodeSettings['region']>; touchesBoundary: boolean } => {
+        if (forceWidth) {
+          return imageCandidateFromHeight;
         }
-        if (forceHeight && !heightCandidate.touchesBoundary) {
-          return heightCandidate;
+        if (forceHeight) {
+          return imageCandidateFromWidth;
         }
-        if (widthCandidate.ratioError + 0.0001 < heightCandidate.ratioError) {
-          return widthCandidate;
+        const widthError = ratioError(imageCandidateFromHeight);
+        const heightError = ratioError(imageCandidateFromWidth);
+        if (widthError + 0.0001 < heightError) {
+          return imageCandidateFromHeight;
         }
-        if (heightCandidate.ratioError + 0.0001 < widthCandidate.ratioError) {
-          return heightCandidate;
+        if (heightError + 0.0001 < widthError) {
+          return imageCandidateFromWidth;
         }
-        if (widthCandidate.touchesBoundary && !heightCandidate.touchesBoundary) {
-          return heightCandidate;
+        const widthTouches = touchesBoundary(imageCandidateFromHeight);
+        const heightTouches = touchesBoundary(imageCandidateFromWidth);
+        if (widthTouches && !heightTouches) {
+          return imageCandidateFromWidth;
         }
-        if (heightCandidate.touchesBoundary && !widthCandidate.touchesBoundary) {
-          return widthCandidate;
+        if (heightTouches && !widthTouches) {
+          return imageCandidateFromHeight;
         }
-        return forceWidth ? widthCandidate : forceHeight ? heightCandidate : widthCandidate;
+        return imageCandidateFromHeight;
       };
 
-      const chosen = pickCandidate();
-      return clampRegionPosition(chosen.stage);
+      const chosenImage = clampRegionPosition(pickImageCandidate().region);
+      const stageRegion = convertImageRegionToStageRegion(chosenImage, metrics);
+      return clampRegionPosition(stageRegion);
     };
 
     const applyStageAspectRatio = (): void => {
@@ -1300,16 +1389,44 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       cropBox.style.top = `${region.y * 100}%`;
       cropBox.style.width = `${region.width * 100}%`;
       cropBox.style.height = `${region.height * 100}%`;
+      const stageRatio = region.height ? region.width / region.height : 0;
+      cropBox.dataset.trimStageRatio = stageRatio.toFixed(3);
+      const metrics = getImageStageMetrics();
+      if (metrics) {
+        const imageRegion = convertStageRegionToImageRegion(region, metrics);
+        const imageRatio = imageRegion.height ? imageRegion.width / imageRegion.height : 0;
+        cropBox.dataset.trimImageRatio = imageRatio ? imageRatio.toFixed(3) : '';
+      }
       return true;
     };
 
-    const enforceAspect = (handle: TrimResizeHandle | 'center' = 'center'): boolean => {
+    const enforceAspect = (
+      handle: TrimResizeHandle | 'center' = 'center',
+      preferredAxis?: 'width' | 'height' | null
+    ): boolean => {
       if (!ensureStageRegion()) {
+        (rendererWindow as RendererBootstrapWindow & {
+          __NODEVISION_LAST_ENFORCE?: { handle: string; preferredAxis?: string | null; success: boolean; ratio: number | null };
+        }).__NODEVISION_LAST_ENFORCE = {
+          handle,
+          preferredAxis: preferredAxis ?? null,
+          success: false,
+          ratio: getSelectedAspectRatio()
+        };
         return false;
       }
-      session.draftRegion = applyAspectConstraint(session.draftRegion, handle);
+      const axisPreference = preferredAxis ?? session.lastPreferredAxis ?? null;
+      session.draftRegion = applyAspectConstraint(session.draftRegion, handle, axisPreference);
       session.draftRegionSpace = 'stage';
       updateCropBoxStyles();
+      (rendererWindow as RendererBootstrapWindow & {
+        __NODEVISION_LAST_ENFORCE?: { handle: string; preferredAxis?: string | null; success: boolean; ratio: number | null };
+      }).__NODEVISION_LAST_ENFORCE = {
+        handle,
+        preferredAxis: axisPreference,
+        success: true,
+        ratio: getSelectedAspectRatio()
+      };
       return true;
     };
 
@@ -1326,6 +1443,7 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       if (!ensureStageRegion()) {
         return;
       }
+      session.lastPreferredAxis = null;
       const rect = stage.getBoundingClientRect();
       const pointerId = event.pointerId ?? 1;
       const start = { ...session.draftRegion };
@@ -1360,15 +1478,18 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       if (!ensureStageRegion()) {
         return;
       }
+      if (
+        (rendererWindow as RendererBootstrapWindow & { __NODEVISION_DEBUG_TRIM_POINTERS?: boolean })
+          .__NODEVISION_DEBUG_TRIM_POINTERS
+      ) {
+        console.log('[trim:crop] startResize', handle);
+      }
       const rect = stage.getBoundingClientRect();
       const pointerId = event.pointerId ?? 1;
       const start = { ...session.draftRegion };
       const startX = event.clientX;
       const startY = event.clientY;
       const initialAxis: 'width' | 'height' | null = (() => {
-        if ((handle === 'ne' || handle === 'se' || handle === 'nw' || handle === 'sw')) {
-          return null;
-        }
         if (handle === 'n' || handle === 's') {
           return 'height';
         }
@@ -1378,14 +1499,28 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         return null;
       })();
       let effectiveAxis = initialAxis;
+      session.lastPreferredAxis = initialAxis ?? null;
 
       const handleMove = (moveEvent: PointerEvent): void => {
         if (moveEvent.pointerId !== pointerId) return;
         moveEvent.preventDefault();
         const deltaX = (moveEvent.clientX - startX) / rect.width;
         const deltaY = (moveEvent.clientY - startY) / rect.height;
+        if (
+          (rendererWindow as RendererBootstrapWindow & { __NODEVISION_DEBUG_TRIM_POINTERS?: boolean })
+            .__NODEVISION_DEBUG_TRIM_POINTERS
+        ) {
+          console.log('[trim:crop] resize', handle, {
+            deltaX,
+            deltaY,
+            effectiveAxis
+          });
+        }
         if (!effectiveAxis && Math.abs(deltaX) + Math.abs(deltaY) > 0.002) {
           effectiveAxis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'width' : 'height';
+        }
+        if (effectiveAxis) {
+          session.lastPreferredAxis = effectiveAxis;
         }
         let next = { ...start };
         if (handle.includes('n')) {
@@ -1412,7 +1547,12 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         if (next.y + next.height > 1) {
           next.height = 1 - next.y;
         }
-        session.draftRegion = applyAspectConstraint(next, handle, effectiveAxis);
+        const isFreeAspect = (session.draftAspectMode ?? 'free') === 'free';
+        if (isFreeAspect) {
+          session.draftRegion = clampRegionPosition(next);
+        } else {
+          session.draftRegion = applyAspectConstraint(next, handle, effectiveAxis);
+        }
         session.draftRegionSpace = 'stage';
         updateCropBoxStyles();
       };
@@ -1426,20 +1566,43 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       window.addEventListener('pointerup', handleUp);
     };
 
-    cropBox.addEventListener('pointerdown', event => {
+    const handleElements = Array.from(cropBox.querySelectorAll<HTMLElement>('[data-trim-handle]'));
+    handleElements.forEach(element => {
+      element.addEventListener('pointerdown', event => {
+        event.stopPropagation();
+        const handle = element.dataset.trimHandle as TrimResizeHandle | undefined;
+        if (handle) {
+          const debugWindow = rendererWindow as RendererBootstrapWindow & {
+            __NODEVISION_LAST_TRIM_POINTER?: string;
+            __NODEVISION_LAST_TRIM_POINTER_TARGET?: string | null;
+            __NODEVISION_DEBUG_TRIM_POINTERS?: boolean;
+          };
+          debugWindow.__NODEVISION_LAST_TRIM_POINTER = handle;
+          debugWindow.__NODEVISION_LAST_TRIM_POINTER_TARGET = element.className ?? null;
+          if (debugWindow.__NODEVISION_DEBUG_TRIM_POINTERS) {
+            console.log('[trim:crop] pointerdown-handle', handle, {
+              x: event.clientX,
+              y: event.clientY
+            });
+          }
+          startResize(handle, event);
+        }
+      });
+    });
+
+    stage.addEventListener('pointerdown', event => {
       const target = event.target as HTMLElement | null;
-      const handle = target?.dataset.trimHandle as TrimResizeHandle | undefined;
-      if (handle) {
-        startResize(handle, event);
-      } else {
-        startMove(event);
+      if (target?.dataset.trimHandle) {
+        return;
       }
+      startMove(event);
     });
 
     modalContent.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
       session.draftRegion = { ...DEFAULT_TRIM_REGION };
       session.draftRegionSpace = 'stage';
-      enforceAspect('center');
+      session.lastPreferredAxis = null;
+      enforceAspect('center', null);
       session.draftRotationDeg = 0;
       session.draftZoom = 1;
       session.draftFlipHorizontal = false;
@@ -1496,7 +1659,10 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     aspectSelect?.addEventListener('change', event => {
       const value = (event.target as HTMLSelectElement).value as TrimNodeSettings['aspectMode'];
       session.draftAspectMode = value;
-      enforceAspect('center');
+      if (value === 'free') {
+        session.lastPreferredAxis = null;
+      }
+      enforceAspect('center', null);
     });
     toolbarButtons.forEach(button => {
       const tool = button.dataset.trimTool;
@@ -1539,11 +1705,11 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     });
 
     const initAspectWhenReady = () => {
-      if (enforceAspect('center')) {
+      if (enforceAspect('center', null)) {
         return;
       }
       if (imageElement && !imageElement.complete) {
-        imageElement.addEventListener('load', () => enforceAspect('center'), { once: true });
+        imageElement.addEventListener('load', () => enforceAspect('center', null), { once: true });
       }
     };
 
@@ -1948,7 +2114,8 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         draftFlipHorizontal: settings.flipHorizontal ?? false,
         draftFlipVertical: settings.flipVertical ?? false,
         draftAspectMode: settings.aspectMode ?? 'free',
-        showGrid: false
+        showGrid: false,
+        lastPreferredAxis: null
       };
     } else {
       const sourcePreview = findTrimSourcePreview(nodeId);
