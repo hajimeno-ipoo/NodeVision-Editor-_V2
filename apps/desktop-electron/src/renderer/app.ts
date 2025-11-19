@@ -688,7 +688,17 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       <div class="trim-stage-wrapper" data-trim-stage-wrapper>
         <div class="trim-image-stage" data-trim-stage>
         <img src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
-        <div class="trim-crop-box" data-trim-box>
+        <div class="trim-crop-box" data-trim-box data-trim-grid-visible="${String(session.showGrid)}">
+          <div class="trim-crop-grid" aria-hidden="true">
+            ${['h1', 'h2', 'v1', 'v2']
+              .map(
+                line =>
+                  `<span class="trim-crop-grid-line trim-crop-grid-line--${
+                    line.startsWith('h') ? 'horizontal' : 'vertical'
+                  }" data-trim-grid-line="${line}"></span>`
+              )
+              .join('')}
+          </div>
           ${['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se']
             .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
             .join('')}
@@ -1226,6 +1236,10 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       if (gridOverlay) {
         gridOverlay.classList.toggle('is-visible', session.showGrid);
         gridOverlay.style.transform = `rotate(${rotation}deg)`;
+      }
+      if (cropBox) {
+        cropBox.dataset.trimGridVisible = String(session.showGrid);
+        cropBox.style.setProperty('--trim-grid-rotation', `${rotation}deg`);
       }
       updateZoomLabel();
     };
