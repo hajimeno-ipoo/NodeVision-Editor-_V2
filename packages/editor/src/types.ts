@@ -26,6 +26,11 @@ export interface TrimNodeSettings {
   endMs: number | null;
   strictCut: boolean;
   region: TrimRegion | null;
+  /**
+   * Indicates which coordinate space the region numbers are normalized to.
+   * 'stage' means the modal canvas rectangle, 'image' means the actual source pixels.
+   */
+  regionSpace?: 'stage' | 'image';
   rotationDeg: number;
   zoom: number;
   flipHorizontal: boolean;
