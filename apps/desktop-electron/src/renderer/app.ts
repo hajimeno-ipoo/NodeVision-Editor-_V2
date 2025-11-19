@@ -1111,40 +1111,53 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         buildRegionFromAnchor(imageBaseWidth, heightFromWidth, handle, referenceImage)
       );
 
-      const pickBestImageRegion = (): NonNullable<TrimNodeSettings['region']> => {
-        if (handle === 'n' || handle === 's') {
-          return regionByWidth;
+      const computePixelRatio = (candidate: NonNullable<TrimNodeSettings['region']>): number => {
+        const widthPx = candidate.width * metrics.displayWidth;
+        const heightPx = candidate.height * metrics.displayHeight;
+        if (!heightPx) {
+          return targetRatio;
         }
-        if (handle === 'e' || handle === 'w') {
-          return regionByHeight;
-        }
-        const computePixelRatio = (candidate: NonNullable<TrimNodeSettings['region']>): number => {
-          const widthPx = candidate.width * metrics.displayWidth;
-          const heightPx = candidate.height * metrics.displayHeight;
-          if (!heightPx) {
-            return targetRatio;
-          }
-          return widthPx / heightPx;
-        };
-        const computeError = (candidate: NonNullable<TrimNodeSettings['region']>): number =>
-          Math.abs(computePixelRatio(candidate) - targetRatio);
-        const errorWidth = computeError(regionByWidth);
-        const errorHeight = computeError(regionByHeight);
-        const EPSILON = 0.0001;
-        if (errorWidth + EPSILON < errorHeight) {
-          return regionByWidth;
-        }
-        if (errorHeight + EPSILON < errorWidth) {
-          return regionByHeight;
-        }
-        const areaWidth = regionByWidth.width * regionByWidth.height;
-        const areaHeight = regionByHeight.width * regionByHeight.height;
-        return areaWidth >= areaHeight ? regionByWidth : regionByHeight;
+        return widthPx / heightPx;
       };
 
-      const constrainedImageRegion = pickBestImageRegion();
-      const stageRegion = convertImageRegionToStageRegion(constrainedImageRegion, metrics);
-      return clampRegionPosition(stageRegion);
+      const projectCandidate = (
+        candidate: NonNullable<TrimNodeSettings['region']>
+      ): {
+        stage: NonNullable<TrimNodeSettings['region']>;
+        ratioError: number;
+        touchesBoundary: boolean;
+      } => {
+        const stageRegion = convertImageRegionToStageRegion(candidate, metrics);
+        const normalizedStage = clampRegionPosition(stageRegion);
+        const reconvertedImage = convertStageRegionToImageRegion(normalizedStage, metrics);
+        const ratioError = Math.abs(computePixelRatio(reconvertedImage) - targetRatio);
+        const EPSILON = 0.0001;
+        const touchesBoundary =
+          normalizedStage.x <= EPSILON ||
+          normalizedStage.y <= EPSILON ||
+          normalizedStage.x + normalizedStage.width >= 1 - EPSILON ||
+          normalizedStage.y + normalizedStage.height >= 1 - EPSILON;
+        return { stage: normalizedStage, ratioError, touchesBoundary };
+      };
+
+      const widthCandidate = projectCandidate(regionByWidth);
+      const heightCandidate = projectCandidate(regionByHeight);
+      const preferWidth = handle === 'n' || handle === 's';
+      const preferHeight = handle === 'e' || handle === 'w';
+
+      const scoreCandidate = (
+        candidate: ReturnType<typeof projectCandidate>,
+        prefers: boolean
+      ): number => {
+        const preferenceBonus = prefers ? -0.0005 : 0;
+        const boundaryPenalty = candidate.touchesBoundary ? 0.0005 : 0;
+        return candidate.ratioError + boundaryPenalty + preferenceBonus;
+      };
+
+      const widthScore = scoreCandidate(widthCandidate, preferWidth);
+      const heightScore = scoreCandidate(heightCandidate, preferHeight);
+      const chosen = widthScore <= heightScore ? widthCandidate : heightCandidate;
+      return clampRegionPosition(chosen.stage);
     };
 
     const applyStageAspectRatio = (): void => {
