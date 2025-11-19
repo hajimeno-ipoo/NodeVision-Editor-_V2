@@ -1027,7 +1027,8 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       width: number,
       height: number,
       handle: TrimResizeHandle | 'center',
-      reference: NonNullable<TrimNodeSettings['region']>
+      reference: NonNullable<TrimNodeSettings['region']>,
+      axisHint?: 'width' | 'height' | null
     ): NonNullable<TrimNodeSettings['region']> => {
       const left = reference.x;
       const top = reference.y;
@@ -1037,6 +1038,22 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       const centerY = top + reference.height / 2;
       let x = reference.x;
       let y = reference.y;
+      const useCornerAnchor =
+        axisHint && (handle === 'nw' || handle === 'ne' || handle === 'sw' || handle === 'se');
+      if (useCornerAnchor) {
+        switch (handle) {
+          case 'nw':
+            return { x: right - width, y: bottom - height, width, height };
+          case 'ne':
+            return { x: left, y: bottom - height, width, height };
+          case 'sw':
+            return { x: right - width, y: top, width, height };
+          case 'se':
+            return { x: left, y: top, width, height };
+          default:
+            break;
+        }
+      }
       switch (handle) {
         case 'nw':
           x = right - width;
@@ -1081,7 +1098,8 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
 
     const applyAspectConstraint = (
       region: NonNullable<TrimNodeSettings['region']>,
-      handle: TrimResizeHandle | 'center'
+      handle: TrimResizeHandle | 'center',
+      preferredAxis?: 'width' | 'height' | null
     ): NonNullable<TrimNodeSettings['region']> => {
       const targetRatio = getSelectedAspectRatio();
       const referenceStage = { ...region };
@@ -1105,10 +1123,10 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         (imageBaseWidth * metrics.displayWidth) / (targetRatio * metrics.displayHeight)
       );
       const regionByWidth = clampRegionPosition(
-        buildRegionFromAnchor(widthFromHeight, imageBaseHeight, handle, referenceImage)
+        buildRegionFromAnchor(widthFromHeight, imageBaseHeight, handle, referenceImage, 'width')
       );
       const regionByHeight = clampRegionPosition(
-        buildRegionFromAnchor(imageBaseWidth, heightFromWidth, handle, referenceImage)
+        buildRegionFromAnchor(imageBaseWidth, heightFromWidth, handle, referenceImage, 'height')
       );
 
       const computePixelRatio = (candidate: NonNullable<TrimNodeSettings['region']>): number => {
@@ -1142,21 +1160,32 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
 
       const widthCandidate = projectCandidate(regionByWidth);
       const heightCandidate = projectCandidate(regionByHeight);
-      const preferWidth = handle === 'n' || handle === 's';
-      const preferHeight = handle === 'e' || handle === 'w';
+      const forceWidth = preferredAxis === 'width';
+      const forceHeight = preferredAxis === 'height';
 
-      const scoreCandidate = (
-        candidate: ReturnType<typeof projectCandidate>,
-        prefers: boolean
-      ): number => {
-        const preferenceBonus = prefers ? -0.0005 : 0;
-        const boundaryPenalty = candidate.touchesBoundary ? 0.0005 : 0;
-        return candidate.ratioError + boundaryPenalty + preferenceBonus;
+      const pickCandidate = (): ReturnType<typeof projectCandidate> => {
+        if (forceWidth && !widthCandidate.touchesBoundary) {
+          return widthCandidate;
+        }
+        if (forceHeight && !heightCandidate.touchesBoundary) {
+          return heightCandidate;
+        }
+        if (widthCandidate.ratioError + 0.0001 < heightCandidate.ratioError) {
+          return widthCandidate;
+        }
+        if (heightCandidate.ratioError + 0.0001 < widthCandidate.ratioError) {
+          return heightCandidate;
+        }
+        if (widthCandidate.touchesBoundary && !heightCandidate.touchesBoundary) {
+          return heightCandidate;
+        }
+        if (heightCandidate.touchesBoundary && !widthCandidate.touchesBoundary) {
+          return widthCandidate;
+        }
+        return forceWidth ? widthCandidate : forceHeight ? heightCandidate : widthCandidate;
       };
 
-      const widthScore = scoreCandidate(widthCandidate, preferWidth);
-      const heightScore = scoreCandidate(heightCandidate, preferHeight);
-      const chosen = widthScore <= heightScore ? widthCandidate : heightCandidate;
+      const chosen = pickCandidate();
       return clampRegionPosition(chosen.stage);
     };
 
@@ -1322,12 +1351,28 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       const start = { ...session.draftRegion };
       const startX = event.clientX;
       const startY = event.clientY;
+      const initialAxis: 'width' | 'height' | null = (() => {
+        if ((handle === 'ne' || handle === 'se' || handle === 'nw' || handle === 'sw')) {
+          return null;
+        }
+        if (handle === 'n' || handle === 's') {
+          return 'height';
+        }
+        if (handle === 'e' || handle === 'w') {
+          return 'width';
+        }
+        return null;
+      })();
+      let effectiveAxis = initialAxis;
 
       const handleMove = (moveEvent: PointerEvent): void => {
         if (moveEvent.pointerId !== pointerId) return;
         moveEvent.preventDefault();
         const deltaX = (moveEvent.clientX - startX) / rect.width;
         const deltaY = (moveEvent.clientY - startY) / rect.height;
+        if (!effectiveAxis && Math.abs(deltaX) + Math.abs(deltaY) > 0.002) {
+          effectiveAxis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'width' : 'height';
+        }
         let next = { ...start };
         if (handle.includes('n')) {
           const newY = clampValue(start.y + deltaY, 0, start.y + start.height - MIN_TRIM_REGION_SIZE);
@@ -1353,7 +1398,7 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         if (next.y + next.height > 1) {
           next.height = 1 - next.y;
         }
-        session.draftRegion = applyAspectConstraint(next, handle);
+        session.draftRegion = applyAspectConstraint(next, handle, effectiveAxis);
         session.draftRegionSpace = 'stage';
         updateCropBoxStyles();
       };
