@@ -12,3 +12,4 @@ pnpm-lock.yaml
 .temp/
 scripts/sample-media/
 .env*
+test-results/
