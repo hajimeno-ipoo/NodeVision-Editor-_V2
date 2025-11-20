@@ -12,8 +12,6 @@ description: "NodeVision Editor - A sophisticated video editing application buil
 # プログラミング言語
 languages:
   - typescript
-  - javascript
-  - json
 
 # インデックス対象のディレクトリ
 include_paths:
