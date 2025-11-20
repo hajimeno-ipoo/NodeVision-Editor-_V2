@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_NODE_TEMPLATES } from './templates';
 import { deserializeProject, serializeProject } from './persistence';
-import { createDefaultProject } from './state';
+import { createDefaultProject, PROJECT_SCHEMA_VERSION } from './state';
 import type { SerializedProject } from './types';
 
 describe('persistence', () => {
@@ -102,17 +102,39 @@ describe('persistence', () => {
         searchTokens: ['trim'],
         settings: {
           kind: 'trim',
-          startMs: 2500,
-          endMs: 9000,
-          strictCut: true,
           region: { x: 0.1, y: 0, width: 0.8, height: 1 }
         }
       }
     ];
     const serialized = serializeProject(project);
-    expect(serialized.nodes[0].settings?.startMs).toBe(2500);
+    expect(serialized.nodes[0].settings?.region?.width).toBe(0.8);
     const hydrated = deserializeProject(serialized);
-    expect(hydrated.project.nodes[0].settings?.startMs).toBe(2500);
-    expect(hydrated.project.nodes[0].settings?.strictCut).toBe(true);
+    expect(hydrated.project.nodes[0].settings?.region?.width).toBe(0.8);
+  });
+
+  it('applies template default settings when node settings are missing', () => {
+    const trimTemplate = DEFAULT_NODE_TEMPLATES.find(template => template.typeId === 'trim');
+    expect(trimTemplate?.defaultSettings).toBeTruthy();
+    const serialized: SerializedProject = {
+      schemaVersion: PROJECT_SCHEMA_VERSION,
+      nodes: [
+        {
+          id: 'trim-defaults',
+          typeId: 'trim',
+          nodeVersion: trimTemplate?.nodeVersion ?? '1.0.0',
+          title: trimTemplate?.title ?? 'Trim',
+          position: { x: 0, y: 0 }
+        }
+      ],
+      connections: [],
+      metadata: {
+        name: 'Defaults',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        readonly: false
+      }
+    };
+    const hydrated = deserializeProject(serialized);
+    expect(hydrated.project.nodes[0].settings).toEqual(trimTemplate?.defaultSettings);
   });
 });

@@ -1,0 +1,1 @@
+2025-11-20: Node card resize handles limited to bottom-right only. Updated app.ts buildResizeHandles to emit only 'se' handle. ui-template loads renderer TS bundle first for tests. Added ui-template test to assert only bottom-right handles render. Added persistence test covering template defaultSettings to keep coverage=100. Full suite `pnpm test` now passes with 100% coverage.

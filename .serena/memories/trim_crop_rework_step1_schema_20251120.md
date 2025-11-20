@@ -1,0 +1,1 @@
+Step1完了: タイプ/設定をクロップ専用に整理。packages/editor/src/types.ts から時間系(startMs/endMs/strictCut)を削除し、TrimNodeSettingsは領域・回転・ズーム等のみ保持。apps/desktop-electron/src/renderer/nodes/trim-shared.ts もデフォルト設定から時間項目を削除。まだUI/エンジンは未変更。

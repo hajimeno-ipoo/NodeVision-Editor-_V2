@@ -14,6 +14,21 @@ interface NodeVisionBridge {
   setCrashDumpConsent(enabled: boolean): Promise<{ collectCrashDumps: boolean }>;
   loadWorkflows(): Promise<{ ok: boolean; workflows?: WorkflowRecord[]; message?: string }>;
   saveWorkflows(workflows: WorkflowRecord[]): Promise<{ ok: boolean; message?: string }>;
+  storeMediaFile(payload: { name: string; buffer: ArrayBuffer }): Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
+  generateCroppedPreview(payload: {
+    sourcePath: string;
+    kind: 'image' | 'video';
+    region: { x: number; y: number; width: number; height: number };
+    regionSpace?: 'stage' | 'image';
+    rotationDeg?: number;
+    zoom?: number;
+    flipHorizontal?: boolean;
+    flipVertical?: boolean;
+    aspectMode?: string;
+    widthHint?: number | null;
+    heightHint?: number | null;
+    durationMs?: number | null;
+  }): Promise<unknown>;
 }
 
 const api: NodeVisionBridge = {
@@ -23,7 +38,9 @@ const api: NodeVisionBridge = {
   exportLogs: password => ipcRenderer.invoke('nodevision:logs:export', { password }),
   setCrashDumpConsent: enabled => ipcRenderer.invoke('nodevision:diagnostics:setCrashDumpConsent', { enabled }),
   loadWorkflows: () => ipcRenderer.invoke('nodevision:workflows:load'),
-  saveWorkflows: workflows => ipcRenderer.invoke('nodevision:workflows:save', { workflows })
+  saveWorkflows: workflows => ipcRenderer.invoke('nodevision:workflows:save', { workflows }),
+  storeMediaFile: payload => ipcRenderer.invoke('nodevision:media:store', payload),
+  generateCroppedPreview: payload => ipcRenderer.invoke('nodevision:preview:crop', payload)
 };
 
 contextBridge.exposeInMainWorld('nodevision', api);

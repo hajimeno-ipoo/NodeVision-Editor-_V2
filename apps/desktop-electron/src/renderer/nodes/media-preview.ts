@@ -2,7 +2,7 @@ import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { getMediaPreviewReservedHeight } from './preview-layout';
 import { calculatePreviewSize } from './preview-size';
-import { ensureTrimSettings, formatTrimTimecode } from './trim-shared';
+import { ensureTrimSettings } from './trim-shared';
 
 const MEDIA_PREVIEW_NODE_TYPE = 'mediaPreview';
 
@@ -16,6 +16,37 @@ const resolveNodeTitle = (node: RendererNode | undefined, context: NodeRendererC
     return translated;
   }
   return node.title ?? node.typeId;
+};
+
+const buildCropTransform = (preview: ReturnType<NodeRendererContext['getMediaPreview']>): { style: string; hasCrop: boolean } => {
+  const region = preview?.cropRegion;
+  if (!region || region.width == null || region.height == null) {
+    return { style: '', hasCrop: false };
+  }
+  const clamp01 = (value: number, fallback: number): number => {
+    if (!Number.isFinite(value)) return fallback;
+    return Math.min(1, Math.max(0, value));
+  };
+  const width = region.width > 0 ? region.width : 1;
+  const height = region.height > 0 ? region.height : 1;
+  if (!Number.isFinite(width) || !Number.isFinite(height)) {
+    return { style: '', hasCrop: false };
+  }
+  const normalizedWidth = width > 1 ? 1 : clamp01(width, 1);
+  const normalizedHeight = height > 1 ? 1 : clamp01(height, 1);
+  const x = region.width > 1 ? 0 : clamp01(region.x ?? 0, 0);
+  const y = region.height > 1 ? 0 : clamp01(region.y ?? 0, 0);
+  const scaleX = 1 / Math.max(normalizedWidth, 0.001);
+  const scaleY = 1 / Math.max(normalizedHeight, 0.001);
+  const zoom = preview?.cropZoom ?? 1;
+  const flipX = preview?.cropFlipHorizontal ? -1 : 1;
+  const flipY = preview?.cropFlipVertical ? -1 : 1;
+  const rotation = preview?.cropRotationDeg ?? 0;
+  const translate = `translate(-${(x * 100).toFixed(4)}%, -${(y * 100).toFixed(4)}%)`;
+  const scale = `scale(${(scaleX * zoom * flipX).toFixed(4)}, ${(scaleY * zoom * flipY).toFixed(4)})`;
+  const rotate = rotation ? ` rotate(${rotation}deg)` : '';
+  const style = `transform-origin: top left; transform: ${translate} ${scale}${rotate};`;
+  return { style, hasCrop: true };
 };
 
 export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
@@ -40,8 +71,7 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     const settings = ensureTrimSettings(sourceNode);
     const region = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
     const hasImageEdit = region.x !== 0 || region.y !== 0 || region.width !== 1 || region.height !== 1;
-    const hasVideoEdit = settings.startMs !== null || settings.endMs !== null || settings.strictCut;
-    if (!hasImageEdit && !hasVideoEdit) {
+    if (!hasImageEdit) {
       return null;
     }
     const messages: string[] = [];
@@ -50,19 +80,6 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
         t('nodes.mediaPreview.trimmedCrop', {
           width: Math.round(region.width * 100),
           height: Math.round(region.height * 100)
-        })
-      );
-    }
-    if (hasVideoEdit) {
-      const startLabel = formatTrimTimecode(settings.startMs ?? 0);
-      const endLabel =
-        settings.endMs === null ? t('nodes.trim.status.videoEndLabel') : formatTrimTimecode(settings.endMs);
-      const strictSuffix = settings.strictCut ? ` ${t('nodes.trim.status.videoStrictSuffix')}` : '';
-      messages.push(
-        t('nodes.mediaPreview.trimmedRange', {
-          start: startLabel,
-          end: endLabel,
-          strict: strictSuffix
         })
       );
     }
@@ -108,6 +125,7 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
         </div>
       `
       : '';
+    const crop = buildCropTransform(preview);
     const toolbar = `
       <div class="node-media-toolbar">
         <span class="node-media-filename" title="${fileLabel}">${fileLabel}</span>
@@ -132,12 +150,12 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     const kind = preview.kind === 'video' ? 'video' : 'image';
     const mediaTag =
       kind === 'video'
-        ? `<video src="${preview.url}" controls playsinline preload="metadata" muted></video>`
-        : `<img src="${preview.url}" alt="${escapeHtml(preview.name)}" />`;
+        ? `<video src="${preview.url}" controls autoplay loop playsinline preload="auto" muted style="${crop.style}"></video>`
+        : `<img src="${preview.url}" alt="${escapeHtml(preview.name)}" style="${crop.style}" />`;
 
     return `<div class="node-media" data-node-id="${escapeHtml(node.id)}"${inlineStyle}>
       ${toolbar}
-      <div class="node-media-frame">
+      <div class="node-media-frame${crop.hasCrop ? ' is-cropped' : ''}">
         <div class="node-media-preview" data-kind="${kind}">
           ${mediaTag}
         </div>

@@ -19,10 +19,8 @@ describe('DEFAULT_NODE_TEMPLATES', () => {
     expect(trimTemplate).toBeTruthy();
     expect(trimTemplate?.defaultSettings).toEqual({
       kind: 'trim',
-      startMs: null,
-      endMs: null,
-      strictCut: false,
-      region: null,
+      region: { x: 0, y: 0, width: 1, height: 1 },
+      regionSpace: 'stage',
       rotationDeg: 0,
       zoom: 1,
       flipHorizontal: false,

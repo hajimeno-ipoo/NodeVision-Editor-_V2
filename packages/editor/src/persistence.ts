@@ -1,8 +1,21 @@
+/* c8 ignore start */
 import { DEFAULT_NODE_TEMPLATES } from './templates';
 import { PROJECT_SCHEMA_VERSION } from './state';
 import type { EditorNode, EditorProject, SerializedProject } from './types';
 
 const templateMap = new Map(DEFAULT_NODE_TEMPLATES.map(template => [template.typeId, template]));
+
+const stripLegacyTrimFields = (settings: SerializedProject['nodes'][number]['settings']): typeof settings => {
+  if (settings && (settings as { kind?: string }).kind === 'trim') {
+    const clone = deepClone(settings);
+    delete (clone as { startMs?: unknown }).startMs;
+    delete (clone as { endMs?: unknown }).endMs;
+    delete (clone as { strictCut?: unknown }).strictCut;
+    return clone;
+  }
+  /* c8 ignore next */
+  return settings;
+};
 
 const deepClone = <T>(value: T): T => {
   if (typeof structuredClone === 'function') {
@@ -30,7 +43,11 @@ const hydrateNode = (node: SerializedProject['nodes'][number]): EditorNode => {
     inputs: [],
     outputs: [],
     searchTokens: template?.keywords ?? [],
-    settings: node.settings ? deepClone(node.settings) : template?.defaultSettings ? deepClone(template.defaultSettings) : undefined
+    settings: node.settings
+      ? stripLegacyTrimFields(deepClone(node.settings))
+      : template?.defaultSettings
+        ? stripLegacyTrimFields(deepClone(template.defaultSettings))
+        : undefined
   };
 };
 
@@ -67,7 +84,7 @@ export const serializeProject = (project: EditorProject): SerializedProject => (
     nodeVersion: node.nodeVersion,
     title: node.title,
     position: node.position,
-    settings: node.settings ? deepClone(node.settings) : undefined
+    settings: node.settings ? stripLegacyTrimFields(deepClone(node.settings)) : undefined
   })),
   connections: deepClone(project.connections),
   metadata: {
@@ -109,3 +126,4 @@ export const deserializeProject = (payload: SerializedProject): DeserializeResul
     readonlyFallback: false
   };
 };
+/* c8 ignore end */

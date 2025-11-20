@@ -1,4 +1,4 @@
-import type { RendererNode } from '../types';
+import type { RendererNode, NodevisionApi } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { getLoadNodeReservedHeight } from './preview-layout';
 import { calculatePreviewSize } from './preview-size';
@@ -31,6 +31,11 @@ const inferMediaKind = (file: File): 'image' | 'video' => {
     return 'video';
   }
   return 'image';
+};
+
+const toFileUrl = (path: string): string => {
+  const normalized = path.replace(/\\/g, '/');
+  return `file://${encodeURI(normalized)}`;
 };
 
 let measurementContainer: HTMLElement | null = null;
@@ -187,41 +192,65 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
       showToast(t('toast.mediaWrongTypeVideo'), 'error');
       return;
     }
-    if (typeof URL?.createObjectURL !== 'function') {
-      console.error('[NodeVision] URL.createObjectURL unavailable for media preview');
-      showToast(t('toast.mediaFailed'), 'error');
-      return;
-    }
-    cleanupMediaPreview(nodeId);
-    let objectUrl: string;
-    try {
-      objectUrl = URL.createObjectURL(file);
-    } catch (error) {
-      console.error('[NodeVision] failed to create preview URL', error);
-      showToast(t('toast.mediaFailed'), 'error');
-      return;
-    }
     const fallbackType = file.name?.split('.').pop()?.toUpperCase() ?? '';
     const resolvedType = file.type || fallbackType;
-    state.mediaPreviews.set(nodeId, {
-      url: objectUrl,
-      name: file.name || 'media',
-      size: file.size ?? 0,
-      type: resolvedType,
-      kind,
-      width: null,
-      height: null,
-      ownedUrl: true
-    });
-    renderNodes();
-    if (kind === 'image') {
-      measureImageDimensions(nodeId, file, objectUrl);
-    } else {
-      measureVideoDimensions(nodeId, objectUrl);
-    }
-    if (file.name) {
-      showToast(t('toast.mediaSelected', { name: file.name }));
-    }
+
+    const saveAndPreview = async () => {
+      cleanupMediaPreview(nodeId);
+      let storedPath: string | null = null;
+      let storedUrl: string | null = null;
+      const bridge = (window as unknown as { nodevision?: NodevisionApi }).nodevision;
+      if (typeof bridge?.storeMediaFile === 'function') {
+        try {
+          const buffer = await file.arrayBuffer();
+          const stored = await bridge.storeMediaFile({ name: file.name || 'media', buffer });
+          if (stored?.ok && (stored.path || stored.url)) {
+            storedPath = stored.path ?? null;
+            storedUrl = stored.url ?? null;
+          } else {
+            console.warn('[NodeVision] storeMediaFile failed, falling back to blob URL');
+          }
+        } catch (error) {
+          console.warn('[NodeVision] storeMediaFile error', error);
+        }
+      }
+
+      let previewUrl: string;
+      if (typeof URL?.createObjectURL === 'function') {
+        previewUrl = URL.createObjectURL(file);
+      } else if (storedUrl) {
+        previewUrl = storedUrl;
+      } else if (storedPath) {
+        previewUrl = toFileUrl(storedPath);
+      } else {
+        console.error('[NodeVision] cannot create preview URL');
+        showToast(t('toast.mediaFailed'), 'error');
+        return;
+      }
+
+      state.mediaPreviews.set(nodeId, {
+        url: previewUrl,
+        name: file.name || 'media',
+        size: file.size ?? 0,
+        type: resolvedType,
+        kind,
+        width: null,
+        height: null,
+        ownedUrl: Boolean(storedPath || storedUrl) || previewUrl.startsWith('blob:'),
+        filePath: storedPath
+      });
+      renderNodes();
+      if (kind === 'image') {
+        measureImageDimensions(nodeId, file, previewUrl);
+      } else {
+        measureVideoDimensions(nodeId, previewUrl);
+      }
+      if (file.name) {
+        showToast(t('toast.mediaSelected', { name: file.name }));
+      }
+    };
+
+    void saveAndPreview();
   };
 
   const handleMediaInputChange = (nodeId: string, input: HTMLInputElement): void => {

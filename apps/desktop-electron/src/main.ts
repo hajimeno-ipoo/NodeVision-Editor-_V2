@@ -1,4 +1,7 @@
 import { promises as fs } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import crypto from 'node:crypto';
 import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
 
@@ -143,6 +146,19 @@ const getQueueSnapshot = (): QueueSnapshot => {
     warnings: buildQueueWarnings(history, limits, queued.length, queueFullEvent)
   };
 };
+
+const runFfmpeg = (ffmpegPath: string, args: string[]): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const child = spawn(ffmpegPath, args, { stdio: 'ignore' });
+    child.on('error', reject);
+    child.on('exit', code => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`ffmpeg exited with code ${code}`));
+      }
+    });
+  });
 
 const simulateJobExecution = (ctx: JobRunContext): Promise<JobRunResult> =>
   new Promise((resolve, reject) => {
@@ -313,6 +329,130 @@ ipcMain.handle('nodevision:workflows:save', async (_event, payload) => {
   }
 });
 
+ipcMain.handle('nodevision:media:store', async (_event, payload) => {
+  try {
+    if (!cachedSettings) throw new Error('Settings not initialized');
+    const buffer: ArrayBuffer | undefined = payload?.buffer;
+    const name: string | undefined = payload?.name;
+    if (!buffer || !name) throw new Error('buffer and name are required');
+    const uploadDir = path.join(cachedSettings.tempRoot, 'uploads');
+    await fs.mkdir(uploadDir, { recursive: true });
+    const safeName = name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const hash = crypto.randomBytes(6).toString('hex');
+    const outputPath = path.join(uploadDir, `${Date.now()}-${hash}-${safeName}`);
+    const nodeBuffer = Buffer.from(buffer);
+    await fs.writeFile(outputPath, nodeBuffer);
+    return { ok: true, path: outputPath, url: pathToFileURL(outputPath).toString() };
+  } catch (error) {
+    console.error('[NodeVision] media store failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
+  try {
+    if (!cachedSettings) {
+      throw new Error('Settings not initialized');
+    }
+    const ffmpegPath = cachedSettings.ffmpegPath;
+    if (!ffmpegPath) {
+      throw new Error('FFmpeg path missing');
+    }
+    const sourcePath: string | undefined = payload?.sourcePath;
+    if (!sourcePath) {
+      throw new Error('sourcePath is required');
+    }
+    const kind: 'image' | 'video' = payload?.kind === 'video' ? 'video' : 'image';
+    const region = payload?.region ?? { x: 0, y: 0, width: 1, height: 1 };
+    const widthHint: number | null = payload?.widthHint ?? null;
+    const heightHint: number | null = payload?.heightHint ?? null;
+    const durationMs: number | null = payload?.durationMs ?? null;
+    const previewDir = path.join(cachedSettings.tempRoot, 'cropped-previews');
+    await fs.mkdir(previewDir, { recursive: true });
+
+    const expr = (value: number | undefined, base: 'iw' | 'ih'): string => {
+      if (typeof value !== 'number' || Number.isNaN(value)) return base;
+      if (value <= 1 && value > 0) {
+        return `${base}*${value}`;
+      }
+      return `${Math.round(value)}`;
+    };
+
+    const cropFilter = `crop=${expr(region.width, 'iw')}:${expr(region.height, 'ih')}:${expr(
+      region.x,
+      'iw'
+    )}:${expr(region.y, 'ih')}`;
+
+    const filterParts: string[] = [];
+    if (typeof payload?.zoom === 'number' && payload.zoom !== 1) {
+      filterParts.push(`scale=iw*${payload.zoom}:ih*${payload.zoom}`);
+    }
+    if (payload?.flipHorizontal) {
+      filterParts.push('hflip');
+    }
+    if (payload?.flipVertical) {
+      filterParts.push('vflip');
+    }
+    if (typeof payload?.rotationDeg === 'number' && payload.rotationDeg !== 0) {
+      filterParts.push(`rotate=${payload.rotationDeg * (Math.PI / 180)}:fillcolor=black`);
+    }
+    filterParts.push(cropFilter);
+    const filters = filterParts.join(',');
+
+    if (kind === 'image') {
+      const outputPath = path.join(previewDir, `crop-${Date.now()}.png`);
+      const args = ['-y', '-i', sourcePath, '-vf', filters, '-frames:v', '1', outputPath];
+      await runFfmpeg(ffmpegPath, args);
+      return {
+        ok: true,
+        preview: {
+          url: pathToFileURL(outputPath).toString(),
+          width: widthHint,
+          height: heightHint,
+          type: 'image/png',
+          kind: 'image',
+          ownedUrl: true
+        }
+      };
+    }
+
+    const outputPath = path.join(previewDir, `crop-${Date.now()}.mp4`);
+    const args = [
+      '-y',
+      '-i',
+      sourcePath,
+      '-vf',
+      filters,
+      '-an',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '28',
+      '-movflags',
+      '+faststart',
+      outputPath
+    ];
+    await runFfmpeg(ffmpegPath, args);
+    return {
+      ok: true,
+      preview: {
+        url: pathToFileURL(outputPath).toString(),
+        width: widthHint,
+        height: heightHint,
+        durationMs,
+        type: 'video/mp4',
+        kind: 'video',
+        ownedUrl: true
+      }
+    };
+  } catch (error) {
+    console.error('[NodeVision] preview crop failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
 async function promptForFFmpegSetup(reason: string): Promise<void> {
   const settingsPath = getSettingsFilePath();
   const result = await dialog.showMessageBox({
@@ -441,7 +581,10 @@ function createWindow(status: BootStatus): void {
     }
   });
 
-  win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  const baseForData = `file://${status.settings.tempRoot}/`;
+  win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`, {
+    baseURLForDataURL: baseForData
+  });
 }
 
 function reportFatal(error: unknown, options: { silent?: boolean } = {}): void {

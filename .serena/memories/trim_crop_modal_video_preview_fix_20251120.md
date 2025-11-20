@@ -1,0 +1,1 @@
+Added async openTrimModal to generate a screenshot for video previews so crop modal works for both images and videos. Uses captureFrameForPreview to create an image data URL and passes it to modal. Updated renderer types accordingly. Desktop-electron build now succeeds.

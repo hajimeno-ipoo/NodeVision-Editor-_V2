@@ -2,10 +2,8 @@ import type { NodeTemplate } from './types';
 
 const DEFAULT_TRIM_SETTINGS: NodeTemplate['defaultSettings'] = {
   kind: 'trim',
-  startMs: null,
-  endMs: null,
-  strictCut: false,
-  region: null,
+  region: { x: 0, y: 0, width: 1, height: 1 },
+  regionSpace: 'stage',
   rotationDeg: 0,
   zoom: 1,
   flipHorizontal: false,
@@ -56,10 +54,12 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
   {
     typeId: 'trim',
     nodeVersion: '1.0.0',
-    title: 'Trim',
+    title: 'Trim (Crop)',
     category: 'Edit',
-    description: 'Cut media between in/out points',
-    keywords: ['trim', 'cut', 'edit'],
+    description: 'Crop the visible area of images or videos',
+    keywords: ['trim', 'crop', 'cut', 'edit'],
+    width: 360,
+    height: 520,
     inputs: [
       { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
     ],

@@ -1,0 +1,1 @@
+Step4: エンジンFFmpegビルダーを時間トリム→クロップに転換。TrimNode を regionベースに拡張し、cropパラメータは iw/ih 比率式で生成。trimによる-ss/-tやstrictCut段は削除。CropNode params を number|string 許容。builder.test をクロップ挙動に合わせ再構成。

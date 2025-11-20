@@ -54,6 +54,13 @@ export interface NodeMediaPreview {
   durationMs?: number | null;
   ownedUrl?: boolean;
   derivedFrom?: string;
+  filePath?: string | null;
+  cropRegion?: { x: number; y: number; width: number; height: number };
+  cropSpace?: 'stage' | 'image';
+  cropRotationDeg?: number;
+  cropZoom?: number;
+  cropFlipHorizontal?: boolean;
+  cropFlipVertical?: boolean;
 }
 
 export interface NodeSize {
@@ -206,6 +213,35 @@ export interface NodevisionApi {
   setCrashDumpConsent?: (enabled: boolean) => Promise<{ collectCrashDumps: boolean }>;
   loadWorkflows?: () => Promise<{ ok: boolean; workflows?: StoredWorkflow[]; message?: string }>;
   saveWorkflows?: (workflows: StoredWorkflow[]) => Promise<{ ok: boolean; message?: string }>;
+  storeMediaFile?: (payload: { name: string; buffer: ArrayBuffer }) => Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
+  generateCroppedPreview?: (payload: {
+    sourcePath: string;
+    kind: 'image' | 'video';
+    region: { x: number; y: number; width: number; height: number };
+    regionSpace?: 'stage' | 'image';
+    rotationDeg?: number;
+    zoom?: number;
+    flipHorizontal?: boolean;
+    flipVertical?: boolean;
+    aspectMode?: string;
+    widthHint?: number | null;
+    heightHint?: number | null;
+    durationMs?: number | null;
+  }) => Promise<
+    | {
+        ok: true;
+        preview: {
+          url: string;
+          width: number | null;
+          height: number | null;
+          durationMs?: number | null;
+          type: string;
+          kind: 'image' | 'video';
+          ownedUrl: true;
+        };
+      }
+    | { ok: false; message?: string }
+  >;
 }
 
 export type {

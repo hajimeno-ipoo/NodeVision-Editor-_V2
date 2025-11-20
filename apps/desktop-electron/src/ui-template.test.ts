@@ -62,7 +62,12 @@ const basePayload: RendererPayload = {
 };
 
 const renderDom = (payload: RendererPayload) =>
-  new JSDOM(buildRendererHtml(payload), { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true });
+  new JSDOM(buildRendererHtml(payload), {
+    runScripts: 'dangerously',
+    resources: 'usable',
+    pretendToBeVisual: true,
+    url: 'https://localhost/'
+  });
 
 const ensurePointerEventPolyfill = (dom: JSDOM) => {
   if (dom.window.PointerEvent) {
@@ -364,7 +369,7 @@ describe('load media node UI', () => {
     const launcher = dom.window.document.querySelector('.node[data-id="n2"] .trim-launcher');
     expect(launcher).toBeTruthy();
     const status = launcher?.querySelector('.trim-launcher-status');
-    expect(status?.textContent).toContain('まだ設定されていません');
+    expect(status?.textContent).toContain('まだクロップしてないよ');
     dom.window.close();
   });
 
@@ -375,9 +380,6 @@ describe('load media node UI', () => {
         ...MEDIA_NODES[1],
         settings: {
           kind: 'trim',
-          startMs: 1500,
-          endMs: 5000,
-          strictCut: true,
           region: { x: 0.05, y: 0.1, width: 0.75, height: 0.65 }
         }
       }
@@ -385,21 +387,20 @@ describe('load media node UI', () => {
     const dom = renderDom({ ...basePayload, nodes: editedNodes });
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const status = dom.window.document.querySelector('.node[data-id="n2"] .trim-launcher-status');
-    expect(status?.textContent).toContain('動画');
-    expect(status?.textContent).toContain('00:01.500');
-    expect(status?.textContent).toContain('00:05.000');
+    expect(status?.textContent).toContain('クロップ');
+    expect(status?.textContent).toContain('75');
+    expect(status?.textContent).toContain('65');
     dom.window.close();
   });
 
-  it('exposes buttons for image/video trim modals', async () => {
+  it('exposes single crop button for trim modal', async () => {
     const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
     const buttons = [
       ...dom.window.document.querySelectorAll<HTMLButtonElement>('.node[data-id="n2"] .trim-launcher-btn')
     ];
-    expect(buttons).toHaveLength(2);
-    expect(buttons[0]?.textContent).toContain('画像トリム');
-    expect(buttons[1]?.textContent).toContain('動画トリム');
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]?.textContent).toContain('クロップ');
     dom.window.close();
   });
 
@@ -417,22 +418,21 @@ describe('load media node UI', () => {
     dom.window.close();
   });
 
-  it('renders video trim modal skeleton with disabled controls when no preview is connected', async () => {
+});
+
+describe('node resize handles', () => {
+  it('renders only bottom-right handle per node', async () => {
     const dom = renderDom({ ...basePayload, nodes: MEDIA_NODES });
     await new Promise(resolve => dom.window.addEventListener('load', resolve, { once: true }));
-    const button = dom.window.document.querySelector<HTMLButtonElement>(
-      '.node[data-id="n2"] [data-trim-launch="video"]'
-    );
-    button?.dispatchEvent(new dom.window.Event('click', { bubbles: true }));
     await new Promise(resolve => dom.window.setTimeout(resolve, 0));
-    const startInput = dom.window.document.querySelector<HTMLInputElement>('[data-trim-video-start]');
-    expect(startInput).toBeTruthy();
-    expect(startInput?.disabled).toBe(true);
-    const previewMessage = dom.window.document.querySelector('.trim-video-preview-empty');
-    expect(previewMessage?.textContent).toContain('動画ロードノード');
-    const timeline = dom.window.document.querySelector<HTMLElement>('.trim-video-timeline');
-    expect(timeline?.getAttribute('data-disabled')).toBe('true');
-    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape' }));
+    const handles = [...dom.window.document.querySelectorAll<HTMLElement>('[data-resize-handle]')];
+    expect(handles).toHaveLength(MEDIA_NODES.length);
+    handles.forEach(handle => {
+      expect(handle.getAttribute('data-resize-handle')).toBe('se');
+    });
+    expect(dom.window.document.querySelector('.node-resize-nw')).toBeNull();
+    expect(dom.window.document.querySelector('.node-resize-ne')).toBeNull();
+    expect(dom.window.document.querySelector('.node-resize-sw')).toBeNull();
     dom.window.close();
   });
 });

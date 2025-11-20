@@ -22,21 +22,18 @@ export type TrimAspectMode =
   | 'free'
   | 'original'
   | 'square'
-  | '2:1'
-  | '3:1'
-  | '3:2'
   | '4:3'
-  | '5:4'
   | '16:9'
   | '16:10'
   | '9:16'
+  | '2:1'
+  | '3:1'
+  | '3:2'
+  | '5:4'
   | '1.618:1';
 
 export interface TrimNodeSettings {
   kind: 'trim';
-  startMs: number | null;
-  endMs: number | null;
-  strictCut: boolean;
   region: TrimRegion | null;
   /**
    * Indicates which coordinate space the region numbers are normalized to.

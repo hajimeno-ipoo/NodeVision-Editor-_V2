@@ -16,9 +16,6 @@ const cloneRegion = (region?: TrimNodeSettings['region']): TrimNodeSettings['reg
 
 export const DEFAULT_TRIM_SETTINGS: TrimNodeSettings = {
   kind: 'trim',
-  startMs: null,
-  endMs: null,
-  strictCut: false,
   region: { x: 0, y: 0, width: 1, height: 1 },
   regionSpace: 'stage',
   rotationDeg: 0,
@@ -30,9 +27,6 @@ export const DEFAULT_TRIM_SETTINGS: TrimNodeSettings = {
 
 const cloneSettings = (): TrimNodeSettings => ({
   kind: 'trim',
-  startMs: DEFAULT_TRIM_SETTINGS.startMs,
-  endMs: DEFAULT_TRIM_SETTINGS.endMs,
-  strictCut: DEFAULT_TRIM_SETTINGS.strictCut,
   region: cloneRegion(DEFAULT_TRIM_SETTINGS.region),
   regionSpace: DEFAULT_TRIM_SETTINGS.regionSpace,
   rotationDeg: DEFAULT_TRIM_SETTINGS.rotationDeg,
@@ -45,6 +39,10 @@ const cloneSettings = (): TrimNodeSettings => ({
 export const ensureTrimSettings = (node: RendererNode): TrimNodeSettings => {
   const current = node.settings;
   if (current && current.kind === 'trim') {
+    // Drop legacy time-based fields
+    delete (current as unknown as { startMs?: unknown }).startMs;
+    delete (current as unknown as { endMs?: unknown }).endMs;
+    delete (current as unknown as { strictCut?: unknown }).strictCut;
     current.region = cloneRegion(current.region);
     if (current.regionSpace !== 'image' && current.regionSpace !== 'stage') {
       current.regionSpace = DEFAULT_TRIM_SETTINGS.regionSpace;

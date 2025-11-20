@@ -1,0 +1,1 @@
+Ran `pnpm --filter desktop-electron build` after schema/UI/engine changes. Initial errors due to stale TrimNodeSettings (startMs/endMs) references in media-preview and outdated editor build; fixed by rebuilding @nodevision/editor and updating media-preview to crop-only hints. Build now succeeds.

@@ -272,21 +272,21 @@ const loadRendererBundle = (): string => {
     return rendererScriptCache;
   }
 
-  const jsPath = resolveFirstExistingPath([
-    path.resolve(__dirname, 'renderer', 'app.js'),
-    path.resolve(__dirname, '..', 'dist', 'renderer', 'app.js')
-  ]);
-  if (jsPath) {
-    rendererScriptCache = buildInlineBundle(path.dirname(jsPath), '.js');
-    return rendererScriptCache;
-  }
-
   const tsPath = resolveFirstExistingPath([
     path.resolve(__dirname, 'renderer', 'app.ts'),
     path.resolve(__dirname, '..', 'src', 'renderer', 'app.ts')
   ]);
   if (tsPath) {
     rendererScriptCache = buildInlineBundle(path.dirname(tsPath), '.ts');
+    return rendererScriptCache;
+  }
+
+  const jsPath = resolveFirstExistingPath([
+    path.resolve(__dirname, 'renderer', 'app.js'),
+    path.resolve(__dirname, '..', 'dist', 'renderer', 'app.js')
+  ]);
+  if (jsPath) {
+    rendererScriptCache = buildInlineBundle(path.dirname(jsPath), '.js');
     return rendererScriptCache;
   }
 

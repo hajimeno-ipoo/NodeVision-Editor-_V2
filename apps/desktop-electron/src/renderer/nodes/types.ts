@@ -32,5 +32,5 @@ export interface NodeRendererContext {
   minPreviewWidth: number;
   getTemplateByType: (typeId: string) => NodeTemplate | undefined;
   getMediaPreview: (nodeId: string) => NodeMediaPreview | undefined;
-  openTrimModal: (mode: 'image' | 'video', nodeId: string) => void;
+  openTrimModal: (nodeId: string) => void | Promise<void>;
 }

@@ -1,0 +1,1 @@
+Step5: レガシー時間系フィールドのクリーンアップ。ensureTrimSettings で startMs/endMs/strictCut を削除。persistence.ts で stripLegacyTrimFields を追加し、シリアライズ/デシリアライズで時間フィールドを除外。

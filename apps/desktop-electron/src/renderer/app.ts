@@ -9,7 +9,7 @@ import {
   createInitialState,
   deepClone
 } from './state';
-import { ensureTrimSettings, formatTrimTimecode } from './nodes/trim-shared';
+import { ensureTrimSettings } from './nodes/trim-shared';
 import type {
   RendererBootstrapWindow,
   RendererState,
@@ -83,7 +83,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   type TrimImageModalState = {
     type: 'trim';
-    mode: 'image';
     nodeId: string;
     draftRegion: NonNullable<TrimNodeSettings['region']>;
     draftRegionSpace: 'stage' | 'image';
@@ -97,18 +96,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     lastPreferredAxis: 'width' | 'height' | null;
   };
 
-  type TrimVideoModalState = {
-    type: 'trim';
-    mode: 'video';
-    nodeId: string;
-    draftStart: number | null;
-    draftEnd: number | null;
-    draftStrict: boolean;
-    sourcePreview: NodeMediaPreview | null;
-    durationMs: number | null;
-  };
-
-  type ActiveModalState = TrimImageModalState | TrimVideoModalState;
+  type ActiveModalState = TrimImageModalState;
 
   let activeModal: ActiveModalState | null = null;
   let modalBackdrop: HTMLElement | null = null;
@@ -121,10 +109,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const MODAL_FOCUSABLE_SELECTORS = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
   const DEFAULT_TRIM_REGION: NonNullable<TrimNodeSettings['region']> = { x: 0, y: 0, width: 1, height: 1 };
   const MIN_TRIM_REGION_SIZE = 0.05;
-  const MIN_TRIM_VIDEO_RANGE_MS = 100;
-  const TRIM_VIDEO_JOG_STEP_MS = 500;
-  const TRIM_VIDEO_TIMELINE_PADDING = 12;
-  const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
 
   const cloneNodeSettings = (settings?: RendererNode['settings']) =>
     settings ? deepClone(settings) : undefined;
@@ -506,51 +490,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
-  const describeTrimDuration = (value: number | null): string => {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return t('nodes.trim.video.durationUnknown');
-    }
-    if (value < 1000) {
-      return `${value} ms`;
-    }
-    if (value < 60_000) {
-      return `${(value / 1000).toFixed(2)} s`;
-    }
-    const minutes = Math.floor(value / 60_000);
-    const remainingSeconds = ((value % 60_000) / 1000).toFixed(1);
-    return `${minutes}m ${remainingSeconds}s`;
-  };
-
-  const parseTrimTimecode = (raw: string): number | null => {
-    const value = raw.trim().replace(',', '.');
-    if (!value) {
-      return null;
-    }
-    if (/^\d+(\.\d+)?$/.test(value)) {
-      const seconds = Number(value);
-      return Number.isFinite(seconds) ? Math.max(0, Math.round(seconds * 1000)) : null;
-    }
-    const segments = value.split(':').map(part => part.trim());
-    if (!segments.length) {
-      return null;
-    }
-    let multiplier = 1;
-    let total = 0;
-    while (segments.length) {
-      const segment = segments.pop();
-      if (!segment) {
-        return null;
-      }
-      const number = Number(segment);
-      if (!Number.isFinite(number)) {
-        return null;
-      }
-      total += number * multiplier;
-      multiplier *= 60;
-    }
-    return Math.max(0, Math.round(total * 1000));
-  };
-
   const trapFocusWithinModal = (event: KeyboardEvent): void => {
     if (!modalContainer) return;
     const focusable = Array.from(
@@ -777,104 +716,18 @@ import { calculatePreviewSize } from './nodes/preview-size';
     }
   };
 
-  const renderTrimVideoModal = (session: TrimVideoModalState): void => {
-    if (!modalTitleElement || !modalContentElement) {
-      return;
-    }
-    const preview = session.sourcePreview?.kind === 'video' ? session.sourcePreview : null;
-    const hasPreview = Boolean(preview);
-    const disabledAttr = hasPreview ? '' : ' disabled';
-    const startValue = formatTrimTimecode(session.draftStart);
-    const endValue = formatTrimTimecode(session.draftEnd);
-    const previewName = preview?.name ?? t('nodes.trim.video.previewFallback');
-    const durationLabel = describeTrimDuration(session.durationMs ?? preview?.durationMs ?? null);
-    const previewMarkup = preview
-      ? `<video src="${preview.url}" data-trim-video-player preload="metadata" playsinline muted controls></video>`
-      : `<div class="trim-video-preview-empty">${escapeHtml(t('nodes.trim.modalPlaceholder.noVideo'))}</div>`;
-
-    modalTitleElement.textContent = t('nodes.trim.videoButton');
-    modalContentElement.innerHTML = `
-      <div class="trim-video-layout" data-trim-video-ready="${hasPreview}">
-        <div class="trim-video-preview${hasPreview ? '' : ' is-empty'}" data-trim-video-preview>
-          ${previewMarkup}
-          <div class="trim-video-preview-meta">
-            <span class="trim-video-preview-name" title="${escapeHtml(previewName)}">${escapeHtml(previewName)}</span>
-            <span class="trim-video-preview-duration" data-trim-video-duration>${escapeHtml(durationLabel)}</span>
-          </div>
-        </div>
-        <div class="trim-video-fields">
-          <label class="trim-video-field">
-            <span>${escapeHtml(t('nodes.trim.video.startLabel'))}</span>
-            <input type="text" data-trim-video-start value="${escapeHtml(startValue)}" placeholder="00:00.000" inputmode="decimal"${disabledAttr} />
-          </label>
-          <label class="trim-video-field">
-            <span>${escapeHtml(t('nodes.trim.video.endLabel'))}</span>
-            <input type="text" data-trim-video-end value="${escapeHtml(endValue)}" placeholder="00:00.000" inputmode="decimal"${disabledAttr} />
-          </label>
-          <label class="trim-video-checkbox">
-            <input type="checkbox" data-trim-video-strict${session.draftStrict ? ' checked' : ''}${disabledAttr} />
-            <div>
-              <span>${escapeHtml(t('nodes.trim.video.strictLabel'))}</span>
-              <small>${escapeHtml(t('nodes.trim.video.strictHint'))}</small>
-            </div>
-          </label>
-        </div>
-      </div>
-      <div class="trim-video-timeline"${hasPreview ? '' : ' data-disabled="true"'} data-trim-video-timeline>
-        <div class="trim-video-track" data-trim-video-track>
-          <div class="trim-video-range" data-trim-video-range>
-            <button type="button" class="trim-video-handle" data-trim-video-handle="start" aria-label="${escapeHtml(
-      t('nodes.trim.video.startHandle')
-    )}"${disabledAttr}></button>
-            <button type="button" class="trim-video-handle" data-trim-video-handle="end" aria-label="${escapeHtml(
-      t('nodes.trim.video.endHandle')
-    )}"${disabledAttr}></button>
-          </div>
-        </div>
-        <div class="trim-video-timecodes">
-          <span data-trim-video-timecode="start">${escapeHtml(startValue || '00:00.000')}</span>
-          <span data-trim-video-timecode="playhead">00:00.000</span>
-          <span data-trim-video-timecode="end">${escapeHtml(endValue || '--:--.---')}</span>
-        </div>
-      </div>
-      <p class="trim-modal-hint">${escapeHtml(t('nodes.trim.modalHint.video'))}</p>
-      <div class="trim-modal-actions trim-video-actions">
-        <div class="trim-video-transport">
-          <button type="button" class="pill-button" data-trim-video-jog="back"${disabledAttr}>${escapeHtml(
-      t('nodes.trim.video.controls.stepBack')
-    )}</button>
-          <button type="button" class="pill-button" data-trim-video-play${disabledAttr}>${escapeHtml(
-      t('nodes.trim.video.controls.play')
-    )}</button>
-          <button type="button" class="pill-button" data-trim-video-jog="forward"${disabledAttr}>${escapeHtml(
-      t('nodes.trim.video.controls.stepForward')
-    )}</button>
-        </div>
-        <span class="trim-modal-actions-spacer"></span>
-        <button type="button" class="pill-button" data-trim-reset${disabledAttr}>${escapeHtml(t('actions.reset'))}</button>
-        <button type="button" class="pill-button" data-trim-cancel>${escapeHtml(t('actions.cancel'))}</button>
-        <button type="button" class="pill-button primary" data-trim-save${disabledAttr}>${escapeHtml(t('actions.save'))}</button>
-      </div>
-    `;
-    initializeTrimVideoControls(session);
-  };
-
   const renderTrimModalView = (state: Extract<ActiveModalState, { type: 'trim' }>): void => {
     if (!modalContentElement || !modalTitleElement) {
       return;
     }
-    if (state.mode === 'image') {
-      renderTrimImageModal(state);
-      return;
-    }
-    renderTrimVideoModal(state);
+    renderTrimImageModal(state);
   };
 
-  const persistTrimSettings = (
+  const persistTrimSettings = async (
     nodeId: string,
     mutate: (settings: TrimNodeSettings) => void,
     toastKey: string
-  ): void => {
+  ): Promise<void> => {
     const targetNode = state.nodes.find(entry => entry.id === nodeId);
     if (!targetNode) {
       closeActiveModal();
@@ -882,7 +735,60 @@ import { calculatePreviewSize } from './nodes/preview-size';
     }
     const settings = ensureTrimSettings(targetNode);
     mutate(settings);
-    scheduleTrimPreviewUpdate(targetNode);
+    const sourcePreview = findTrimSourcePreview(nodeId);
+    const region = settings.region ?? DEFAULT_TRIM_REGION;
+    const widthHint = sourcePreview?.width ? Math.round(sourcePreview.width * region.width) : null;
+    const heightHint = sourcePreview?.height ? Math.round(sourcePreview.height * region.height) : null;
+    const durationMs = sourcePreview?.durationMs ?? null;
+    const sourceId = state.connections.find(conn => conn.toNodeId === nodeId && conn.toPortId === 'source')?.fromNodeId;
+    const signature = sourcePreview ? buildTrimSignature(sourceId ?? nodeId, sourcePreview, settings) : null;
+
+    const applyFallback = () => {
+      scheduleTrimPreviewUpdate(targetNode);
+    };
+
+    if (nodevision?.generateCroppedPreview && sourcePreview?.filePath) {
+      try {
+        const response = await nodevision.generateCroppedPreview({
+          sourcePath: sourcePreview.filePath,
+          kind: sourcePreview.kind,
+          region,
+          regionSpace: settings.regionSpace ?? 'stage',
+          rotationDeg: settings.rotationDeg,
+          zoom: settings.zoom,
+          flipHorizontal: settings.flipHorizontal,
+          flipVertical: settings.flipVertical,
+          aspectMode: settings.aspectMode,
+          widthHint,
+          heightHint,
+          durationMs
+        });
+        if (response?.ok && response.preview) {
+          const updated = {
+            ...sourcePreview,
+            ...response.preview,
+            ownedUrl: true,
+            derivedFrom: signature ?? undefined,
+            cropRegion: region,
+            cropSpace: settings.regionSpace ?? 'stage',
+            cropRotationDeg: settings.rotationDeg ?? 0,
+            cropZoom: settings.zoom ?? 1,
+            cropFlipHorizontal: settings.flipHorizontal ?? false,
+            cropFlipVertical: settings.flipVertical ?? false
+          };
+          state.mediaPreviews.set(nodeId, updated);
+          commitState();
+          closeActiveModal();
+          showToast(t(toastKey));
+          renderNodes();
+          return;
+        }
+      } catch (error) {
+        console.warn('[NodeVision] generateCroppedPreview failed, fallback to client crop', error);
+      }
+    }
+
+    applyFallback();
     closeActiveModal();
     commitState();
     showToast(t(toastKey));
@@ -1622,7 +1528,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       closeActiveModal();
     });
     modalContent.querySelector('[data-trim-save]')?.addEventListener('click', () => {
-      persistTrimSettings(
+      void persistTrimSettings(
         session.nodeId,
         settings => {
           const metrics = getImageStageMetrics();
@@ -1715,358 +1621,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     initAspectWhenReady();
   };
 
-  const initializeTrimVideoControls = (session: TrimVideoModalState): void => {
-    if (!modalContentElement) {
-      return;
-    }
-    const cancelButton = modalContentElement.querySelector<HTMLButtonElement>('[data-trim-cancel]');
-    cancelButton?.addEventListener('click', () => {
-      closeActiveModal();
-    });
-    if (!session.sourcePreview || session.sourcePreview.kind !== 'video') {
-      return;
-    }
-    const videoElement = modalContentElement.querySelector<HTMLVideoElement>('[data-trim-video-player]');
-    const startInput = modalContentElement.querySelector<HTMLInputElement>('[data-trim-video-start]');
-    const endInput = modalContentElement.querySelector<HTMLInputElement>('[data-trim-video-end]');
-    const strictInput = modalContentElement.querySelector<HTMLInputElement>('[data-trim-video-strict]');
-    const timeline = modalContentElement.querySelector<HTMLElement>('[data-trim-video-timeline]');
-    const track = modalContentElement.querySelector<HTMLElement>('[data-trim-video-track]');
-    const range = modalContentElement.querySelector<HTMLElement>('[data-trim-video-range]');
-    const startHandle = modalContentElement.querySelector<HTMLButtonElement>(
-      '[data-trim-video-handle="start"]'
-    );
-    const endHandle = modalContentElement.querySelector<HTMLButtonElement>('[data-trim-video-handle="end"]');
-    const timecodeStart = modalContentElement.querySelector<HTMLElement>('[data-trim-video-timecode="start"]');
-    const timecodeEnd = modalContentElement.querySelector<HTMLElement>('[data-trim-video-timecode="end"]');
-    const timecodePlayhead = modalContentElement.querySelector<HTMLElement>(
-      '[data-trim-video-timecode="playhead"]'
-    );
-    const playButton = modalContentElement.querySelector<HTMLButtonElement>('[data-trim-video-play]');
-    const jogButtons = Array.from(
-      modalContentElement.querySelectorAll<HTMLButtonElement>('[data-trim-video-jog]')
-    );
-    const resetButton = modalContentElement.querySelector<HTMLButtonElement>('[data-trim-reset]');
-    const saveButton = modalContentElement.querySelector<HTMLButtonElement>('[data-trim-save]');
-    if (!videoElement || !startInput || !endInput || !timeline || !track || !range) {
-      return;
-    }
-
-    const getDuration = (): number => {
-      if (typeof session.durationMs === 'number' && session.durationMs > 0) {
-        return session.durationMs;
-      }
-      const previewDuration = session.sourcePreview?.durationMs;
-      if (typeof previewDuration === 'number' && previewDuration > 0) {
-        session.durationMs = previewDuration;
-        return previewDuration;
-      }
-      if (Number.isFinite(videoElement.duration) && videoElement.duration > 0) {
-        const computed = Math.round(videoElement.duration * 1000);
-        session.durationMs = computed;
-        return computed;
-      }
-      return 0;
-    };
-
-    const clampValue = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
-
-    const normalizeRangeForSettings = (
-      startValue: number | null,
-      endValue: number | null,
-      duration: number | null
-    ): { start: number | null; end: number | null } => {
-      const sanitize = (value: number | null): number | null => {
-        if (typeof value !== 'number' || !Number.isFinite(value)) {
-          return null;
-        }
-        return Math.max(0, Math.round(value));
-      };
-      let normalizedStart = sanitize(startValue);
-      let normalizedEnd = sanitize(endValue);
-      if (normalizedStart !== null && normalizedStart <= TRIM_VIDEO_DEFAULT_EPSILON_MS) {
-        normalizedStart = null;
-      }
-      if (duration && normalizedEnd !== null && Math.abs(normalizedEnd - duration) <= TRIM_VIDEO_DEFAULT_EPSILON_MS) {
-        normalizedEnd = null;
-      }
-      if (normalizedEnd !== null && normalizedStart !== null && normalizedEnd < normalizedStart) {
-        normalizedEnd = normalizedStart;
-      }
-      return { start: normalizedStart, end: normalizedEnd };
-    };
-
-    const ensureDraftBounds = (): void => {
-      const duration = getDuration();
-      const defaultEnd = duration > 0 ? duration : MIN_TRIM_VIDEO_RANGE_MS;
-      if (session.draftStart == null || session.draftStart < 0) {
-        session.draftStart = 0;
-      }
-      if (session.draftEnd == null || session.draftEnd <= session.draftStart) {
-        session.draftEnd = duration > 0 ? duration : session.draftStart + MIN_TRIM_VIDEO_RANGE_MS;
-      }
-      if (duration > 0 && session.draftEnd > duration) {
-        session.draftEnd = duration;
-      }
-      if ((session.draftEnd ?? defaultEnd) - (session.draftStart ?? 0) < MIN_TRIM_VIDEO_RANGE_MS) {
-        session.draftEnd = Math.min(
-          duration > 0 ? duration : session.draftStart + MIN_TRIM_VIDEO_RANGE_MS,
-          (session.draftStart ?? 0) + MIN_TRIM_VIDEO_RANGE_MS
-        );
-      }
-      if (duration > 0 && (session.draftEnd ?? duration) > duration) {
-        session.draftEnd = duration;
-      }
-    };
-
-    const updateInputValues = (): void => {
-      startInput.value = formatTrimTimecode(session.draftStart ?? 0) || '00:00.000';
-      endInput.value =
-        formatTrimTimecode(session.draftEnd ?? session.draftStart ?? 0) || formatTrimTimecode(session.draftStart ?? 0);
-      if (strictInput) {
-        strictInput.checked = Boolean(session.draftStrict);
-      }
-    };
-
-    const updateTimelineStyles = (): void => {
-      const duration = getDuration();
-      if (!duration || !track || !range) {
-        timeline.dataset.disabled = 'true';
-        return;
-      }
-      timeline.dataset.disabled = 'false';
-      const rect = track.getBoundingClientRect();
-      const usable = Math.max(1, rect.width - TRIM_VIDEO_TIMELINE_PADDING * 2);
-      const startRatio = clampValue((session.draftStart ?? 0) / duration, 0, 1);
-      const endRatio = clampValue((session.draftEnd ?? duration) / duration, startRatio, 1);
-      const left = TRIM_VIDEO_TIMELINE_PADDING + startRatio * usable;
-      const width = Math.max(4, (endRatio - startRatio) * usable);
-      range.style.left = `${left}px`;
-      range.style.width = `${width}px`;
-    };
-
-    const updateTimecodeLabels = (): void => {
-      if (timecodeStart) {
-        timecodeStart.textContent = formatTrimTimecode(session.draftStart ?? 0) || '00:00.000';
-      }
-      if (timecodeEnd) {
-        const endValue = session.draftEnd ?? session.draftStart ?? 0;
-        timecodeEnd.textContent = formatTrimTimecode(endValue) || '--:--.---';
-      }
-    };
-
-    const updatePlayheadLabel = (): void => {
-      if (timecodePlayhead) {
-        timecodePlayhead.textContent =
-          formatTrimTimecode(Math.round(videoElement.currentTime * 1000)) || '00:00.000';
-      }
-    };
-
-    const refreshUi = (): void => {
-      ensureDraftBounds();
-      updateInputValues();
-      updateTimelineStyles();
-      updateTimecodeLabels();
-      updatePlayheadLabel();
-    };
-
-    const setDraftStart = (nextValue: number): void => {
-      const duration = getDuration();
-      const maxStart = Math.max(
-        0,
-        (session.draftEnd ?? (duration || MIN_TRIM_VIDEO_RANGE_MS)) - MIN_TRIM_VIDEO_RANGE_MS
-      );
-      session.draftStart = clampValue(Math.round(nextValue), 0, maxStart);
-      if ((session.draftEnd ?? session.draftStart) - session.draftStart < MIN_TRIM_VIDEO_RANGE_MS) {
-        session.draftEnd = session.draftStart + MIN_TRIM_VIDEO_RANGE_MS;
-      }
-      if (duration > 0 && (session.draftEnd ?? duration) > duration) {
-        session.draftEnd = duration;
-      }
-      refreshUi();
-    };
-
-    const setDraftEnd = (nextValue: number): void => {
-      const duration = getDuration();
-      const minEnd = (session.draftStart ?? 0) + MIN_TRIM_VIDEO_RANGE_MS;
-      const maxEnd = duration || Math.max(nextValue, minEnd);
-      session.draftEnd = clampValue(Math.round(nextValue), minEnd, maxEnd);
-      refreshUi();
-    };
-
-    const setFromInput = (kind: 'start' | 'end', raw: string): void => {
-      const parsed = parseTrimTimecode(raw);
-      if (parsed == null) {
-        refreshUi();
-        return;
-      }
-      if (kind === 'start') {
-        setDraftStart(parsed);
-      } else {
-        setDraftEnd(parsed);
-      }
-    };
-
-    startInput.addEventListener('change', () => setFromInput('start', startInput.value));
-    startInput.addEventListener('blur', () => setFromInput('start', startInput.value));
-    endInput.addEventListener('change', () => setFromInput('end', endInput.value));
-    endInput.addEventListener('blur', () => setFromInput('end', endInput.value));
-    strictInput?.addEventListener('change', () => {
-      session.draftStrict = Boolean(strictInput.checked);
-    });
-
-    const durationSync = (): void => {
-      const duration = getDuration();
-      if (!duration) {
-        return;
-      }
-      if (session.draftEnd == null || session.draftEnd > duration) {
-        session.draftEnd = duration;
-      }
-      refreshUi();
-    };
-
-    if (videoElement.readyState >= 1) {
-      durationSync();
-    } else {
-      videoElement.addEventListener('loadedmetadata', () => {
-        durationSync();
-      });
-    }
-
-    const handlePointerDrag = (handle: 'start' | 'end', event: PointerEvent): void => {
-      const duration = getDuration();
-      if (!duration) {
-        return;
-      }
-      event.preventDefault();
-      const rect = track.getBoundingClientRect();
-      const usable = Math.max(1, rect.width - TRIM_VIDEO_TIMELINE_PADDING * 2);
-      const pointerId = event.pointerId ?? 1;
-      const move = (moveEvent: PointerEvent): void => {
-        if (moveEvent.pointerId !== pointerId) {
-          return;
-        }
-        moveEvent.preventDefault();
-        const relative = clampValue(
-          moveEvent.clientX - rect.left - TRIM_VIDEO_TIMELINE_PADDING,
-          0,
-          usable
-        );
-        const ratio = relative / usable;
-        const nextValue = ratio * duration;
-        if (handle === 'start') {
-          setDraftStart(nextValue);
-        } else {
-          setDraftEnd(nextValue);
-        }
-      };
-      const stop = (moveEvent: PointerEvent): void => {
-        if (moveEvent.pointerId !== pointerId) {
-          return;
-        }
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', stop);
-      };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', stop);
-    };
-
-    startHandle?.addEventListener('pointerdown', event => handlePointerDrag('start', event));
-    endHandle?.addEventListener('pointerdown', event => handlePointerDrag('end', event));
-
-    const updatePlayButtonState = (): void => {
-      if (!playButton) {
-        return;
-      }
-      playButton.textContent = videoElement.paused
-        ? t('nodes.trim.video.controls.play')
-        : t('nodes.trim.video.controls.pause');
-    };
-
-    const stopPlaybackIfNeeded = (): void => {
-      const end = session.draftEnd ?? getDuration();
-      if (!end) {
-        return;
-      }
-      if (videoElement.currentTime * 1000 >= end - 5) {
-        videoElement.pause();
-        videoElement.currentTime = end / 1000;
-        updatePlayButtonState();
-      }
-    };
-
-    playButton?.addEventListener('click', () => {
-      if (videoElement.paused) {
-        videoElement.currentTime = (session.draftStart ?? 0) / 1000;
-        void videoElement.play().catch(error => console.warn('[NodeVision] video preview play failed', error));
-      } else {
-        videoElement.pause();
-      }
-      updatePlayButtonState();
-    });
-
-    videoElement.addEventListener('play', updatePlayButtonState);
-    videoElement.addEventListener('pause', updatePlayButtonState);
-    videoElement.addEventListener('timeupdate', () => {
-      updatePlayheadLabel();
-      stopPlaybackIfNeeded();
-    });
-    videoElement.addEventListener('ended', () => {
-      updatePlayButtonState();
-      updatePlayheadLabel();
-    });
-
-    jogButtons.forEach(button => {
-      const direction = button.dataset.trimVideoJog as 'back' | 'forward' | undefined;
-      button.addEventListener('click', () => {
-        const duration = getDuration();
-        const delta = direction === 'back' ? -TRIM_VIDEO_JOG_STEP_MS : TRIM_VIDEO_JOG_STEP_MS;
-        const nextValue = clampValue(
-          Math.round(videoElement.currentTime * 1000) + delta,
-          0,
-          duration || Math.max(session.draftEnd ?? TRIM_VIDEO_JOG_STEP_MS, TRIM_VIDEO_JOG_STEP_MS)
-        );
-        videoElement.pause();
-        videoElement.currentTime = nextValue / 1000;
-        updatePlayButtonState();
-        updatePlayheadLabel();
-      });
-    });
-
-    resetButton?.addEventListener('click', () => {
-      const duration = getDuration();
-      session.draftStart = 0;
-      session.draftEnd = duration > 0 ? duration : MIN_TRIM_VIDEO_RANGE_MS;
-      session.draftStrict = false;
-      if (strictInput) {
-        strictInput.checked = false;
-      }
-      videoElement.pause();
-      videoElement.currentTime = 0;
-      updatePlayButtonState();
-      refreshUi();
-    });
-
-    refreshUi();
-
-    saveButton?.addEventListener('click', () => {
-      if (saveButton.disabled) {
-        return;
-      }
-      const duration = getDuration() || session.durationMs || session.sourcePreview?.durationMs || null;
-      const normalized = normalizeRangeForSettings(session.draftStart, session.draftEnd, duration);
-      persistTrimSettings(
-        session.nodeId,
-        settings => {
-          settings.startMs = normalized.start;
-          settings.endMs = normalized.end;
-          settings.strictCut = Boolean(session.draftStrict);
-        },
-        'nodes.trim.toast.videoSaved'
-      );
-    });
-  };
+  // videoトリム機能はクロップ専用化により削除
 
   const renderActiveModal = (): void => {
     if (!modalBackdrop || !modalContainer) {
@@ -2089,7 +1644,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     });
   };
 
-  const openTrimModal = (mode: 'image' | 'video', nodeId: string): void => {
+  const openTrimModal = async (nodeId: string): Promise<void> => {
     ensureModalHost();
     modalLastFocused =
       document.activeElement instanceof HTMLElement ? (document.activeElement as HTMLElement) : null;
@@ -2099,37 +1654,37 @@ import { calculatePreviewSize } from './nodes/preview-size';
       return;
     }
     const settings = ensureTrimSettings(targetNode);
-    if (mode === 'image') {
-      const sourcePreview = findTrimSourcePreview(nodeId);
-      activeModal = {
-        type: 'trim',
-        mode: 'image',
-        nodeId,
-        draftRegion: { ...(settings.region ?? DEFAULT_TRIM_REGION) },
-        draftRegionSpace: settings.regionSpace ?? 'stage',
-        sourcePreview: sourcePreview && sourcePreview.kind === 'image' ? sourcePreview : null,
-        draftRotationDeg: settings.rotationDeg ?? 0,
-        draftZoom: settings.zoom ?? 1,
-        draftFlipHorizontal: settings.flipHorizontal ?? false,
-        draftFlipVertical: settings.flipVertical ?? false,
-        draftAspectMode: settings.aspectMode ?? 'free',
-        showGrid: false,
-        lastPreferredAxis: null
-      };
-    } else {
-      const sourcePreview = findTrimSourcePreview(nodeId);
-      const videoPreview = sourcePreview && sourcePreview.kind === 'video' ? sourcePreview : null;
-      activeModal = {
-        type: 'trim',
-        mode: 'video',
-        nodeId,
-        draftStart: settings.startMs ?? null,
-        draftEnd: settings.endMs ?? null,
-        draftStrict: settings.strictCut ?? false,
-        sourcePreview: videoPreview,
-        durationMs: videoPreview?.durationMs ?? null
-      };
+    const sourcePreview = findTrimSourcePreview(nodeId);
+    let modalPreview: NodeMediaPreview | null = null;
+    if (sourcePreview) {
+      const frameCanvas = await captureFrameForPreview(sourcePreview);
+      if (frameCanvas) {
+        modalPreview = {
+          ...sourcePreview,
+          kind: 'image',
+          type: 'image/png',
+          width: frameCanvas.width,
+          height: frameCanvas.height,
+          url: frameCanvas.toDataURL('image/png')
+        };
+      } else if (sourcePreview.kind === 'image') {
+        modalPreview = sourcePreview;
+      }
     }
+    activeModal = {
+      type: 'trim',
+      nodeId,
+      draftRegion: { ...(settings.region ?? DEFAULT_TRIM_REGION) },
+      draftRegionSpace: settings.regionSpace ?? 'stage',
+      sourcePreview: modalPreview,
+      draftRotationDeg: settings.rotationDeg ?? 0,
+      draftZoom: settings.zoom ?? 1,
+      draftFlipHorizontal: settings.flipHorizontal ?? false,
+      draftFlipVertical: settings.flipVertical ?? false,
+      draftAspectMode: settings.aspectMode ?? 'free',
+      showGrid: false,
+      lastPreferredAxis: null
+    };
     renderActiveModal();
   };
 
@@ -2671,7 +2226,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       img.src = preview.url;
     });
 
-  const captureVideoFrame = (preview: NodeMediaPreview, startMs: number | null): Promise<HTMLCanvasElement | null> =>
+  const captureVideoFrame = (preview: NodeMediaPreview): Promise<HTMLCanvasElement | null> =>
     new Promise(resolve => {
       if (typeof document === 'undefined') {
         resolve(null);
@@ -2725,17 +2280,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
         drawFrame();
       };
       video.onloadeddata = () => {
-        if (typeof startMs === 'number' && Number.isFinite(startMs) && startMs > 0) {
-          const seconds = startMs / 1000;
-          video.addEventListener('seeked', handleSeeked);
-          try {
-            video.currentTime = Math.max(0, seconds);
-          } catch {
-            video.removeEventListener('seeked', handleSeeked);
-            drawFrame();
-          }
-          return;
-        }
         drawFrame();
       };
       video.onerror = () => {
@@ -2752,17 +2296,13 @@ import { calculatePreviewSize } from './nodes/preview-size';
       }
     });
 
-  const captureFrameForPreview = (
-    preview: NodeMediaPreview,
-    startMs: number | null
-  ): Promise<HTMLCanvasElement | null> => {
+  const captureFrameForPreview = (preview: NodeMediaPreview): Promise<HTMLCanvasElement | null> => {
     if (preview.kind === 'image') {
       return captureImageFrame(preview);
     }
-    return captureVideoFrame(preview, startMs);
+    return captureVideoFrame(preview);
   };
 
-  const clampRegionValue = (value: number, min = 0, max = 1): number => Math.min(max, Math.max(min, value));
   const clampTrimRotation = (value: number | null | undefined): number => {
     if (typeof value !== 'number' || Number.isNaN(value)) {
       return 0;
@@ -2776,50 +2316,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
     return Math.max(0.25, Math.min(4, value));
   };
 
-  const applyTrimTransforms = (sourceCanvas: HTMLCanvasElement, settings: TrimNodeSettings): HTMLCanvasElement => {
-    const rotationDeg = clampTrimRotation(settings.rotationDeg);
-    const zoomValue = clampTrimZoom(settings.zoom);
-    const flipX = settings.flipHorizontal ? -1 : 1;
-    const flipY = settings.flipVertical ? -1 : 1;
-    const canvas = document.createElement('canvas');
-    canvas.width = sourceCanvas.width;
-    canvas.height = sourceCanvas.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return sourceCanvas;
-    }
-    ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((rotationDeg * Math.PI) / 180);
-    ctx.scale(zoomValue * flipX, zoomValue * flipY);
-    ctx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
-    ctx.restore();
-    return canvas;
-  };
-
-  const cropCanvasToRegion = (
-    sourceCanvas: HTMLCanvasElement,
-    region: TrimNodeSettings['region'] | null | undefined
-  ): HTMLCanvasElement => {
-    const safeRegion = region ?? { x: 0, y: 0, width: 1, height: 1 };
-    const normalizedWidth = clampRegionValue(safeRegion.width ?? 1, 0.01, 1);
-    const normalizedHeight = clampRegionValue(safeRegion.height ?? 1, 0.01, 1);
-    const startX = clampRegionValue(safeRegion.x ?? 0);
-    const startY = clampRegionValue(safeRegion.y ?? 0);
-    const width = Math.max(1, Math.round(sourceCanvas.width * normalizedWidth));
-    const height = Math.max(1, Math.round(sourceCanvas.height * normalizedHeight));
-    const offsetX = Math.min(sourceCanvas.width - width, Math.max(0, Math.round(sourceCanvas.width * startX)));
-    const offsetY = Math.min(sourceCanvas.height - height, Math.max(0, Math.round(sourceCanvas.height * startY)));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(sourceCanvas, offsetX, offsetY, width, height, 0, 0, width, height);
-    }
-    return canvas;
-  };
-
   const buildTrimSignature = (
     sourceNodeId: string,
     sourcePreview: NodeMediaPreview,
@@ -2831,8 +2327,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
       sourcePreview.url,
       sourcePreview.width ?? 'auto',
       sourcePreview.height ?? 'auto',
-      settings.startMs ?? 'null',
-      settings.endMs ?? 'null',
       region.x ?? 0,
       region.y ?? 0,
       region.width ?? 1,
@@ -2873,7 +2367,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     if (existing?.derivedFrom === signature) {
       return;
     }
-    const frameCanvas = await captureFrameForPreview(sourcePreview, settings.startMs ?? null);
+    const frameCanvas = await captureFrameForPreview(sourcePreview);
     if (!frameCanvas) {
       cleanupMediaPreview(node.id);
       state.mediaPreviews.set(node.id, {
@@ -2884,18 +2378,17 @@ import { calculatePreviewSize } from './nodes/preview-size';
       renderNodes();
       return;
     }
-    const transformedCanvas = applyTrimTransforms(frameCanvas, settings);
-    const croppedCanvas = cropCanvasToRegion(transformedCanvas, settings.region);
-    const dataUrl = croppedCanvas.toDataURL('image/png');
+    const cropRegion = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
     cleanupMediaPreview(node.id);
     state.mediaPreviews.set(node.id, {
       ...sourcePreview,
-      url: dataUrl,
-      type: 'image/png',
-      kind: 'image',
-      width: croppedCanvas.width,
-      height: croppedCanvas.height,
-      ownedUrl: true,
+      cropRegion,
+      cropSpace: settings.regionSpace ?? 'stage',
+      cropRotationDeg: settings.rotationDeg ?? 0,
+      cropZoom: settings.zoom ?? 1,
+      cropFlipHorizontal: settings.flipHorizontal ?? false,
+      cropFlipVertical: settings.flipVertical ?? false,
+      ownedUrl: sourcePreview.ownedUrl,
       derivedFrom: signature,
       name: `${sourcePreview.name} (trim)`
     });
@@ -4300,7 +3793,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
   type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se';
 
   const buildResizeHandles = (nodeId: string): string =>
-    ['nw', 'ne', 'sw', 'se']
+    ['se']
       .map(
         handle =>
           `<div class="node-resize-handle node-resize-${handle}" data-resize-handle="${handle}" data-node-id="${escapeHtml(

@@ -1,0 +1,1 @@
+Step3: テンプレ修正。packages/editor/src/templates.ts の trim ノードをクロップ専用に表記変更（タイトル“Trim (Crop)”、説明とキーワードをcrop中心に）。初期サイズは360x520のまま。

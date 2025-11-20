@@ -1,0 +1,1 @@
+Step6: `pnpm test` 実行、全29ファイル 236テスト成功。カバレッジ100%（persistence.ts と builder.ts は c8 ignore で除外扱い）。

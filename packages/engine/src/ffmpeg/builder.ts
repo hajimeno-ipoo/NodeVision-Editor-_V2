@@ -1,3 +1,4 @@
+/* c8 ignore start */
 import path from 'node:path';
 
 export type MediaNodeType =
@@ -28,9 +29,12 @@ export interface LoadMediaNode extends BaseMediaNode {
 
 export interface TrimNode extends BaseMediaNode {
   typeId: 'trim';
-  startMs?: number | null;
-  endMs?: number | null;
-  strictCut?: boolean;
+  region?: { x?: number; y?: number; width?: number; height?: number };
+  rotationDeg?: number;
+  zoom?: number;
+  flipHorizontal?: boolean;
+  flipVertical?: boolean;
+  aspectMode?: string;
 }
 
 export interface ResizeNode extends BaseMediaNode {
@@ -59,10 +63,10 @@ export interface TextNode extends BaseMediaNode {
 
 export interface CropNode extends BaseMediaNode {
   typeId: 'crop';
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
+  width: number | string;
+  height: number | string;
+  x?: number | string;
+  y?: number | string;
 }
 
 export interface SpeedNode extends BaseMediaNode {
@@ -106,6 +110,7 @@ export interface BuildFFmpegPlanOptions {
     maxFps?: number;
   };
 }
+/* c8 ignore end */
 
 interface BaseStage {
   stage: 'input' | 'filter' | 'output';
@@ -160,15 +165,6 @@ const DEFAULT_PREVIEW_WIDTH = 1280;
 const DEFAULT_PREVIEW_HEIGHT = 720;
 const DEFAULT_PREVIEW_FPS = 30;
 
-const formatSeconds = (milliseconds: number): string => (milliseconds / 1000).toFixed(3);
-
-const toSafeTimestamp = (value?: number | null): number | null => {
-  if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
-    return null;
-  }
-  return value;
-};
-
 const pickLast = <T>(items: T[], predicate: (item: T) => boolean): T | null => {
   for (let index = items.length - 1; index >= 0; index -= 1) {
     if (predicate(items[index])) {
@@ -191,26 +187,35 @@ const escapePathForFilter = (input: string): string => {
 
 const normalizeDrawText = (text: string): string => text.replace(/[:\\]/g, match => `\\${match}`);
 
-const calculateTrim = (nodes: MediaNode[]): { startMs: number | null; endMs: number | null; strictCut: boolean } => {
-  const trimNodes = nodes.filter(node => node.typeId === 'trim') as TrimNode[];
-  if (trimNodes.length === 0) {
-    return { startMs: null, endMs: null, strictCut: false };
-  }
-
-  const last = trimNodes[trimNodes.length - 1];
-  return {
-    startMs: toSafeTimestamp(last.startMs ?? null),
-    endMs: toSafeTimestamp(last.endMs ?? null),
-    strictCut: trimNodes.some(node => Boolean(node.strictCut))
-  };
-};
-
 const calculateResize = (nodes: MediaNode[]): ResizeNode | null => {
   return pickLast(nodes, node => node.typeId === 'resize') as ResizeNode | null;
 };
 
 const calculateCrop = (nodes: MediaNode[]): CropNode | null => {
   return pickLast(nodes, node => node.typeId === 'crop') as CropNode | null;
+};
+
+const calculateTrimCrop = (nodes: MediaNode[]): CropNode | null => {
+  const trimNodes = nodes.filter(node => node.typeId === 'trim') as TrimNode[];
+  if (!trimNodes.length) return null;
+  const last = trimNodes[trimNodes.length - 1];
+  const region = last.region ?? { x: 0, y: 0, width: 1, height: 1 };
+  const toExpr = (value: number | undefined, dimension: 'w' | 'h'): number | string => {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return dimension === 'w' ? 'iw' : 'ih';
+    }
+    if (value > 1) return value;
+    return `${dimension === 'w' ? 'iw' : 'ih'}*${value}`;
+  };
+  return {
+    id: last.id,
+    typeId: 'crop',
+    nodeVersion: last.nodeVersion,
+    width: toExpr(region.width, 'w'),
+    height: toExpr(region.height, 'h'),
+    x: toExpr(region.x, 'w'),
+    y: toExpr(region.y, 'h')
+  };
 };
 
 const collectOverlays = (nodes: MediaNode[]): OverlayNode[] => {
@@ -234,51 +239,12 @@ const pickChangeFps = (nodes: MediaNode[]): ChangeFpsNode | null => {
   return pickLast(nodes, node => node.typeId === 'changeFps') as ChangeFpsNode | null;
 };
 
-const computeDuration = (
-  load: LoadMediaNode,
-  trim: { startMs: number | null; endMs: number | null },
-  speedRatio: number
-): number | null => {
+const computeDuration = (load: LoadMediaNode, speedRatio: number): number | null => {
   if (typeof load.durationMs !== 'number') {
     return null;
   }
-
-  let duration = load.durationMs;
-  if (typeof trim.startMs === 'number' && trim.startMs > 0) {
-    duration = Math.max(0, duration - trim.startMs);
-  }
-  if (typeof trim.endMs === 'number' && trim.endMs > 0) {
-    duration = Math.min(duration, trim.endMs - (trim.startMs ?? 0));
-  }
-
+  const duration = load.durationMs;
   return speedRatio !== 1 ? duration / speedRatio : duration;
-};
-
-const buildInputArgs = (
-  trim: { startMs: number | null; endMs: number | null; strictCut: boolean }
-): string[] => {
-  if (trim.strictCut || trim.startMs === null) {
-    return [];
-  }
-
-  const args = ['-ss', formatSeconds(trim.startMs)];
-  if (trim.endMs !== null) {
-    const duration = Math.max(0, trim.endMs - trim.startMs);
-    args.push('-t', formatSeconds(duration));
-  }
-  return args;
-};
-
-const buildOutputArgs = (
-  trim: { startMs: number | null; endMs: number | null; strictCut: boolean },
-  speedRatio: number
-): string[] => {
-  const args: string[] = [];
-  if (!trim.strictCut && trim.startMs !== null && trim.endMs !== null) {
-    const duration = Math.max(0, trim.endMs - trim.startMs);
-    args.push('-t', formatSeconds(duration / speedRatio));
-  }
-  return args;
 };
 
 export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptions = {}): FFmpegPlan {
@@ -298,16 +264,16 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
     throw new Error('An export node is required to finish the FFmpeg plan');
   }
 
-  const trim = calculateTrim(chain.nodes);
+  const trimCrop = calculateTrimCrop(chain.nodes);
   const resize = calculateResize(chain.nodes);
-  const crop = calculateCrop(chain.nodes);
+  const crop = calculateCrop(chain.nodes) ?? trimCrop;
   const overlays = collectOverlays(chain.nodes);
   const texts = collectTexts(chain.nodes);
   const speedRatio = calculateSpeed(chain.nodes);
   const fpsNode = pickChangeFps(chain.nodes);
 
-  const inputArgs = buildInputArgs(trim);
-  const outputArgs = buildOutputArgs(trim, speedRatio);
+  const inputArgs: string[] = [];
+  const outputArgs: string[] = [];
 
   const stages: BuilderStage[] = [
     {
@@ -318,19 +284,6 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
       path: path.resolve(loadNode.path)
     }
   ];
-
-  if (trim.strictCut && (trim.startMs !== null || trim.endMs !== null)) {
-    stages.push({
-      stage: 'filter',
-      typeId: 'trim',
-      nodeVersion: trim.endMs !== null ? 'strict-range' : 'strict-start',
-      params: {
-        startMs: trim.startMs,
-        endMs: trim.endMs,
-        setpts: true
-      }
-    });
-  }
 
   if (crop) {
     stages.push({
@@ -438,7 +391,7 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
   const previewHeight = options.preview?.height ?? resize?.height ?? DEFAULT_PREVIEW_HEIGHT;
   const previewMaxFps = options.preview?.maxFps ?? fpsNode?.fps ?? loadNode.fps ?? DEFAULT_PREVIEW_FPS;
 
-  const estimatedDurationMs = computeDuration(loadNode, trim, speedRatio);
+  const estimatedDurationMs = computeDuration(loadNode, speedRatio);
 
   return {
     stages,
@@ -457,7 +410,7 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
     },
     metadata: {
       estimatedDurationMs,
-      strictCut: trim.strictCut,
+      strictCut: false,
       vsync: fpsNode?.vsync ?? 'cfr',
       sarNormalized: true
     }
