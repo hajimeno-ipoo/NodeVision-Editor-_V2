@@ -14,6 +14,7 @@
     "@nodevision/system-check": "workspace:*",
     "@nodevision/tokens": "workspace:*",
     "electron": "^32.1.2",
+    "interactjs": "^1.10.27",
     "tslib": "^2.7.0"
   }
 }

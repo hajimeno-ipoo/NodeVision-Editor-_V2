@@ -1,0 +1,39 @@
+{
+    "serena_project": {
+        "activated": true,
+        "activated_at": "2025-11-20T13:34:00+09:00",
+        "project_name": "NodeVision Editor _V2",
+        "project_root": "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2",
+        "version": "0.0.1",
+        "statistics": {
+            "typescript_files": 94,
+            "javascript_files": 4,
+            "json_files": 26,
+            "total_files": 124
+        },
+        "structure": {
+            "apps": [
+                "desktop-electron"
+            ],
+            "packages": [
+                "editor",
+                "engine",
+                "settings",
+                "system-check",
+                "tokens",
+                "nvctl"
+            ]
+        },
+        "entry_points": [
+            "apps/desktop-electron/src/main.ts",
+            "apps/desktop-electron/src/renderer/app.ts"
+        ],
+        "package_manager": "pnpm",
+        "mcp_servers": [
+            "serena",
+            "context7",
+            "playwright",
+            "chrome-devtools"
+        ]
+    }
+}

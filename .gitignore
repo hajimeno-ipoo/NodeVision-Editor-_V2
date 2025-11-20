@@ -13,3 +13,10 @@ pnpm-lock.yaml
 scripts/sample-media/
 .env*
 test-results/
+
+# Serena MCP
+.serena/cache/
+.serena/.index/
+
+# MCP Server Settings (local configuration)
+.antigravity-mcp-settings.json

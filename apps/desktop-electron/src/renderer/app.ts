@@ -78,53 +78,53 @@ import { calculatePreviewSize } from './nodes/preview-size';
   }
 
 
-const elements: RendererDom = captureDomElements();
-let unsavedWorkflowLabel = 'Unsaved Workflow';
+  const elements: RendererDom = captureDomElements();
+  let unsavedWorkflowLabel = 'Unsaved Workflow';
 
-type TrimImageModalState = {
-  type: 'trim';
-  mode: 'image';
-  nodeId: string;
-  draftRegion: NonNullable<TrimNodeSettings['region']>;
-  draftRegionSpace: 'stage' | 'image';
-  sourcePreview: NodeMediaPreview | null;
-  draftRotationDeg: number;
-  draftZoom: number;
-  draftFlipHorizontal: boolean;
-  draftFlipVertical: boolean;
-  draftAspectMode: TrimNodeSettings['aspectMode'];
-  showGrid: boolean;
-  lastPreferredAxis: 'width' | 'height' | null;
-};
+  type TrimImageModalState = {
+    type: 'trim';
+    mode: 'image';
+    nodeId: string;
+    draftRegion: NonNullable<TrimNodeSettings['region']>;
+    draftRegionSpace: 'stage' | 'image';
+    sourcePreview: NodeMediaPreview | null;
+    draftRotationDeg: number;
+    draftZoom: number;
+    draftFlipHorizontal: boolean;
+    draftFlipVertical: boolean;
+    draftAspectMode: TrimNodeSettings['aspectMode'];
+    showGrid: boolean;
+    lastPreferredAxis: 'width' | 'height' | null;
+  };
 
-type TrimVideoModalState = {
-  type: 'trim';
-  mode: 'video';
-  nodeId: string;
-  draftStart: number | null;
-  draftEnd: number | null;
-  draftStrict: boolean;
-  sourcePreview: NodeMediaPreview | null;
-  durationMs: number | null;
-};
+  type TrimVideoModalState = {
+    type: 'trim';
+    mode: 'video';
+    nodeId: string;
+    draftStart: number | null;
+    draftEnd: number | null;
+    draftStrict: boolean;
+    sourcePreview: NodeMediaPreview | null;
+    durationMs: number | null;
+  };
 
-type ActiveModalState = TrimImageModalState | TrimVideoModalState;
+  type ActiveModalState = TrimImageModalState | TrimVideoModalState;
 
-let activeModal: ActiveModalState | null = null;
-let modalBackdrop: HTMLElement | null = null;
-let modalContainer: HTMLElement | null = null;
-let modalTitleElement: HTMLElement | null = null;
-let modalContentElement: HTMLElement | null = null;
-let modalCloseButton: HTMLButtonElement | null = null;
-let modalLastFocused: HTMLElement | null = null;
+  let activeModal: ActiveModalState | null = null;
+  let modalBackdrop: HTMLElement | null = null;
+  let modalContainer: HTMLElement | null = null;
+  let modalTitleElement: HTMLElement | null = null;
+  let modalContentElement: HTMLElement | null = null;
+  let modalCloseButton: HTMLButtonElement | null = null;
+  let modalLastFocused: HTMLElement | null = null;
 
-const MODAL_FOCUSABLE_SELECTORS = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-const DEFAULT_TRIM_REGION: NonNullable<TrimNodeSettings['region']> = { x: 0, y: 0, width: 1, height: 1 };
-const MIN_TRIM_REGION_SIZE = 0.05;
-const MIN_TRIM_VIDEO_RANGE_MS = 100;
-const TRIM_VIDEO_JOG_STEP_MS = 500;
-const TRIM_VIDEO_TIMELINE_PADDING = 12;
-const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
+  const MODAL_FOCUSABLE_SELECTORS = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const DEFAULT_TRIM_REGION: NonNullable<TrimNodeSettings['region']> = { x: 0, y: 0, width: 1, height: 1 };
+  const MIN_TRIM_REGION_SIZE = 0.05;
+  const MIN_TRIM_VIDEO_RANGE_MS = 100;
+  const TRIM_VIDEO_JOG_STEP_MS = 500;
+  const TRIM_VIDEO_TIMELINE_PADDING = 12;
+  const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
 
   const cloneNodeSettings = (settings?: RendererNode['settings']) =>
     settings ? deepClone(settings) : undefined;
@@ -366,11 +366,11 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
   let zoomMenuOpen = false;
 
   let activeConnectionDrag: {
-        portEl: HTMLElement;
-        pointerId: number;
-        origin: Point;
-        started: boolean;
-      } | null = null;
+    portEl: HTMLElement;
+    pointerId: number;
+    origin: Point;
+    started: boolean;
+  } | null = null;
   let dropTargetPort: HTMLElement | null = null;
   type NormalizedRect = { minX: number; minY: number; maxX: number; maxY: number };
   type MarqueeSession = {
@@ -382,12 +382,12 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
   };
   let marqueeSession: MarqueeSession | null = null;
 
-      const formatTemplate = (template: string, vars: TemplateVars = {}): string => {
-        let result = template;
-        for (const [token, value] of Object.entries(vars)) {
-          const placeholder = '{{' + token + '}}';
-          result = result.split(placeholder).join(String(value));
-        }
+  const formatTemplate = (template: string, vars: TemplateVars = {}): string => {
+    let result = template;
+    for (const [token, value] of Object.entries(vars)) {
+      const placeholder = '{{' + token + '}}';
+      result = result.split(placeholder).join(String(value));
+    }
     let cleaned = '';
     let cursor = 0;
     while (cursor < result.length) {
@@ -406,97 +406,97 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     return cleaned;
   };
 
-      const hasOwn = (obj: Record<string, unknown>, key: string): boolean =>
-        Object.prototype.hasOwnProperty.call(obj ?? {}, key);
+  const hasOwn = (obj: Record<string, unknown>, key: string): boolean =>
+    Object.prototype.hasOwnProperty.call(obj ?? {}, key);
 
-      const lookupTranslation = (key: string): string | null => {
-        const localeDict = TRANSLATIONS[state.locale];
-        if (localeDict && hasOwn(localeDict, key)) {
-          return localeDict[key];
-        }
-        const fallbackDict = TRANSLATIONS[FALLBACK_LOCALE];
-        if (fallbackDict && hasOwn(fallbackDict, key)) {
-          return fallbackDict[key];
-        }
-        return null;
-      };
+  const lookupTranslation = (key: string): string | null => {
+    const localeDict = TRANSLATIONS[state.locale];
+    if (localeDict && hasOwn(localeDict, key)) {
+      return localeDict[key];
+    }
+    const fallbackDict = TRANSLATIONS[FALLBACK_LOCALE];
+    if (fallbackDict && hasOwn(fallbackDict, key)) {
+      return fallbackDict[key];
+    }
+    return null;
+  };
 
-      const translateWithFallback = (key: string, fallback: string, vars: TemplateVars = {}): string => {
-        const template = lookupTranslation(key);
-        const base = template ?? fallback;
-        if (!base) {
-          return key;
-        }
-        return formatTemplate(base, vars);
-      };
+  const translateWithFallback = (key: string, fallback: string, vars: TemplateVars = {}): string => {
+    const template = lookupTranslation(key);
+    const base = template ?? fallback;
+    if (!base) {
+      return key;
+    }
+    return formatTemplate(base, vars);
+  };
 
-      const t = (key: string, vars: TemplateVars = {}) => translateWithFallback(key, key, vars);
+  const t = (key: string, vars: TemplateVars = {}) => translateWithFallback(key, key, vars);
 
-      const getNodeTitle = (node: RendererNode): string =>
-        translateWithFallback(`nodeTemplate.${node.typeId}.title`, node.title);
+  const getNodeTitle = (node: RendererNode): string =>
+    translateWithFallback(`nodeTemplate.${node.typeId}.title`, node.title);
 
-      const getPortLabel = (typeId: string, port: NodePort): string =>
-        translateWithFallback(`nodeTemplate.${typeId}.port.${port.id}`, port.label);
+  const getPortLabel = (typeId: string, port: NodePort): string =>
+    translateWithFallback(`nodeTemplate.${typeId}.port.${port.id}`, port.label);
 
-      const getTemplateTitle = (template: NodeTemplate): string =>
-        translateWithFallback(`nodeTemplate.${template.typeId}.title`, template.title);
+  const getTemplateTitle = (template: NodeTemplate): string =>
+    translateWithFallback(`nodeTemplate.${template.typeId}.title`, template.title);
 
   const getTemplateDescription = (template: NodeTemplate): string =>
     translateWithFallback(`nodeTemplate.${template.typeId}.description`, template.description ?? '');
 
   const applyI18nAttributes = (node: Element | null): void => {
     if (!node || !node.attributes) return;
-        Array.from(node.attributes).forEach(attr => {
-          if (!attr.name.startsWith('data-i18n-attr-')) return;
-          const target = attr.name.replace('data-i18n-attr-', '');
-          const key = attr.value;
-          if (!key) return;
-          node.setAttribute(target, t(key));
-        });
-      };
+    Array.from(node.attributes).forEach(attr => {
+      if (!attr.name.startsWith('data-i18n-attr-')) return;
+      const target = attr.name.replace('data-i18n-attr-', '');
+      const key = attr.value;
+      if (!key) return;
+      node.setAttribute(target, t(key));
+    });
+  };
 
-      const applyTranslations = (): void => {
-        document.documentElement.lang = state.locale;
-        document.querySelectorAll('[data-i18n-key]').forEach(node => {
-          const key = node.getAttribute('data-i18n-key');
-          if (!key) return;
-          node.textContent = t(key);
-          applyI18nAttributes(node);
-        });
-        document.querySelectorAll('[data-i18n-html]').forEach(node => {
-          const key = node.getAttribute('data-i18n-html');
-          if (!key) return;
-          node.innerHTML = t(key);
-          applyI18nAttributes(node);
-        });
-      document
-        .querySelectorAll('[data-i18n-attr-placeholder], [data-i18n-attr-aria-label], [data-i18n-attr-title]')
-        .forEach(applyI18nAttributes);
-    };
+  const applyTranslations = (): void => {
+    document.documentElement.lang = state.locale;
+    document.querySelectorAll('[data-i18n-key]').forEach(node => {
+      const key = node.getAttribute('data-i18n-key');
+      if (!key) return;
+      node.textContent = t(key);
+      applyI18nAttributes(node);
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(node => {
+      const key = node.getAttribute('data-i18n-html');
+      if (!key) return;
+      node.innerHTML = t(key);
+      applyI18nAttributes(node);
+    });
+    document
+      .querySelectorAll('[data-i18n-attr-placeholder], [data-i18n-attr-aria-label], [data-i18n-attr-title]')
+      .forEach(applyI18nAttributes);
+  };
 
-      const templates: NodeTemplate[] = BOOTSTRAP.templates ?? [];
-      const getTemplateByType = (typeId: string): NodeTemplate | undefined =>
-        templates.find(template => template.typeId === typeId);
+  const templates: NodeTemplate[] = BOOTSTRAP.templates ?? [];
+  const getTemplateByType = (typeId: string): NodeTemplate | undefined =>
+    templates.find(template => template.typeId === typeId);
   applyTranslations();
   syncUnsavedWorkflowLabel();
   hydrateStoredWorkflows();
 
-      const describeStatus = (status: string): string => {
-        switch (status) {
-          case 'running':
-            return t('queue.status.running');
-          case 'queued':
-            return t('queue.status.queued');
-          case 'coolingDown':
-            return t('queue.status.coolingDown');
-          case 'failed':
-            return t('queue.status.failed');
-          case 'canceled':
-            return t('queue.status.canceled');
-          default:
-            return status;
-        }
-      };
+  const describeStatus = (status: string): string => {
+    switch (status) {
+      case 'running':
+        return t('queue.status.running');
+      case 'queued':
+        return t('queue.status.queued');
+      case 'coolingDown':
+        return t('queue.status.coolingDown');
+      case 'failed':
+        return t('queue.status.failed');
+      case 'canceled':
+        return t('queue.status.canceled');
+      default:
+        return status;
+    }
+  };
 
   const escapeHtml = (value: unknown): string =>
     String(value ?? '')
@@ -670,33 +670,33 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       <div class="trim-image-toolbar" role="toolbar">
         <div class="trim-image-toolbar-group">
           <button type="button" class="trim-tool-button" data-trim-tool="zoom-out" title="${escapeHtml(
-            t('nodes.trim.imageTools.zoomOut')
-          )}">−</button>
+      t('nodes.trim.imageTools.zoomOut')
+    )}">−</button>
           <button type="button" class="trim-tool-button" data-trim-tool="zoom-in" title="${escapeHtml(
-            t('nodes.trim.imageTools.zoomIn')
-          )}">＋</button>
+      t('nodes.trim.imageTools.zoomIn')
+    )}">＋</button>
           <button type="button" class="trim-tool-button" data-trim-tool="grid" data-active="${String(
-            session.showGrid
-          )}" title="${escapeHtml(t('nodes.trim.imageTools.grid'))}">
+      session.showGrid
+    )}" title="${escapeHtml(t('nodes.trim.imageTools.grid'))}">
             ${escapeHtml(t('nodes.trim.imageTools.grid'))}
           </button>
         </div>
         <div class="trim-image-toolbar-group">
           <button type="button" class="trim-tool-button" data-trim-tool="rotate-left" title="${escapeHtml(
-            t('nodes.trim.imageTools.rotateLeft')
-          )}">${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}</button>
+      t('nodes.trim.imageTools.rotateLeft')
+    )}">${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}</button>
           <button type="button" class="trim-tool-button" data-trim-tool="rotate-right" title="${escapeHtml(
-            t('nodes.trim.imageTools.rotateRight')
-          )}">${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}</button>
+      t('nodes.trim.imageTools.rotateRight')
+    )}">${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}</button>
           <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal" title="${escapeHtml(
-            t('nodes.trim.imageTools.flipHorizontal')
-          )}">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
+      t('nodes.trim.imageTools.flipHorizontal')
+    )}">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
           <button type="button" class="trim-tool-button" data-trim-tool="flip-vertical" title="${escapeHtml(
-            t('nodes.trim.imageTools.flipVertical')
-          )}">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
+      t('nodes.trim.imageTools.flipVertical')
+    )}">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
           <button type="button" class="trim-tool-button" data-trim-tool="reset-transform" title="${escapeHtml(
-            t('nodes.trim.imageTools.reset')
-          )}">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
+      t('nodes.trim.imageTools.reset')
+    )}">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
         </div>
       </div>
       <div class="trim-stage-wrapper" data-trim-stage-wrapper>
@@ -705,17 +705,16 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         <div class="trim-crop-box" data-trim-box data-trim-grid-visible="${String(session.showGrid)}">
           <div class="trim-crop-grid" aria-hidden="true">
             ${['h1', 'h2', 'v1', 'v2']
-              .map(
-                line =>
-                  `<span class="trim-crop-grid-line trim-crop-grid-line--${
-                    line.startsWith('h') ? 'horizontal' : 'vertical'
-                  }" data-trim-grid-line="${line}"></span>`
-              )
-              .join('')}
+        .map(
+          line =>
+            `<span class="trim-crop-grid-line trim-crop-grid-line--${line.startsWith('h') ? 'horizontal' : 'vertical'
+            }" data-trim-grid-line="${line}"></span>`
+        )
+        .join('')}
           </div>
           ${['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se']
-            .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
-            .join('')}
+        .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
+        .join('')}
         </div>
         <div class="trim-grid-overlay${session.showGrid ? ' is-visible' : ''}" data-trim-grid-overlay></div>
       </div>
@@ -745,13 +744,13 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
             <span>${escapeHtml(t('nodes.trim.imageControls.aspect'))}</span>
             <select data-trim-aspect>
               ${aspectOptions
-                .map(
-                  option => `
+        .map(
+          option => `
                     <option value="${option}" ${option === session.draftAspectMode ? 'selected' : ''}>
                       ${escapeHtml(t(`nodes.trim.imageControls.aspectOption.${option}`))}
                     </option>`
-                )
-                .join('')}
+        )
+        .join('')}
             </select>
           </label>
         </div>
@@ -825,11 +824,11 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         <div class="trim-video-track" data-trim-video-track>
           <div class="trim-video-range" data-trim-video-range>
             <button type="button" class="trim-video-handle" data-trim-video-handle="start" aria-label="${escapeHtml(
-              t('nodes.trim.video.startHandle')
-            )}"${disabledAttr}></button>
+      t('nodes.trim.video.startHandle')
+    )}"${disabledAttr}></button>
             <button type="button" class="trim-video-handle" data-trim-video-handle="end" aria-label="${escapeHtml(
-              t('nodes.trim.video.endHandle')
-            )}"${disabledAttr}></button>
+      t('nodes.trim.video.endHandle')
+    )}"${disabledAttr}></button>
           </div>
         </div>
         <div class="trim-video-timecodes">
@@ -842,14 +841,14 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
       <div class="trim-modal-actions trim-video-actions">
         <div class="trim-video-transport">
           <button type="button" class="pill-button" data-trim-video-jog="back"${disabledAttr}>${escapeHtml(
-            t('nodes.trim.video.controls.stepBack')
-          )}</button>
+      t('nodes.trim.video.controls.stepBack')
+    )}</button>
           <button type="button" class="pill-button" data-trim-video-play${disabledAttr}>${escapeHtml(
-            t('nodes.trim.video.controls.play')
-          )}</button>
+      t('nodes.trim.video.controls.play')
+    )}</button>
           <button type="button" class="pill-button" data-trim-video-jog="forward"${disabledAttr}>${escapeHtml(
-            t('nodes.trim.video.controls.stepForward')
-          )}</button>
+      t('nodes.trim.video.controls.stepForward')
+    )}</button>
         </div>
         <span class="trim-modal-actions-spacer"></span>
         <button type="button" class="pill-button" data-trim-reset${disabledAttr}>${escapeHtml(t('actions.reset'))}</button>
@@ -889,14 +888,14 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     showToast(t(toastKey));
   };
 
-    const initializeTrimImageControls = (session: TrimImageModalState): void => {
-      const modalContent = modalContentElement;
-      if (!modalContent) {
-        return;
-      }
-      (rendererWindow as RendererBootstrapWindow & {
-        __NODEVISION_TRIM_SESSION?: TrimImageModalState;
-      }).__NODEVISION_TRIM_SESSION = session;
+  const initializeTrimImageControls = (session: TrimImageModalState): void => {
+    const modalContent = modalContentElement;
+    if (!modalContent) {
+      return;
+    }
+    (rendererWindow as RendererBootstrapWindow & {
+      __NODEVISION_TRIM_SESSION?: TrimImageModalState;
+    }).__NODEVISION_TRIM_SESSION = session;
     const stage = modalContent.querySelector<HTMLElement>('[data-trim-stage]');
     const cropBox = modalContent.querySelector<HTMLElement>('[data-trim-box]');
     const imageElement = modalContent.querySelector<HTMLImageElement>('.trim-image-stage img');
@@ -2570,34 +2569,34 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     }
   }
 
-      const formatTimestamp = (milliseconds: number | undefined): string => {
-        if (typeof milliseconds !== 'number' || Number.isNaN(milliseconds)) {
-          return '—';
-        }
-        const date = new Date(milliseconds);
-        return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString();
-      };
+  const formatTimestamp = (milliseconds: number | undefined): string => {
+    if (typeof milliseconds !== 'number' || Number.isNaN(milliseconds)) {
+      return '—';
+    }
+    const date = new Date(milliseconds);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString();
+  };
 
-      const formatIsoTime = (value: string | null | undefined): string => {
-        if (!value) {
-          return '—';
-        }
-        const date = new Date(value);
-        return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString();
-      };
+  const formatIsoTime = (value: string | null | undefined): string => {
+    if (!value) {
+      return '—';
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString();
+  };
 
-      const logLevelClass = (level: string): string => {
-        if (level === 'error') return 'log-error';
-        if (level === 'warn') return 'log-warn';
-        return 'log-info';
-      };
+  const logLevelClass = (level: string): string => {
+    if (level === 'error') return 'log-error';
+    if (level === 'warn') return 'log-warn';
+    return 'log-info';
+  };
 
-      const showToast = (message: string, type: 'info' | 'error' = 'info'): void => {
-        elements.toast.textContent = message;
-        elements.toast.classList.remove('error');
-        if (type === 'error') {
-          elements.toast.classList.add('error');
-        }
+  const showToast = (message: string, type: 'info' | 'error' = 'info'): void => {
+    elements.toast.textContent = message;
+    elements.toast.classList.remove('error');
+    if (type === 'error') {
+      elements.toast.classList.add('error');
+    }
     elements.toast.classList.add('visible');
     setTimeout(() => elements.toast.classList.remove('visible'), 3000);
   };
@@ -3175,10 +3174,10 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
         <div class="queue-warning queue-warning-info">
           <strong>${t('queue.stableTitle')}</strong>
           <span>${t('queue.stableSummary', {
-            queued: state.queue.queued?.length ?? 0,
-            limit: limits.maxQueueLength,
-            timeout: timeoutSeconds || 0
-          })}</span>
+        queued: state.queue.queued?.length ?? 0,
+        limit: limits.maxQueueLength,
+        timeout: timeoutSeconds || 0
+      })}</span>
         </div>
       `;
       return;
@@ -3704,10 +3703,10 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
     state.connections.forEach(connection => {
       const fromEl = findPortElement(connection.fromNodeId, connection.fromPortId, 'output');
       const toEl = findPortElement(connection.toNodeId, connection.toPortId, 'input');
-        const touchesPressed =
-          state.pressedNodeId &&
-          (state.pressedNodeId === connection.fromNodeId || state.pressedNodeId === connection.toNodeId);
-        const glow = state.highlightedConnections.has(connection.id) || Boolean(touchesPressed);
+      const touchesPressed =
+        state.pressedNodeId &&
+        (state.pressedNodeId === connection.fromNodeId || state.pressedNodeId === connection.toNodeId);
+      const glow = state.highlightedConnections.has(connection.id) || Boolean(touchesPressed);
       const extraClass = glow ? ' connection-highlight' : '';
       pushPath(getPortAnchorPoint(fromEl), getPortAnchorPoint(toEl), extraClass);
     });
@@ -4347,41 +4346,45 @@ const TRIM_VIDEO_DEFAULT_EPSILON_MS = 30;
 
     if (session.handle.includes('e')) {
       width = clampWidth(session.startSize.width + deltaX);
+    } else if (session.handle.includes('w')) {
+      const rightEdge = session.startPosition.x + session.startSize.width;
+      const newX = snap(session.startPosition.x + deltaX);
+      const candidateWidth = rightEdge - newX;
+      const clampedWidth = clampWidth(candidateWidth);
+      width = clampedWidth;
+      posX = rightEdge - clampedWidth;
     }
-    if (session.handle.includes('w')) {
-      const candidate = session.startSize.width - deltaX;
-      const clamped = clampWidth(candidate);
-      const applied = session.startSize.width - clamped;
-      width = clamped;
-      posX = snap(session.startPosition.x + applied);
-    }
+
     const minHeightForWidth = getMinimumHeightForWidth(node.id, width);
+
     if (session.handle.includes('s')) {
       height = clampHeight(session.startSize.height + deltaY);
+    } else if (session.handle.includes('n')) {
+      const bottomEdge = session.startPosition.y + session.startSize.height;
+      const newY = snap(session.startPosition.y + deltaY);
+      const candidateHeight = bottomEdge - newY;
+      const clampedHeight = clampHeight(candidateHeight);
+      height = clampedHeight;
+      posY = bottomEdge - clampedHeight;
     }
-    if (session.handle.includes('n')) {
-      const candidate = session.startSize.height - deltaY;
-      const clamped = clampHeight(candidate);
-      const applied = session.startSize.height - clamped;
-      height = clamped;
-      posY = snap(session.startPosition.y + applied);
+
+    const enforcedHeight = Math.max(minHeightForWidth, height);
+    if (session.handle.includes('n') && enforcedHeight !== height) {
+      const bottomEdge = session.startPosition.y + session.startSize.height;
+      posY = bottomEdge - enforcedHeight;
     }
-    height = Math.max(minHeightForWidth, height);
+    height = enforcedHeight;
 
     node.position.x = posX;
     node.position.y = posY;
-    const enforcedHeight = Math.max(minHeightForWidth, height);
-    if (session.handle.includes('n') && enforcedHeight !== height) {
-      posY = snap(session.startPosition.y + (session.startSize.height - enforcedHeight));
-    }
     node.width = width;
-    node.height = enforcedHeight;
+    node.height = height;
     const storedSize = state.nodeSizes.get(node.id);
-    if (!storedSize || storedSize.width !== width || storedSize.height !== enforcedHeight) {
-      state.nodeSizes.set(node.id, { width, height: enforcedHeight });
+    if (!storedSize || storedSize.width !== width || storedSize.height !== height) {
+      state.nodeSizes.set(node.id, { width, height });
     }
     session.element.style.width = `${width}px`;
-    session.element.style.height = `${enforcedHeight}px`;
+    session.element.style.height = `${height}px`;
     session.element.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
     updateNodeMediaPreviewStyles(node, session.element);
     renderConnectionPaths();

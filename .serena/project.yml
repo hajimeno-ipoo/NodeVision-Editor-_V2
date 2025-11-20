@@ -1,7 +1,48 @@
-project_name: NodeVision Editor _V2
-language: typescript
-project_root: /Users/apple/Desktop/AI アプリ/NodeVision Editor _V2
-includes:
-  - doc/**
-notes:
-  - 'Initialized via Codex on 2025-11-12'
+# Serena Project Configuration for NodeVision Editor _V2
+
+# プロジェクト名
+project_name: "NodeVision Editor _V2"
+
+# プロジェクトのルートパス
+project_root: "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2"
+
+# プロジェクトの説明
+description: "NodeVision Editor - A sophisticated video editing application built with Electron, TypeScript, and FFmpeg"
+
+# プログラミング言語
+languages:
+  - typescript
+  - javascript
+  - json
+
+# インデックス対象のディレクトリ
+include_paths:
+  - "apps/"
+  - "packages/"
+
+# 除外するパス
+exclude_paths:
+  - "node_modules/"
+  - "dist/"
+  - ".git/"
+  - "*.log"
+  - "coverage/"
+  - ".pnpm-store/"
+
+# ファイル拡張子のフィルター
+file_extensions:
+  - ".ts"
+  - ".js"
+  - ".json"
+  - ".md"
+
+# プロジェクトの主要なエントリーポイント
+entry_points:
+  - "apps/desktop-electron/src/main.ts"
+  - "apps/desktop-electron/src/renderer/app.ts"
+
+# 依存関係の管理ツール
+package_manager: "pnpm"
+
+# ビルドシステム
+build_system: "typescript"
