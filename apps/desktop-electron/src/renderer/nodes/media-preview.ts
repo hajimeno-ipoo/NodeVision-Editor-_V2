@@ -19,6 +19,9 @@ const resolveNodeTitle = (node: RendererNode | undefined, context: NodeRendererC
 };
 
 const buildCropTransform = (preview: ReturnType<NodeRendererContext['getMediaPreview']>): { style: string; hasCrop: boolean } => {
+  if (preview?.isCroppedOutput) {
+    return { style: '', hasCrop: false };
+  }
   const region = preview?.cropRegion;
   if (!region || region.width == null || region.height == null) {
     return { style: '', hasCrop: false };
@@ -38,12 +41,11 @@ const buildCropTransform = (preview: ReturnType<NodeRendererContext['getMediaPre
   const y = region.height > 1 ? 0 : clamp01(region.y ?? 0, 0);
   const scaleX = 1 / Math.max(normalizedWidth, 0.001);
   const scaleY = 1 / Math.max(normalizedHeight, 0.001);
-  const zoom = preview?.cropZoom ?? 1;
   const flipX = preview?.cropFlipHorizontal ? -1 : 1;
   const flipY = preview?.cropFlipVertical ? -1 : 1;
   const rotation = preview?.cropRotationDeg ?? 0;
   const translate = `translate(-${(x * 100).toFixed(4)}%, -${(y * 100).toFixed(4)}%)`;
-  const scale = `scale(${(scaleX * zoom * flipX).toFixed(4)}, ${(scaleY * zoom * flipY).toFixed(4)})`;
+  const scale = `scale(${(scaleX * flipX).toFixed(4)}, ${(scaleY * flipY).toFixed(4)})`;
   const rotate = rotation ? ` rotate(${rotation}deg)` : '';
   const style = `transform-origin: top left; transform: ${translate} ${scale}${rotate};`;
   return { style, hasCrop: true };
@@ -150,7 +152,7 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     const kind = preview.kind === 'video' ? 'video' : 'image';
     const mediaTag =
       kind === 'video'
-        ? `<video src="${preview.url}" controls autoplay loop playsinline preload="auto" muted style="${crop.style}"></video>`
+        ? `<video src="${preview.url}" controls playsinline preload="metadata" muted style="${crop.style}"></video>`
         : `<img src="${preview.url}" alt="${escapeHtml(preview.name)}" style="${crop.style}" />`;
 
     return `<div class="node-media" data-node-id="${escapeHtml(node.id)}"${inlineStyle}>

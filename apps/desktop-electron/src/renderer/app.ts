@@ -728,6 +728,49 @@ import { calculatePreviewSize } from './nodes/preview-size';
     mutate: (settings: TrimNodeSettings) => void,
     toastKey: string
   ): Promise<void> => {
+    const clamp01 = (value: number, limit: number): number => Math.min(limit, Math.max(0, value));
+    const clampRegion01 = (region: NonNullable<TrimNodeSettings['region']>): NonNullable<TrimNodeSettings['region']> => {
+      const width = clamp01(region.width, 1);
+      const height = clamp01(region.height, 1);
+      return {
+        x: clamp01(region.x, 1 - width),
+        y: clamp01(region.y, 1 - height),
+        width,
+        height
+      };
+    };
+
+    const convertStageRegionToImageRegionCached = (
+      region: NonNullable<TrimNodeSettings['region']>
+    ): NonNullable<TrimNodeSettings['region']> => {
+      const metrics = (rendererWindow as RendererBootstrapWindow & {
+        __NODEVISION_LAST_STAGE_METRICS?: {
+          stageRect: { left: number; top: number; width: number; height: number };
+          displayWidth: number;
+          displayHeight: number;
+          offsetX: number;
+          offsetY: number;
+        };
+      }).__NODEVISION_LAST_STAGE_METRICS;
+      if (!metrics || !metrics.stageRect?.width || !metrics.stageRect?.height) {
+        return region;
+      }
+      const { stageRect, displayWidth, displayHeight, offsetX, offsetY } = metrics;
+      const px = {
+        x: stageRect.left + region.x * stageRect.width,
+        y: stageRect.top + region.y * stageRect.height,
+        width: region.width * stageRect.width,
+        height: region.height * stageRect.height
+      };
+      const imageRegion = {
+        x: (px.x - (stageRect.left + offsetX)) / displayWidth,
+        y: (px.y - (stageRect.top + offsetY)) / displayHeight,
+        width: px.width / displayWidth,
+        height: px.height / displayHeight
+      };
+      return clampRegion01(imageRegion);
+    };
+
     const targetNode = state.nodes.find(entry => entry.id === nodeId);
     if (!targetNode) {
       closeActiveModal();
@@ -736,7 +779,12 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const settings = ensureTrimSettings(targetNode);
     mutate(settings);
     const sourcePreview = findTrimSourcePreview(nodeId);
-    const region = settings.region ?? DEFAULT_TRIM_REGION;
+    let region = settings.region ?? DEFAULT_TRIM_REGION;
+    if (settings.regionSpace === 'stage') {
+      region = convertStageRegionToImageRegionCached(region);
+      settings.region = region;
+      settings.regionSpace = 'image';
+    }
     const widthHint = sourcePreview?.width ? Math.round(sourcePreview.width * region.width) : null;
     const heightHint = sourcePreview?.height ? Math.round(sourcePreview.height * region.height) : null;
     const durationMs = sourcePreview?.durationMs ?? null;
@@ -770,11 +818,12 @@ import { calculatePreviewSize } from './nodes/preview-size';
             ownedUrl: true,
             derivedFrom: signature ?? undefined,
             cropRegion: region,
-            cropSpace: settings.regionSpace ?? 'stage',
+            cropSpace: (settings.regionSpace ?? 'stage') as 'image' | 'stage',
             cropRotationDeg: settings.rotationDeg ?? 0,
             cropZoom: settings.zoom ?? 1,
             cropFlipHorizontal: settings.flipHorizontal ?? false,
-            cropFlipVertical: settings.flipVertical ?? false
+            cropFlipVertical: settings.flipVertical ?? false,
+            isCroppedOutput: true
           };
           state.mediaPreviews.set(nodeId, updated);
           commitState();
