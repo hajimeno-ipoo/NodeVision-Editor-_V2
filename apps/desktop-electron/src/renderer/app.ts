@@ -633,8 +633,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
         <button type="button" class="trim-tool-button" data-trim-tool="reset-transform">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
       </div>
 
-      <div class="trim-stage-wrapper">
-        <div class="trim-image-stage">
+      <div class="trim-stage-wrapper" style="max-width: 100%; overflow: hidden;">
+        <div class="trim-image-stage" style="max-width: 100%; overflow: hidden;">
           <img data-trim-image src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
         </div>
       </div>
@@ -842,7 +842,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         console.error('[debug] Cropper is not a function/class!', Cropper);
       }
       cropper = new Cropper(imageElement, {
-        viewMode: 1,
+        viewMode: 2,
         dragMode: 'move',
         aspectRatio: aspectRatio || NaN,
         autoCropArea: 1,
@@ -851,7 +851,17 @@ import { calculatePreviewSize } from './nodes/preview-size';
         rotatable: true,
         scalable: true,
         background: false,
-        responsive: true
+        responsive: true,
+        ready: () => {
+          // Cropperが初期化された後、まずキャンバスをリセットして画像全体を表示
+          if (cropper) {
+            cropper.reset();
+            // 少し遅延させてから初期領域を復元（Cropperの内部処理が完了するのを待つ）
+            setTimeout(() => {
+              restoreInitialRegion();
+            }, 50);
+          }
+        }
       });
       activeCropper = cropper;
     } catch (error) {
@@ -874,8 +884,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
         scaleY: session.draftFlipVertical ? -1 : 1
       });
     };
-
-    restoreInitialRegion();
 
     const aspectSelect = modalContent.querySelector<HTMLSelectElement>('[data-trim-aspect]');
     aspectSelect?.addEventListener('change', ev => {
