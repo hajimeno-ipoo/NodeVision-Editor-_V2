@@ -578,6 +578,7 @@ function createWindow(status: BootStatus): void {
     height: 840,
     webPreferences: {
       contextIsolation: true,
+      sandbox: false,
       preload: preloadPath
     }
   });

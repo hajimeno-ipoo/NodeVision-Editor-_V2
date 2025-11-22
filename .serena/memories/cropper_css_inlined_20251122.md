@@ -1,0 +1,1 @@
+Inlined essential Cropper.js CSS into apps/desktop-electron/src/ui-template.ts to ensure crop box/handles render without external bundling. Added cropper-container/crop-box/view-box/lines/points styles. Rebuilt desktop-electron (tsc) successfully.

@@ -1,0 +1,1 @@
+Fixed cropper interactions: updated apps/desktop-electron/src/ui-template.ts to allow pointer events on trim modal image (`pointer-events: auto; touch-action: none;`), so Cropper.js overlay responds to drag/resize and buttons. Rebuilt desktop-electron successfully (tsc).

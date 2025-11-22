@@ -1151,8 +1151,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .nv-modal {
         width: min(880px, calc(100vw - 40px));
-        max-height: min(96vh, 940px);
-        overflow: visible;
+        max-height: 92vh;
+        overflow: hidden;
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: #11121a;
@@ -1197,7 +1197,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        overflow: visible;
+        overflow-y: auto;
+        max-height: calc(92vh - 80px);
       }
       .trim-modal-placeholder {
         margin: 0;
@@ -1246,7 +1247,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .trim-stage-wrapper {
         position: relative;
         width: 100%;
+        max-width: 96vw;
         padding: 12px 0 28px;
+        overflow: hidden;
       }
       .trim-image-stage {
         position: relative;
@@ -1260,6 +1263,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
         flex: 0 0 auto;
         align-self: center;
+        width: min(90vw, 880px);
+        height: min(55vh, 560px);
       }
       .trim-grid-overlay {
         position: absolute;
@@ -1281,7 +1286,97 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         display: block;
         object-fit: contain;
         user-select: none;
-        pointer-events: none;
+        pointer-events: auto; /* Cropper.js needs pointer events on the <img> */
+        touch-action: none;
+        max-width: 100%;
+        max-height: 100%;
+      }
+      /* === Cropper.js minimal styles (inlined to ensure modal shows crop box) === */
+      .cropper-container {
+        direction: ltr;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 5;
+        font-size: 0;
+        line-height: 0;
+        touch-action: none;
+        user-select: none;
+        pointer-events: auto;
+      }
+      .cropper-container img {
+        display: block;
+        max-width: none;
+        width: 100%;
+        height: 100%;
+      }
+      .cropper-wrap-box,
+      .cropper-canvas,
+      .cropper-drag-box,
+      .cropper-crop-box,
+      .cropper-modal {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+      .cropper-drag-box {
+        opacity: 0;
+        background: #fff;
+        cursor: move;
+      }
+      .cropper-crop-box {
+        border: 1px solid #39f;
+        box-sizing: border-box;
+      }
+      .cropper-view-box {
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        outline: 1px solid #39f;
+        outline-color: rgba(51, 153, 255, 0.75);
+      }
+      .cropper-face {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.001);
+        cursor: move;
+      }
+      .cropper-line {
+        position: absolute;
+        display: block;
+        opacity: 0.1;
+        background-color: #39f;
+      }
+      .cropper-line.line-n { top: -3px; left: 0; height: 2px; width: 100%; cursor: n-resize; }
+      .cropper-line.line-s { bottom: -3px; left: 0; height: 2px; width: 100%; cursor: s-resize; }
+      .cropper-line.line-e { top: 0; right: -3px; width: 2px; height: 100%; cursor: e-resize; }
+      .cropper-line.line-w { top: 0; left: -3px; width: 2px; height: 100%; cursor: w-resize; }
+      .cropper-point {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        opacity: 0.75;
+        background-color: #39f;
+      }
+      .cropper-point.point-n { top: -4px; left: 50%; margin-left: -4px; cursor: n-resize; }
+      .cropper-point.point-s { bottom: -4px; left: 50%; margin-left: -4px; cursor: s-resize; }
+      .cropper-point.point-e { right: -4px; top: 50%; margin-top: -4px; cursor: e-resize; }
+      .cropper-point.point-w { left: -4px; top: 50%; margin-top: -4px; cursor: w-resize; }
+      .cropper-point.point-ne { right: -4px; top: -4px; cursor: ne-resize; }
+      .cropper-point.point-nw { left: -4px; top: -4px; cursor: nw-resize; }
+      .cropper-point.point-se { right: -4px; bottom: -4px; cursor: se-resize; }
+      .cropper-point.point-sw { left: -4px; bottom: -4px; cursor: sw-resize; }
+      .cropper-modal {
+        background-color: rgba(0, 0, 0, 0.5);
       }
       .trim-image-controls {
         display: grid;

@@ -1,0 +1,11 @@
+## 2025-11-22 Electron app launch attempt
+- Goal: open desktop app to inspect trim modal (per user request to check real app, not tmp preview HTML).
+- Initial issue: ELECTRON_RUN_AS_NODE env var was set globally, causing `electron dist/main.js` to run as plain node and fail (ipcMain undefined). Also `electron --version` returned Node v20.18.1 due to this env var.
+- Fixed by clearing env var when launching electron.
+- Launch command (timed run): `ELECTRON_RUN_AS_NODE= ELECTRON_ENABLE_LOGGING=1 ELECTRON_DISABLE_GPU=1 pnpm --filter desktop-electron dev` (build succeeded, app ran until timeout; logged FFmpeg ready, NV_HTTP disabled).
+- Headless check via Playwright Electron:
+  - Executed electron with executablePath `node_modules/.pnpm/electron@32.3.3/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron` and args `apps/desktop-electron/dist/main.js`.
+  - Captured window title `NodeVisionエディター`, URL `file:///var/folders/.../nodevision-temp/`.
+  - Screenshots stored at `tmp/electron-trim-modal.png` and `tmp/electron-trim-modal-after-click.png`.
+  - In blank new session, `画像トリム` button not present (no nodes/media loaded), so trim modal not opened yet.
+- Next: to inspect trim modal in-app, need to load media workflow and click trim button; may need sample media (`pnpm generate:media`) and node creation within app.

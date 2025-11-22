@@ -1,0 +1,7 @@
+Cropper.js integration + trim modal refactor (2025-11-22)
+- Backed up user workflows: ~/Library/Application Support/Electron/nodevision-workflows.json -> tmp/workflows-backup.json (avoid resets during work).
+- Added dependency: cropperjs to apps/desktop-electron (pnpm --filter desktop-electron add cropperjs). Introduced safe runtime fallback stub when module missing (tests).
+- renderer/app.ts: simplified renderTrimImageModal HTML; initializeTrimImageControls rewritten to use Cropper (image-space only, aspect mapping, toolbar hooks, save -> persistTrimSettings). openTrimModal now normalizes regionSpace to image. persistTrimSettings simplified to image-only flow; deriveTrimPreview cropSpace fixed to 'image'. Added renderActiveModal back. Added activeCropper lifecycle.
+- templates default regionSpace set to 'image'; updated templates.test expectation.
+- Tests: full `pnpm test` now **pass** (all 29 files, 236 tests, coverage 100% per current config). Earlier failure fixed by adding Cropper stub + renderActiveModal.
+- Playwright/Electron smoke: previous run before code changes succeeded; after refactor, attempted automated launch with sample media but Electron window event timed out (needs follow-up manual run if required). Screenshot path used in prior run: tmp/playwright-trim-modal.png (old build).

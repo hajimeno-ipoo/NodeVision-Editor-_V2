@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type CropperType from 'cropperjs';
 
 import type { WorkflowRecord } from './types';
 
@@ -43,10 +44,37 @@ const api: NodeVisionBridge = {
   generateCroppedPreview: payload => ipcRenderer.invoke('nodevision:preview:crop', payload)
 };
 
+const loadCropper = (): typeof CropperType | null => {
+  const candidates = [
+    'cropperjs',
+    '../node_modules/cropperjs',
+    '../../node_modules/cropperjs'
+  ];
+  for (const id of candidates) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mod = require(id) as { default?: typeof CropperType } | undefined;
+      return (mod?.default ?? (mod as unknown as typeof CropperType)) as typeof CropperType;
+    } catch (error) {
+      /* try next path */
+    }
+  }
+  console.warn('[NodeVision][preload] cropperjs module not found; crop UI will be limited.');
+  return null;
+};
+
+const cropperModule = loadCropper();
+
 contextBridge.exposeInMainWorld('nodevision', api);
+if (cropperModule) {
+  contextBridge.exposeInMainWorld('Cropper', cropperModule);
+}
+contextBridge.exposeInMainWorld('nodeRequire', require);
 
 declare global {
   interface Window {
     nodevision: NodeVisionBridge;
+    Cropper: typeof Cropper;
+    nodeRequire: NodeRequire;
   }
 }

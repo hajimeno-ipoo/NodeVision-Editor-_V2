@@ -20,7 +20,7 @@ describe('DEFAULT_NODE_TEMPLATES', () => {
     expect(trimTemplate?.defaultSettings).toEqual({
       kind: 'trim',
       region: { x: 0, y: 0, width: 1, height: 1 },
-      regionSpace: 'stage',
+      regionSpace: 'image',
       rotationDeg: 0,
       zoom: 1,
       flipHorizontal: false,

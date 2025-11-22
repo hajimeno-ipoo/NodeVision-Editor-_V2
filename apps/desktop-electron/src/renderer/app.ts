@@ -1,6 +1,51 @@
 /// <reference lib="dom" />
 
+import type CropperType from 'cropperjs';
 import type { TrimNodeSettings } from '@nodevision/editor';
+
+const resolveCropper = (): typeof CropperType | null => {
+  const win = window as unknown as {
+    Cropper?: typeof CropperType;
+    nodeRequire?: (id: string) => unknown;
+  };
+  if (win.Cropper) {
+    return win.Cropper;
+  }
+  if (typeof win.nodeRequire === 'function') {
+    try {
+      const mod = win.nodeRequire('cropperjs') as { default?: typeof CropperType } | undefined;
+      if (mod) {
+        return (mod.default ?? (mod as unknown as typeof CropperType)) as typeof CropperType;
+      }
+    } catch (error) {
+      console.warn('[NodeVision] failed to load cropperjs via nodeRequire', error);
+    }
+  }
+  return null;
+};
+
+const Cropper: typeof CropperType =
+  resolveCropper() ??
+  (class {
+    constructor(_el: HTMLElement, _opts: unknown) {}
+    getData() {
+      return { x: 0, y: 0, width: 0, height: 0, rotate: 0, scaleX: 1, scaleY: 1 };
+    }
+    getImageData() {
+      return { naturalWidth: 1, naturalHeight: 1, width: 1, height: 1 };
+    }
+    getCanvasData() {
+      return { width: 1, height: 1 };
+    }
+    setData(): void {}
+    setAspectRatio(): void {}
+    zoom(): void {}
+    rotate(): void {}
+    scaleX(): void {}
+    scaleY(): void {}
+    reset(): void {}
+    destroy(): void {}
+  } as unknown as typeof CropperType);
 
 import { captureDomElements } from './dom';
 import {
@@ -108,7 +153,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   const MODAL_FOCUSABLE_SELECTORS = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
   const DEFAULT_TRIM_REGION: NonNullable<TrimNodeSettings['region']> = { x: 0, y: 0, width: 1, height: 1 };
-  const MIN_TRIM_REGION_SIZE = 0.05;
+  let activeCropper: CropperType | null = null;
 
   const cloneNodeSettings = (settings?: RendererNode['settings']) =>
     settings ? deepClone(settings) : undefined;
@@ -589,95 +634,25 @@ import { calculatePreviewSize } from './nodes/preview-size';
       modalContentElement.appendChild(warning);
       return;
     }
-    const rotationValue = Math.round(session.draftRotationDeg || 0);
-    const zoomPercent = Math.round((session.draftZoom || 1) * 100);
-    const aspectOptions: TrimNodeSettings['aspectMode'][] = [
-      'free',
-      'original',
-      'square',
-      '2:1',
-      '3:1',
-      '3:2',
-      '4:3',
-      '5:4',
-      '16:9',
-      '16:10',
-      '9:16',
-      '1.618:1'
-    ];
+    const aspectOptions: TrimNodeSettings['aspectMode'][] = ['free', 'original', 'square', '2:1', '3:1', '4:3', '16:9', '9:16', '1.618:1'];
     modalContentElement.innerHTML = `
       <div class="trim-image-toolbar" role="toolbar">
-        <div class="trim-image-toolbar-group">
-          <button type="button" class="trim-tool-button" data-trim-tool="zoom-out" title="${escapeHtml(
-      t('nodes.trim.imageTools.zoomOut')
-    )}">−</button>
-          <button type="button" class="trim-tool-button" data-trim-tool="zoom-in" title="${escapeHtml(
-      t('nodes.trim.imageTools.zoomIn')
-    )}">＋</button>
-          <button type="button" class="trim-tool-button" data-trim-tool="grid" data-active="${String(
-      session.showGrid
-    )}" title="${escapeHtml(t('nodes.trim.imageTools.grid'))}">
-            ${escapeHtml(t('nodes.trim.imageTools.grid'))}
-          </button>
-        </div>
-        <div class="trim-image-toolbar-group">
-          <button type="button" class="trim-tool-button" data-trim-tool="rotate-left" title="${escapeHtml(
-      t('nodes.trim.imageTools.rotateLeft')
-    )}">${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}</button>
-          <button type="button" class="trim-tool-button" data-trim-tool="rotate-right" title="${escapeHtml(
-      t('nodes.trim.imageTools.rotateRight')
-    )}">${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}</button>
-          <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal" title="${escapeHtml(
-      t('nodes.trim.imageTools.flipHorizontal')
-    )}">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
-          <button type="button" class="trim-tool-button" data-trim-tool="flip-vertical" title="${escapeHtml(
-      t('nodes.trim.imageTools.flipVertical')
-    )}">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
-          <button type="button" class="trim-tool-button" data-trim-tool="reset-transform" title="${escapeHtml(
-      t('nodes.trim.imageTools.reset')
-    )}">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="zoom-out">${escapeHtml(t('nodes.trim.imageTools.zoomOut'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="zoom-in">${escapeHtml(t('nodes.trim.imageTools.zoomIn'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="rotate-left">${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="rotate-right">${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="flip-vertical">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="reset-transform">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
+      </div>
+
+      <div class="trim-stage-wrapper">
+        <div class="trim-image-stage">
+          <img data-trim-image src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
         </div>
       </div>
-      <div class="trim-stage-wrapper" data-trim-stage-wrapper>
-        <div class="trim-image-stage" data-trim-stage style="aspect-ratio: ${session.sourcePreview.width ?? 1} / ${session.sourcePreview.height ?? 1}; width: ${Math.min(window.innerHeight * 0.58, 480) * ((session.sourcePreview.width ?? 1) / (session.sourcePreview.height ?? 1))}px; height: ${Math.min(window.innerHeight * 0.58, 480)}px;">
-        <img src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
-        <div class="trim-crop-box" data-trim-box data-trim-grid-visible="${String(session.showGrid)}">
-          <div class="trim-crop-grid" aria-hidden="true">
-            ${['h1', 'h2', 'v1', 'v2']
-        .map(
-          line =>
-            `<span class="trim-crop-grid-line trim-crop-grid-line--${line.startsWith('h') ? 'horizontal' : 'vertical'
-            }" data-trim-grid-line="${line}"></span>`
-        )
-        .join('')}
-          </div>
-          ${['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se']
-        .map(handle => `<div class="trim-crop-handle" data-trim-handle="${handle}"></div>`)
-        .join('')}
-        </div>
-        <div class="trim-grid-overlay${session.showGrid ? ' is-visible' : ''}" data-trim-grid-overlay></div>
-      </div>
-      </div>
+
       <div class="trim-image-controls">
-        <div class="trim-control">
-          <label>
-            <span>${escapeHtml(t('nodes.trim.imageControls.rotation'))}</span>
-            <div class="trim-control-inputs">
-              <input type="range" min="-180" max="180" step="1" value="${rotationValue}" data-trim-rotation-range />
-              <input type="number" min="-180" max="180" step="1" value="${rotationValue}" data-trim-rotation-input />
-              <span class="trim-control-unit">°</span>
-            </div>
-          </label>
-        </div>
-        <div class="trim-control">
-          <label>
-            <span>${escapeHtml(t('nodes.trim.imageControls.zoom'))}</span>
-            <div class="trim-control-inputs">
-              <input type="range" min="0.25" max="4" step="0.05" value="${session.draftZoom ?? 1}" data-trim-zoom-range />
-              <span class="trim-control-badge" data-trim-zoom-label>${zoomPercent}%</span>
-            </div>
-          </label>
-        </div>
         <div class="trim-control">
           <label>
             <span>${escapeHtml(t('nodes.trim.imageControls.aspect'))}</span>
@@ -685,15 +660,16 @@ import { calculatePreviewSize } from './nodes/preview-size';
               ${aspectOptions
         .map(
           option => `
-                    <option value="${option}" ${option === session.draftAspectMode ? 'selected' : ''}>
-                      ${escapeHtml(t(`nodes.trim.imageControls.aspectOption.${option}`))}
-                    </option>`
+                  <option value="${option}" ${option === session.draftAspectMode ? 'selected' : ''}>
+                    ${escapeHtml(t('nodes.trim.imageControls.aspectOption.' + option))}
+                  </option>`
         )
         .join('')}
             </select>
           </label>
         </div>
       </div>
+
       <p class="trim-modal-hint">${escapeHtml(t('nodes.trim.modalPlaceholder.image'))}</p>
       <div class="trim-modal-actions">
         <button type="button" class="pill-button" data-trim-reset>${escapeHtml(t('actions.reset'))}</button>
@@ -702,17 +678,11 @@ import { calculatePreviewSize } from './nodes/preview-size';
         <button type="button" class="pill-button primary" data-trim-save>${escapeHtml(t('actions.save'))}</button>
       </div>
     `;
-    const imageElement = modalContentElement.querySelector<HTMLImageElement>('.trim-image-stage img');
-    if (imageElement?.complete ?? false) {
-      initializeTrimImageControls(session);
-    } else {
-      imageElement?.addEventListener(
-        'load',
-        () => {
-          initializeTrimImageControls(session);
-        },
-        { once: true }
-      );
+    const imageElement = modalContentElement.querySelector<HTMLImageElement>('[data-trim-image]');
+    if (imageElement && (imageElement.complete ?? false)) {
+      initializeTrimImageControls(session, imageElement);
+    } else if (imageElement) {
+      imageElement.addEventListener('load', () => initializeTrimImageControls(session, imageElement), { once: true });
     }
   };
 
@@ -723,12 +693,27 @@ import { calculatePreviewSize } from './nodes/preview-size';
     renderTrimImageModal(state);
   };
 
+  const renderActiveModal = (): void => {
+    if (!activeModal) {
+      return;
+    }
+    switch (activeModal.type) {
+      case 'trim':
+        renderTrimModalView(activeModal);
+        break;
+      default:
+        break;
+    }
+    modalBackdrop?.setAttribute('data-open', 'true');
+    modalContainer?.setAttribute('aria-hidden', 'false');
+    modalContainer?.focus();
+  };
+
   const persistTrimSettings = async (
     nodeId: string,
     mutate: (settings: TrimNodeSettings) => void,
     toastKey: string
   ): Promise<void> => {
-    const clamp01 = (value: number, limit: number): number => Math.min(limit, Math.max(0, value));
     const targetNode = state.nodes.find(entry => entry.id === nodeId);
     if (!targetNode) {
       closeActiveModal();
@@ -737,32 +722,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const settings = ensureTrimSettings(targetNode);
     mutate(settings);
     const sourcePreview = findTrimSourcePreview(nodeId);
-    let region = settings.region ?? DEFAULT_TRIM_REGION;
-    const aspectMode = settings.aspectMode ?? 'free';
-    // regionSpace は mutate 内で最新 metrics に基づき image へ変換される想定
-    if (aspectMode === 'square') {
-      const srcW = sourcePreview?.width ?? null;
-      const srcH = sourcePreview?.height ?? null;
-      if (srcW && srcH && srcW > 0 && srcH > 0) {
-        const aspect = srcH / srcW;
-        let { x, y, width, height } = region;
-        if (aspect >= 1) {
-          // 縦長ソース: 高さベースで幅を合わせる
-          width = height / aspect;
-        } else {
-          // 横長ソース: 幅ベースで高さを合わせる
-          height = width * aspect;
-        }
-        const cx = x + region.width / 2;
-        const cy = y + region.height / 2;
-        width = Math.min(1, width);
-        height = Math.min(1, height);
-        x = clamp01(cx - width / 2, 1 - width);
-        y = clamp01(cy - height / 2, 1 - height);
-        region = { x, y, width, height };
-        settings.region = region;
-      }
-    }
+    const region = settings.region ?? DEFAULT_TRIM_REGION;
     const zoomFactor = settings.zoom ?? 1;
     const widthHint = sourcePreview?.width ? Math.round(sourcePreview.width * region.width * zoomFactor) : null;
     const heightHint = sourcePreview?.height ? Math.round(sourcePreview.height * region.height * zoomFactor) : null;
@@ -779,7 +739,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         console.debug('[NodeVision][debug] ffmpeg crop request', {
           nodeId,
           region,
-          regionSpace: settings.regionSpace,
+          regionSpace: 'image',
           zoom: settings.zoom,
           rotationDeg: settings.rotationDeg,
           flipH: settings.flipHorizontal,
@@ -797,7 +757,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
           sourcePath: sourcePreview.filePath,
           kind: sourcePreview.kind,
           region,
-          regionSpace: settings.regionSpace ?? 'stage',
+          regionSpace: 'image',
           rotationDeg: settings.rotationDeg,
           zoom: settings.zoom,
           flipHorizontal: settings.flipHorizontal,
@@ -808,13 +768,13 @@ import { calculatePreviewSize } from './nodes/preview-size';
           durationMs
         });
         if (response?.ok && response.preview) {
-          const updated = {
+          const updated: NodeMediaPreview = {
             ...sourcePreview,
             ...response.preview,
             ownedUrl: true,
             derivedFrom: signature ?? undefined,
             cropRegion: region,
-            cropSpace: (settings.regionSpace ?? 'stage') as 'image' | 'stage',
+            cropSpace: 'image',
             cropRotationDeg: settings.rotationDeg ?? 0,
             cropZoom: settings.zoom ?? 1,
             cropFlipHorizontal: settings.flipHorizontal ?? false,
@@ -848,869 +808,187 @@ import { calculatePreviewSize } from './nodes/preview-size';
     showToast(t(toastKey));
   };
 
-  const initializeTrimImageControls = (session: TrimImageModalState): void => {
+
+  const initializeTrimImageControls = (session: TrimImageModalState, imageElement: HTMLImageElement): void => {
     const modalContent = modalContentElement;
-    if (!modalContent) {
+    if (!modalContent || !imageElement) {
       return;
     }
-    (rendererWindow as RendererBootstrapWindow & {
-      __NODEVISION_TRIM_SESSION?: TrimImageModalState;
-    }).__NODEVISION_TRIM_SESSION = session;
-    const stage = modalContent.querySelector<HTMLElement>('[data-trim-stage]');
-    const cropBox = modalContent.querySelector<HTMLElement>('[data-trim-box]');
-    const imageElement = modalContent.querySelector<HTMLImageElement>('.trim-image-stage img');
-    const gridOverlay = modalContent.querySelector<HTMLElement>('[data-trim-grid-overlay]');
-    const rotationRange = modalContent.querySelector<HTMLInputElement>('[data-trim-rotation-range]');
-    const rotationInput = modalContent.querySelector<HTMLInputElement>('[data-trim-rotation-input]');
-    const zoomRange = modalContent.querySelector<HTMLInputElement>('[data-trim-zoom-range]');
-    const zoomLabel = modalContent.querySelector<HTMLElement>('[data-trim-zoom-label]');
+    session.draftRegionSpace = 'image';
+
+    const getAspectRatio = (mode: TrimNodeSettings['aspectMode']): number => {
+      const w = session.sourcePreview?.width ?? imageElement.naturalWidth ?? 1;
+      const h = session.sourcePreview?.height ?? imageElement.naturalHeight ?? 1;
+      switch (mode) {
+        case 'original':
+          return w / h;
+        case 'square':
+          return 1;
+        case '2:1':
+          return 2 / 1;
+        case '3:1':
+          return 3 / 1;
+        case '4:3':
+          return 4 / 3;
+        case '16:9':
+          return 16 / 9;
+        case '9:16':
+          return 9 / 16;
+        case '1.618:1':
+          return 1.61803398875;
+        case 'free':
+        default:
+          return NaN;
+      }
+    };
+
+    if (activeCropper) {
+      activeCropper.destroy();
+      activeCropper = null;
+    }
+
+    const aspectRatio = getAspectRatio(session.draftAspectMode ?? 'free');
+    let cropper: CropperType | null = null;
+    try {
+      cropper = new Cropper(imageElement, {
+        viewMode: 1,
+        dragMode: 'move',
+        aspectRatio: aspectRatio || NaN,
+        autoCropArea: 1,
+        movable: true,
+        zoomable: true,
+        rotatable: true,
+        scalable: true,
+        background: false,
+        responsive: true
+      });
+      activeCropper = cropper;
+    } catch (error) {
+      console.error('[NodeVision] Cropper initialization failed', error);
+      activeCropper = null;
+      return;
+    }
+
+    const restoreInitialRegion = (): void => {
+      const imgW = imageElement.naturalWidth || session.sourcePreview?.width || 1;
+      const imgH = imageElement.naturalHeight || session.sourcePreview?.height || 1;
+      const region = session.draftRegion ?? DEFAULT_TRIM_REGION;
+      cropper.setData({
+        x: region.x * imgW,
+        y: region.y * imgH,
+        width: region.width * imgW,
+        height: region.height * imgH,
+        rotate: session.draftRotationDeg ?? 0,
+        scaleX: session.draftFlipHorizontal ? -1 : 1,
+        scaleY: session.draftFlipVertical ? -1 : 1
+      });
+    };
+
+    restoreInitialRegion();
+
     const aspectSelect = modalContent.querySelector<HTMLSelectElement>('[data-trim-aspect]');
-    const toolbarButtons = modalContent.querySelectorAll<HTMLButtonElement>('[data-trim-tool]');
-    if (!stage || !cropBox) {
-      return;
-    }
+    aspectSelect?.addEventListener('change', ev => {
+      const mode = (ev.target as HTMLSelectElement).value as TrimNodeSettings['aspectMode'];
+      session.draftAspectMode = mode;
+      const ratio = getAspectRatio(mode);
+      cropper.setAspectRatio(ratio || NaN);
+    });
 
-    const getImageAspectRatio = (): number => {
-      const preview = session.sourcePreview;
-      if (preview?.width && preview?.height) {
-        return preview.width / preview.height;
-      }
-      if (imageElement?.naturalWidth && imageElement?.naturalHeight) {
-        return imageElement.naturalWidth / imageElement.naturalHeight;
-      }
-      return 1;
-    };
-
-    const ASPECT_RATIO_MAP: Record<Exclude<TrimNodeSettings['aspectMode'], undefined>, number | null> = {
-      free: null,
-      original: null,
-      square: 1,
-      '2:1': 2,
-      '3:1': 3,
-      '3:2': 3 / 2,
-      '4:3': 4 / 3,
-      '5:4': 5 / 4,
-      '16:9': 16 / 9,
-      '16:10': 16 / 10,
-      '9:16': 9 / 16,
-      '1.618:1': 1.61803398875
-    };
-
-    const getSelectedAspectRatio = (): number | null => {
-      const mode = session.draftAspectMode ?? 'free';
-      if (mode === 'original') {
-        return getImageAspectRatio();
-      }
-      return ASPECT_RATIO_MAP[mode] ?? null;
-    };
-
-
-    const clampSize = (value: number): number => clampValue(value, MIN_TRIM_REGION_SIZE, 1);
-
-    const clampPixelSize = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
-
-    const normalizedToPixels = (normalized: number, displaySize: number): number => {
-      const minPixelSize = MIN_TRIM_REGION_SIZE * displaySize;
-      return clampPixelSize(normalized * displaySize, minPixelSize, displaySize);
-    };
-
-    const pixelsToNormalized = (pixels: number, displaySize: number): number => {
-      if (!displaySize) {
-        return MIN_TRIM_REGION_SIZE;
-      }
-      return clampSize(pixels / displaySize);
-    };
-
-    const clampRegionPosition = (region: NonNullable<TrimNodeSettings['region']>): NonNullable<TrimNodeSettings['region']> => {
-      return {
-        ...region,
-        x: clampValue(region.x, 0, 1 - region.width),
-        y: clampValue(region.y, 0, 1 - region.height)
-      };
-    };
-
-    type ImageStageMetrics = {
-      stageRect: DOMRect;
-      displayWidth: number;
-      displayHeight: number;
-      offsetX: number;
-      offsetY: number;
-    };
-
-    const getImageStageMetrics = (): ImageStageMetrics | null => {
-      if (!stage || !imageElement) {
-        return null;
-      }
-      const stageRect = stage.getBoundingClientRect();
-      if (!stageRect.width || !stageRect.height) {
-        return null;
-      }
-      const imgRect = imageElement.getBoundingClientRect();
-      if (!imgRect.width || !imgRect.height) {
-        return null;
-      }
-      // 実際の描画サイズをそのまま採用（stretch/contain どちらでも実測値で統一）
-      const zoomFactor = clampZoom(session.draftZoom ?? 1);
-      const displayWidth = imgRect.width * zoomFactor;
-      const displayHeight = imgRect.height * zoomFactor;
-      const offsetX = (imgRect.left - stageRect.left) - (displayWidth - imgRect.width) / 2;
-      const offsetY = (imgRect.top - stageRect.top) - (displayHeight - imgRect.height) / 2;
-      const metricsResult: ImageStageMetrics = { stageRect, displayWidth, displayHeight, offsetX, offsetY };
-      (rendererWindow as RendererBootstrapWindow & {
-        __NODEVISION_LAST_STAGE_METRICS?: ImageStageMetrics;
-      }).__NODEVISION_LAST_STAGE_METRICS = metricsResult;
-      return metricsResult;
-    };
-
-    const convertStageRegionToImageRegion = (
-      region: NonNullable<TrimNodeSettings['region']>,
-      metricsOverride?: ImageStageMetrics | null
-    ): NonNullable<TrimNodeSettings['region']> => {
-      const metrics = metricsOverride ?? getImageStageMetrics();
-      if (!metrics) {
-        return { ...region };
-      }
-      const { stageRect, displayWidth, displayHeight, offsetX, offsetY } = metrics;
-
-      // ステージ座標（px）
-      const px = {
-        x: stageRect.left + region.x * stageRect.width,
-        y: stageRect.top + region.y * stageRect.height,
-        width: region.width * stageRect.width,
-        height: region.height * stageRect.height
-      };
-
-      // 画像が実際に描画されているビューポート
-      const viewport = {
-        left: stageRect.left + offsetX,
-        top: stageRect.top + offsetY,
-        right: stageRect.left + offsetX + displayWidth,
-        bottom: stageRect.top + offsetY + displayHeight,
-        width: displayWidth,
-        height: displayHeight
-      };
-
-      // ビューポート内にクリップ
-      const left = Math.max(px.x, viewport.left);
-      const top = Math.max(px.y, viewport.top);
-      const right = Math.min(px.x + px.width, viewport.right);
-      const bottom = Math.min(px.y + px.height, viewport.bottom);
-      const clippedWidth = Math.max(MIN_TRIM_REGION_SIZE * viewport.width, right - left);
-      const clippedHeight = Math.max(MIN_TRIM_REGION_SIZE * viewport.height, bottom - top);
-
-      // 幅・高さ別スケールで正規化（等方化しない）
-      const norm = {
-        x: (left - viewport.left) / viewport.width,
-        y: (top - viewport.top) / viewport.height,
-        width: clippedWidth / viewport.width,
-        height: clippedHeight / viewport.height
-      };
-
-      return clampRegionPosition(norm);
-    };
-
-    (rendererWindow as RendererBootstrapWindow & {
-      __NODEVISION_DEBUG_CONVERT_STAGE_TO_IMAGE?: typeof convertStageRegionToImageRegion;
-    }).__NODEVISION_DEBUG_CONVERT_STAGE_TO_IMAGE = convertStageRegionToImageRegion;
-
-    const convertImageRegionToStageRegion = (
-      region: NonNullable<TrimNodeSettings['region']>,
-      metricsOverride?: ImageStageMetrics | null
-    ): NonNullable<TrimNodeSettings['region']> => {
-      const metrics = metricsOverride ?? getImageStageMetrics();
-      if (!metrics) {
-        return { ...region };
-      }
-      const { stageRect, displayWidth, displayHeight, offsetX, offsetY } = metrics;
-      const px = {
-        x: stageRect.left + offsetX + region.x * displayWidth,
-        y: stageRect.top + offsetY + region.y * displayHeight,
-        width: region.width * displayWidth,
-        height: region.height * displayHeight
-      };
-      const stageRegion = {
-        x: (px.x - stageRect.left) / stageRect.width,
-        y: (px.y - stageRect.top) / stageRect.height,
-        width: px.width / stageRect.width,
-        height: px.height / stageRect.height
-      };
-      return clampRegionPosition(stageRegion);
-    };
-
-    const ensureStageRegion = (): boolean => {
-      if (session.draftRegionSpace === 'stage') {
-        return true;
-      }
-      const metrics = getImageStageMetrics();
-      if (!metrics) {
-        return false;
-      }
-      session.draftRegion = convertImageRegionToStageRegion(session.draftRegion, metrics);
-      session.draftRegionSpace = 'stage';
-      return true;
-    };
-
-    const buildRegionFromAnchor = (
-      width: number,
-      height: number,
-      handle: TrimResizeHandle | 'center',
-      reference: NonNullable<TrimNodeSettings['region']>,
-      axisHint?: 'width' | 'height' | null
-    ): NonNullable<TrimNodeSettings['region']> => {
-      const left = reference.x;
-      const top = reference.y;
-      const right = reference.x + reference.width;
-      const bottom = reference.y + reference.height;
-      const centerX = left + reference.width / 2;
-      const centerY = top + reference.height / 2;
-      let x = reference.x;
-      let y = reference.y;
-      const useCornerAnchor =
-        axisHint && (handle === 'nw' || handle === 'ne' || handle === 'sw' || handle === 'se');
-      if (useCornerAnchor) {
-        switch (handle) {
-          case 'nw':
-            return { x: right - width, y: bottom - height, width, height };
-          case 'ne':
-            return { x: left, y: bottom - height, width, height };
-          case 'sw':
-            return { x: right - width, y: top, width, height };
-          case 'se':
-            return { x: left, y: top, width, height };
+    modalContent.querySelectorAll<HTMLButtonElement>('[data-trim-tool]').forEach(button => {
+      const tool = button.dataset.trimTool;
+      button.addEventListener('click', () => {
+        switch (tool) {
+          case 'zoom-in':
+            cropper.zoom(0.1);
+            break;
+          case 'zoom-out':
+            cropper.zoom(-0.1);
+            break;
+          case 'rotate-left':
+            cropper.rotate(-90);
+            break;
+          case 'rotate-right':
+            cropper.rotate(90);
+            break;
+          case 'flip-horizontal': {
+            const data = cropper.getData();
+            const nextScaleX = (data.scaleX ?? 1) * -1;
+            cropper.scaleX(nextScaleX);
+            break;
+          }
+          case 'flip-vertical': {
+            const data = cropper.getData();
+            const nextScaleY = (data.scaleY ?? 1) * -1;
+            cropper.scaleY(nextScaleY);
+            break;
+          }
+          case 'reset-transform': {
+            const currentAspect = session.draftAspectMode ?? 'free';
+            cropper.reset();
+            cropper.setAspectRatio(getAspectRatio(currentAspect) || NaN);
+            break;
+          }
           default:
             break;
-        }
-      }
-      switch (handle) {
-        case 'nw':
-          x = right - width;
-          y = bottom - height;
-          break;
-        case 'ne':
-          x = left;
-          y = bottom - height;
-          break;
-        case 'sw':
-          x = right - width;
-          y = top;
-          break;
-        case 'se':
-          x = left;
-          y = top;
-          break;
-        case 'n':
-          x = centerX - width / 2;
-          y = bottom - height;
-          break;
-        case 's':
-          x = centerX - width / 2;
-          y = top;
-          break;
-        case 'w':
-          x = right - width;
-          y = centerY - height / 2;
-          break;
-        case 'e':
-          x = left;
-          y = centerY - height / 2;
-          break;
-        case 'center':
-        default:
-          x = centerX - width / 2;
-          y = centerY - height / 2;
-          break;
-      }
-      return { x, y, width, height };
-    };
-
-    const applyAspectConstraint = (
-      region: NonNullable<TrimNodeSettings['region']>,
-      handle: TrimResizeHandle | 'center',
-      preferredAxis?: 'width' | 'height' | null
-    ): NonNullable<TrimNodeSettings['region']> => {
-      const targetRatio = getSelectedAspectRatio();
-      const referenceStage = { ...region };
-      const baseWidth = clampSize(referenceStage.width);
-      const baseHeight = clampSize(referenceStage.height);
-      if (!targetRatio || targetRatio <= 0) {
-        return clampRegionPosition({ ...referenceStage, width: baseWidth, height: baseHeight });
-      }
-
-      const metrics = getImageStageMetrics();
-      if (!metrics) {
-        return clampRegionPosition(referenceStage);
-      }
-      const referenceImage = convertStageRegionToImageRegion(referenceStage, metrics);
-      const imageBaseWidthNorm = clampSize(referenceImage.width);
-      const imageBaseHeightNorm = clampSize(referenceImage.height);
-      const baseWidthPx = normalizedToPixels(imageBaseWidthNorm, metrics.displayWidth);
-      const baseHeightPx = normalizedToPixels(imageBaseHeightNorm, metrics.displayHeight);
-      const minWidthPx = MIN_TRIM_REGION_SIZE * metrics.displayWidth;
-      const minHeightPx = MIN_TRIM_REGION_SIZE * metrics.displayHeight;
-      const maxWidthPx = metrics.displayWidth;
-      const maxHeightPx = metrics.displayHeight;
-
-      type PixelCandidate = { widthPx: number; heightPx: number; touchesBoundary: boolean };
-
-      const recordPixelCandidate = (widthPx: number, heightPx: number): PixelCandidate => {
-        const boundaryThreshold = 0.5;
-        const touchesBoundary =
-          widthPx <= minWidthPx + boundaryThreshold ||
-          widthPx >= maxWidthPx - boundaryThreshold ||
-          heightPx <= minHeightPx + boundaryThreshold ||
-          heightPx >= maxHeightPx - boundaryThreshold;
-        return { widthPx, heightPx, touchesBoundary };
-      };
-
-      const solveFromHeight = (heightPx: number): PixelCandidate => {
-        const minHeightAllowed = Math.max(minHeightPx, minWidthPx / targetRatio);
-        const maxHeightAllowed = Math.min(maxHeightPx, maxWidthPx / targetRatio);
-        const hasRange = minHeightAllowed <= maxHeightAllowed;
-        let workingHeight = clampPixelSize(heightPx, hasRange ? minHeightAllowed : minHeightPx, hasRange ? maxHeightAllowed : maxHeightPx);
-        if (!hasRange) {
-          workingHeight = clampPixelSize(maxHeightPx, minHeightPx, maxHeightPx);
-        }
-        let widthPx = targetRatio * workingHeight;
-        if (widthPx > maxWidthPx) {
-          widthPx = maxWidthPx;
-          workingHeight = clampPixelSize(widthPx / targetRatio, minHeightPx, maxHeightPx);
-        }
-        if (widthPx < minWidthPx) {
-          widthPx = minWidthPx;
-          workingHeight = clampPixelSize(widthPx / targetRatio, minHeightPx, maxHeightPx);
-        }
-        return recordPixelCandidate(widthPx, workingHeight);
-      };
-
-      const solveFromWidth = (widthPx: number): PixelCandidate => {
-        const minWidthAllowed = Math.max(minWidthPx, minHeightPx * targetRatio);
-        const maxWidthAllowed = Math.min(maxWidthPx, maxHeightPx * targetRatio);
-        const hasRange = minWidthAllowed <= maxWidthAllowed;
-        let workingWidth = clampPixelSize(widthPx, hasRange ? minWidthAllowed : minWidthPx, hasRange ? maxWidthAllowed : maxWidthPx);
-        if (!hasRange) {
-          workingWidth = clampPixelSize(maxWidthPx, minWidthPx, maxWidthPx);
-        }
-        let heightPx = workingWidth / targetRatio;
-        if (heightPx > maxHeightPx) {
-          heightPx = maxHeightPx;
-          workingWidth = clampPixelSize(heightPx * targetRatio, minWidthPx, maxWidthPx);
-        }
-        if (heightPx < minHeightPx) {
-          heightPx = minHeightPx;
-          workingWidth = clampPixelSize(heightPx * targetRatio, minWidthPx, maxWidthPx);
-        }
-        return recordPixelCandidate(workingWidth, heightPx);
-      };
-
-      const toImageRegionFromPixels = (
-        dims: PixelCandidate,
-        axisHint: 'width' | 'height'
-      ): { region: NonNullable<TrimNodeSettings['region']>; touchesBoundary: boolean } => {
-        const normalizedWidth = pixelsToNormalized(dims.widthPx, metrics.displayWidth);
-        const normalizedHeight = pixelsToNormalized(dims.heightPx, metrics.displayHeight);
-        return {
-          region: clampRegionPosition(
-            buildRegionFromAnchor(normalizedWidth, normalizedHeight, handle, referenceImage, axisHint)
-          ),
-          touchesBoundary: dims.touchesBoundary
-        };
-      };
-
-      const imageCandidateFromHeight = toImageRegionFromPixels(solveFromHeight(baseHeightPx), 'width');
-      const imageCandidateFromWidth = toImageRegionFromPixels(solveFromWidth(baseWidthPx), 'height');
-
-      const ratioError = (candidate: { region: NonNullable<TrimNodeSettings['region']> }): number => {
-        if (!candidate.region.height) {
-          return Number.POSITIVE_INFINITY;
-        }
-        return Math.abs(candidate.region.width / candidate.region.height - targetRatio);
-      };
-      const touchesBoundary = (candidate: { touchesBoundary: boolean }): boolean => candidate.touchesBoundary;
-
-      const forceWidth = preferredAxis === 'width';
-      const forceHeight = preferredAxis === 'height';
-      const pickImageCandidate = (): { region: NonNullable<TrimNodeSettings['region']>; touchesBoundary: boolean } => {
-        if (forceWidth) {
-          return imageCandidateFromHeight;
-        }
-        if (forceHeight) {
-          return imageCandidateFromWidth;
-        }
-        const widthError = ratioError(imageCandidateFromHeight);
-        const heightError = ratioError(imageCandidateFromWidth);
-        if (widthError + 0.0001 < heightError) {
-          return imageCandidateFromHeight;
-        }
-        if (heightError + 0.0001 < widthError) {
-          return imageCandidateFromWidth;
-        }
-        const widthTouches = touchesBoundary(imageCandidateFromHeight);
-        const heightTouches = touchesBoundary(imageCandidateFromWidth);
-        if (widthTouches && !heightTouches) {
-          return imageCandidateFromWidth;
-        }
-        if (heightTouches && !widthTouches) {
-          return imageCandidateFromHeight;
-        }
-        return imageCandidateFromHeight;
-      };
-
-      const chosenImage = clampRegionPosition(pickImageCandidate().region);
-      const stageRegion = convertImageRegionToStageRegion(chosenImage, metrics);
-      return clampRegionPosition(stageRegion);
-    };
-
-    const applyStageAspectRatio = (): void => {
-      if (!imageElement) {
-        return;
-      }
-      const { naturalWidth, naturalHeight } = imageElement;
-      if (!naturalWidth || !naturalHeight) {
-        return;
-      }
-      const ratioValue = `${naturalWidth} / ${naturalHeight}`;
-      stage.style.setProperty('aspect-ratio', ratioValue);
-      stage.style.setProperty('--trim-image-aspect', ratioValue);
-    };
-    applyStageAspectRatio();
-
-    const clampRotation = (value: number): number => Math.max(-180, Math.min(180, value));
-    const clampZoom = (value: number): number => Math.max(0.25, Math.min(4, value));
-
-    const updateZoomLabel = (): void => {
-      if (!zoomLabel) return;
-      const zoomPercent = Math.round((session.draftZoom ?? 1) * 100);
-      zoomLabel.textContent = `${zoomPercent}%`;
-    };
-
-    const updateTransformStyles = (): void => {
-      if (!imageElement) {
-        return;
-      }
-      const rotation = clampRotation(session.draftRotationDeg ?? 0);
-      const zoomValue = clampZoom(session.draftZoom ?? 1);
-      session.draftRotationDeg = rotation;
-      session.draftZoom = zoomValue;
-      const flipX = session.draftFlipHorizontal ? -1 : 1;
-      const flipY = session.draftFlipVertical ? -1 : 1;
-      imageElement.style.transform = `rotate(${rotation}deg) scaleX(${zoomValue * flipX}) scaleY(${zoomValue * flipY})`;
-      if (gridOverlay) {
-        gridOverlay.classList.toggle('is-visible', session.showGrid);
-        gridOverlay.style.transform = `rotate(${rotation}deg)`;
-      }
-      if (cropBox) {
-        cropBox.dataset.trimGridVisible = String(session.showGrid);
-        cropBox.style.setProperty('--trim-grid-rotation', `${rotation}deg`);
-      }
-      updateZoomLabel();
-    };
-
-    const syncRotationControls = (): void => {
-      const value = String(clampRotation(session.draftRotationDeg ?? 0));
-      if (rotationRange) rotationRange.value = value;
-      if (rotationInput) rotationInput.value = value;
-    };
-
-    const syncZoomControls = (): void => {
-      if (zoomRange) {
-        zoomRange.value = String(clampZoom(session.draftZoom ?? 1));
-      }
-      updateZoomLabel();
-    };
-
-    const setRotation = (value: number): void => {
-      session.draftRotationDeg = clampRotation(value);
-      syncRotationControls();
-      updateTransformStyles();
-    };
-
-    const setZoom = (value: number): void => {
-      session.draftZoom = clampZoom(value);
-      syncZoomControls();
-      updateTransformStyles();
-    };
-
-    const toggleFlip = (axis: 'horizontal' | 'vertical'): void => {
-      if (axis === 'horizontal') {
-        session.draftFlipHorizontal = !session.draftFlipHorizontal;
-      } else {
-        session.draftFlipVertical = !session.draftFlipVertical;
-      }
-      updateTransformStyles();
-    };
-
-    const toggleGrid = (): void => {
-      session.showGrid = !session.showGrid;
-      updateTransformStyles();
-      const gridButton = modalContent.querySelector<HTMLButtonElement>('[data-trim-tool="grid"]');
-      gridButton?.setAttribute('data-active', String(session.showGrid));
-    };
-
-    syncRotationControls();
-    syncZoomControls();
-    updateTransformStyles();
-
-    const clampValue = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-    const updateCropBoxStyles = (): boolean => {
-      if (!ensureStageRegion()) {
-        return false;
-      }
-      const region = session.draftRegion;
-      cropBox.style.left = `${region.x * 100}%`;
-      cropBox.style.top = `${region.y * 100}%`;
-      cropBox.style.width = `${region.width * 100}%`;
-      cropBox.style.height = `${region.height * 100}%`;
-      const stageRatio = region.height ? region.width / region.height : 0;
-      cropBox.dataset.trimStageRatio = stageRatio.toFixed(3);
-      const metrics = getImageStageMetrics();
-      if (metrics) {
-        const imageRegion = convertStageRegionToImageRegion(region, metrics);
-        const imageRatio = imageRegion.height ? imageRegion.width / imageRegion.height : 0;
-        cropBox.dataset.trimImageRatio = imageRatio ? imageRatio.toFixed(3) : '';
-      }
-      return true;
-    };
-
-    const enforceAspect = (
-      handle: TrimResizeHandle | 'center' = 'center',
-      preferredAxis?: 'width' | 'height' | null
-    ): boolean => {
-      if (!ensureStageRegion()) {
-        (rendererWindow as RendererBootstrapWindow & {
-          __NODEVISION_LAST_ENFORCE?: { handle: string; preferredAxis?: string | null; success: boolean; ratio: number | null };
-        }).__NODEVISION_LAST_ENFORCE = {
-          handle,
-          preferredAxis: preferredAxis ?? null,
-          success: false,
-          ratio: getSelectedAspectRatio()
-        };
-        return false;
-      }
-      const axisPreference = preferredAxis ?? session.lastPreferredAxis ?? null;
-      session.draftRegion = applyAspectConstraint(session.draftRegion, handle, axisPreference);
-      session.draftRegionSpace = 'stage';
-      updateCropBoxStyles();
-      (rendererWindow as RendererBootstrapWindow & {
-        __NODEVISION_LAST_ENFORCE?: { handle: string; preferredAxis?: string | null; success: boolean; ratio: number | null };
-      }).__NODEVISION_LAST_ENFORCE = {
-        handle,
-        preferredAxis: axisPreference,
-        success: true,
-        ratio: getSelectedAspectRatio()
-      };
-      return true;
-    };
-
-    const stopInteraction = (
-      pointerMove: (event: PointerEvent) => void,
-      pointerUp: (event: PointerEvent) => void
-    ): void => {
-      window.removeEventListener('pointermove', pointerMove);
-      window.removeEventListener('pointerup', pointerUp);
-    };
-
-    const startMove = (event: PointerEvent): void => {
-      event.preventDefault();
-      if (!ensureStageRegion()) {
-        return;
-      }
-      session.lastPreferredAxis = null;
-      const rect = stage.getBoundingClientRect();
-      const pointerId = event.pointerId ?? 1;
-      const start = { ...session.draftRegion };
-      const startX = event.clientX;
-      const startY = event.clientY;
-
-      const handleMove = (moveEvent: PointerEvent): void => {
-        if (moveEvent.pointerId !== pointerId) return;
-        moveEvent.preventDefault();
-        const deltaX = (moveEvent.clientX - startX) / rect.width;
-        const deltaY = (moveEvent.clientY - startY) / rect.height;
-        const nextX = clampValue(start.x + deltaX, 0, 1 - start.width);
-        const nextY = clampValue(start.y + deltaY, 0, 1 - start.height);
-        session.draftRegion = { ...start, x: nextX, y: nextY };
-        session.draftRegionSpace = 'stage';
-        updateCropBoxStyles();
-      };
-
-      const handleUp = (moveEvent: PointerEvent): void => {
-        if (moveEvent.pointerId !== pointerId) return;
-        stopInteraction(handleMove, handleUp);
-      };
-
-      window.addEventListener('pointermove', handleMove);
-      window.addEventListener('pointerup', handleUp);
-    };
-
-    type TrimResizeHandle = 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se';
-
-    const startResize = (handle: TrimResizeHandle, event: PointerEvent): void => {
-      event.preventDefault();
-      if (!ensureStageRegion()) {
-        return;
-      }
-      if (
-        (rendererWindow as RendererBootstrapWindow & { __NODEVISION_DEBUG_TRIM_POINTERS?: boolean })
-          .__NODEVISION_DEBUG_TRIM_POINTERS
-      ) {
-        console.log('[trim:crop] startResize', handle);
-      }
-      const rect = stage.getBoundingClientRect();
-      const pointerId = event.pointerId ?? 1;
-      const start = { ...session.draftRegion };
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const initialAxis: 'width' | 'height' | null = (() => {
-        if (handle === 'n' || handle === 's') {
-          return 'height';
-        }
-        if (handle === 'e' || handle === 'w') {
-          return 'width';
-        }
-        return null;
-      })();
-      let effectiveAxis = initialAxis;
-      session.lastPreferredAxis = initialAxis ?? null;
-
-      const handleMove = (moveEvent: PointerEvent): void => {
-        if (moveEvent.pointerId !== pointerId) return;
-        moveEvent.preventDefault();
-        const deltaX = (moveEvent.clientX - startX) / rect.width;
-        const deltaY = (moveEvent.clientY - startY) / rect.height;
-        if (
-          (rendererWindow as RendererBootstrapWindow & { __NODEVISION_DEBUG_TRIM_POINTERS?: boolean })
-            .__NODEVISION_DEBUG_TRIM_POINTERS
-        ) {
-          console.log('[trim:crop] resize', handle, {
-            deltaX,
-            deltaY,
-            effectiveAxis
-          });
-        }
-        if (!effectiveAxis && Math.abs(deltaX) + Math.abs(deltaY) > 0.002) {
-          effectiveAxis = Math.abs(deltaX) >= Math.abs(deltaY) ? 'width' : 'height';
-        }
-        if (effectiveAxis) {
-          session.lastPreferredAxis = effectiveAxis;
-        }
-        let next = { ...start };
-        if (handle.includes('n')) {
-          const newY = clampValue(start.y + deltaY, 0, start.y + start.height - MIN_TRIM_REGION_SIZE);
-          next.height = clampValue(start.height + (start.y - newY), MIN_TRIM_REGION_SIZE, 1 - newY);
-          next.y = newY;
-        }
-        if (handle.includes('s')) {
-          const newHeight = clampValue(start.height + deltaY, MIN_TRIM_REGION_SIZE, 1 - start.y);
-          next.height = newHeight;
-        }
-        if (handle.includes('w')) {
-          const newX = clampValue(start.x + deltaX, 0, start.x + start.width - MIN_TRIM_REGION_SIZE);
-          next.width = clampValue(start.width + (start.x - newX), MIN_TRIM_REGION_SIZE, 1 - newX);
-          next.x = newX;
-        }
-        if (handle.includes('e')) {
-          const newWidth = clampValue(start.width + deltaX, MIN_TRIM_REGION_SIZE, 1 - start.x);
-          next.width = newWidth;
-        }
-        if (next.x + next.width > 1) {
-          next.width = 1 - next.x;
-        }
-        if (next.y + next.height > 1) {
-          next.height = 1 - next.y;
-        }
-        const isFreeAspect = (session.draftAspectMode ?? 'free') === 'free';
-        if (isFreeAspect) {
-          session.draftRegion = clampRegionPosition(next);
-        } else {
-          session.draftRegion = applyAspectConstraint(next, handle, effectiveAxis);
-        }
-        session.draftRegionSpace = 'stage';
-        updateCropBoxStyles();
-      };
-
-      const handleUp = (moveEvent: PointerEvent): void => {
-        if (moveEvent.pointerId !== pointerId) return;
-        stopInteraction(handleMove, handleUp);
-      };
-
-      window.addEventListener('pointermove', handleMove);
-      window.addEventListener('pointerup', handleUp);
-    };
-
-    const handleElements = Array.from(cropBox.querySelectorAll<HTMLElement>('[data-trim-handle]'));
-    handleElements.forEach(element => {
-      element.addEventListener('pointerdown', event => {
-        event.stopPropagation();
-        const handle = element.dataset.trimHandle as TrimResizeHandle | undefined;
-        if (handle) {
-          const debugWindow = rendererWindow as RendererBootstrapWindow & {
-            __NODEVISION_LAST_TRIM_POINTER?: string;
-            __NODEVISION_LAST_TRIM_POINTER_TARGET?: string | null;
-            __NODEVISION_DEBUG_TRIM_POINTERS?: boolean;
-          };
-          debugWindow.__NODEVISION_LAST_TRIM_POINTER = handle;
-          debugWindow.__NODEVISION_LAST_TRIM_POINTER_TARGET = element.className ?? null;
-          if (debugWindow.__NODEVISION_DEBUG_TRIM_POINTERS) {
-            console.log('[trim:crop] pointerdown-handle', handle, {
-              x: event.clientX,
-              y: event.clientY
-            });
-          }
-          startResize(handle, event);
         }
       });
     });
 
-    stage.addEventListener('pointerdown', event => {
-      const target = event.target as HTMLElement | null;
-      if (target?.dataset.trimHandle) {
-        return;
-      }
-      startMove(event);
+    modalContent.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
+      session.draftAspectMode = 'free';
+      aspectSelect && (aspectSelect.value = 'free');
+      cropper.reset();
+      cropper.setAspectRatio(NaN);
     });
 
-    modalContent.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
-      session.draftRegion = { ...DEFAULT_TRIM_REGION };
-      session.draftRegionSpace = 'stage';
-      session.lastPreferredAxis = null;
-      enforceAspect('center', null);
-      session.draftRotationDeg = 0;
-      session.draftZoom = 1;
-      session.draftFlipHorizontal = false;
-      session.draftFlipVertical = false;
-      session.draftAspectMode = 'free';
-      session.showGrid = false;
-      const gridButton = modalContent.querySelector<HTMLButtonElement>('[data-trim-tool="grid"]');
-      gridButton?.setAttribute('data-active', 'false');
-      syncRotationControls();
-      syncZoomControls();
-      updateTransformStyles();
-      if (aspectSelect) {
-        aspectSelect.value = 'free';
-      }
-      updateCropBoxStyles();
-    });
     modalContent.querySelector('[data-trim-cancel]')?.addEventListener('click', () => {
+      activeCropper?.destroy();
+      activeCropper = null;
       closeActiveModal();
     });
+
     modalContent.querySelector('[data-trim-save]')?.addEventListener('click', () => {
+      const data = cropper.getData();
+      const imageData = cropper.getImageData();
+      const canvasData = cropper.getCanvasData();
+
+      const imgW = imageData.naturalWidth || imageData.width || imageElement.naturalWidth || 1;
+      const imgH = imageData.naturalHeight || imageData.height || imageElement.naturalHeight || 1;
+
+      const region = {
+        x: data.x / imgW,
+        y: data.y / imgH,
+        width: data.width / imgW,
+        height: data.height / imgH
+      };
+
+      const zoom = imgW ? canvasData.width / imgW : 1;
+      const rotation = data.rotate ?? 0;
+      const flipH = (data.scaleX ?? 1) < 0;
+      const flipV = (data.scaleY ?? 1) < 0;
+
+      session.draftRegion = region;
+      session.draftRegionSpace = 'image';
+      session.draftRotationDeg = rotation;
+      session.draftZoom = zoom;
+      session.draftFlipHorizontal = flipH;
+      session.draftFlipVertical = flipV;
+
       void persistTrimSettings(
         session.nodeId,
         settings => {
-          const metrics = getImageStageMetrics();
-          if (metrics) {
-            settings.region = { ...convertStageRegionToImageRegion(session.draftRegion, metrics) };
-            settings.regionSpace = 'image';
-          } else {
-            settings.region = { ...session.draftRegion };
-            settings.regionSpace = session.draftRegionSpace ?? 'stage';
-          }
-          settings.rotationDeg = clampTrimRotation(session.draftRotationDeg ?? 0);
-          settings.zoom = clampTrimZoom(session.draftZoom ?? 1);
-          settings.flipHorizontal = Boolean(session.draftFlipHorizontal);
-          settings.flipVertical = Boolean(session.draftFlipVertical);
+          settings.region = region;
+          settings.regionSpace = 'image';
+          settings.rotationDeg = rotation;
+          settings.zoom = zoom;
+          settings.flipHorizontal = flipH;
+          settings.flipVertical = flipV;
           settings.aspectMode = session.draftAspectMode ?? 'free';
         },
         'nodes.trim.toast.imageSaved'
       );
     });
-
-    rotationRange?.addEventListener('input', event => {
-      const value = Number((event.target as HTMLInputElement).value);
-      setRotation(value);
-    });
-    rotationInput?.addEventListener('change', event => {
-      const value = Number((event.target as HTMLInputElement).value);
-      setRotation(value);
-    });
-    zoomRange?.addEventListener('input', event => {
-      const value = Number((event.target as HTMLInputElement).value);
-      setZoom(value);
-    });
-    aspectSelect?.addEventListener('change', event => {
-      const value = (event.target as HTMLSelectElement).value as TrimNodeSettings['aspectMode'];
-      session.draftAspectMode = value;
-      if (value === 'free') {
-        session.lastPreferredAxis = null;
-      }
-      enforceAspect('center', null);
-    });
-    toolbarButtons.forEach(button => {
-      const tool = button.dataset.trimTool;
-      button.addEventListener('click', () => {
-        switch (tool) {
-          case 'zoom-in':
-            setZoom((session.draftZoom ?? 1) + 0.1);
-            break;
-          case 'zoom-out':
-            setZoom((session.draftZoom ?? 1) - 0.1);
-            break;
-          case 'grid':
-            toggleGrid();
-            break;
-          case 'rotate-left':
-            setRotation((session.draftRotationDeg ?? 0) - 90);
-            break;
-          case 'rotate-right':
-            setRotation((session.draftRotationDeg ?? 0) + 90);
-            break;
-          case 'flip-horizontal':
-            toggleFlip('horizontal');
-            break;
-          case 'flip-vertical':
-            toggleFlip('vertical');
-            break;
-          case 'reset-transform':
-            session.draftRotationDeg = 0;
-            session.draftZoom = 1;
-            session.draftFlipHorizontal = false;
-            session.draftFlipVertical = false;
-            syncRotationControls();
-            syncZoomControls();
-            updateTransformStyles();
-            break;
-          default:
-            break;
-        }
-      });
-    });
-
-    const initAspectWhenReady = () => {
-      if (enforceAspect('center', null)) {
-        return;
-      }
-      if (imageElement && !imageElement.complete) {
-        imageElement.addEventListener('load', () => enforceAspect('center', null), { once: true });
-      }
-    };
-
-    initAspectWhenReady();
   };
-
-  // videoトリム機能はクロップ専用化により削除
-
-  const renderActiveModal = (): void => {
-    if (!modalBackdrop || !modalContainer) {
-      return;
-    }
-    if (!activeModal) {
-      modalBackdrop.dataset.open = 'false';
-      modalContainer.setAttribute('aria-hidden', 'true');
-      return;
-    }
-    modalBackdrop.dataset.open = 'true';
-    modalContainer.setAttribute('aria-hidden', 'false');
-    if (activeModal.type === 'trim') {
-      renderTrimModalView(activeModal);
-    }
-    requestAnimationFrame(() => {
-      const focusTarget =
-        modalContainer?.querySelector<HTMLElement>(MODAL_FOCUSABLE_SELECTORS) ?? modalCloseButton;
-      (focusTarget ?? modalContainer)?.focus();
-    });
-  };
-
   const openTrimModal = async (nodeId: string): Promise<void> => {
     ensureModalHost();
     modalLastFocused =
@@ -1738,11 +1016,14 @@ import { calculatePreviewSize } from './nodes/preview-size';
         modalPreview = sourcePreview;
       }
     }
+    const baseRegion = settings.region ?? DEFAULT_TRIM_REGION;
+    const normalizedRegion =
+      settings.regionSpace === 'stage' ? { ...baseRegion } : baseRegion;
     activeModal = {
       type: 'trim',
       nodeId,
-      draftRegion: { ...(settings.region ?? DEFAULT_TRIM_REGION) },
-      draftRegionSpace: settings.regionSpace ?? 'stage',
+      draftRegion: { ...normalizedRegion },
+      draftRegionSpace: 'image',
       sourcePreview: modalPreview,
       draftRotationDeg: settings.rotationDeg ?? 0,
       draftZoom: settings.zoom ?? 1,
@@ -2450,7 +1731,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     state.mediaPreviews.set(node.id, {
       ...sourcePreview,
       cropRegion,
-      cropSpace: settings.regionSpace ?? 'stage',
+      cropSpace: 'image' as const,
       cropRotationDeg: settings.rotationDeg ?? 0,
       cropZoom: settings.zoom ?? 1,
       cropFlipHorizontal: settings.flipHorizontal ?? false,
