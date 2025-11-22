@@ -1727,7 +1727,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       cropZoom: settings.zoom ?? 1,
       cropFlipHorizontal: settings.flipHorizontal ?? false,
       cropFlipVertical: settings.flipVertical ?? false,
-      ownedUrl: sourcePreview.ownedUrl,
+      ownedUrl: false,
       derivedFrom: signature,
       name: `${sourcePreview.name} (trim)`
     });
@@ -1842,7 +1842,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const getMinimumHeightForWidth = (nodeId: string, width: number): number => {
     const chrome = getNodeChromePadding(nodeId);
     const desiredPreviewWidth = getPreviewWidthForNodeWidth(width);
-    const previewHeight = Math.max(MIN_PREVIEW_HEIGHT, desiredPreviewWidth / PREVIEW_FRAME_RATIO);
+    const aspectRatio = getPreviewAspectRatio(nodeId);
+    const previewHeight = Math.max(MIN_PREVIEW_HEIGHT, desiredPreviewWidth / aspectRatio);
     const desired = previewHeight + chrome;
     return Math.max(NODE_MIN_HEIGHT, desired);
   };
@@ -1864,8 +1865,17 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const fallbackWidth = node.width ?? NODE_MIN_WIDTH;
     const fallbackHeight = node.height ?? NODE_MIN_HEIGHT;
     const width = clampWidth(stored?.width ?? fallbackWidth);
-    const minHeight = getMinimumHeightForWidth(node.id, width);
-    const height = Math.max(minHeight, clampHeight(stored?.height ?? fallbackHeight));
+
+    let height: number;
+    if (stored) {
+      // 既に保存されたサイズがある場合は、それを尊重
+      height = clampHeight(stored.height);
+    } else {
+      // 初回レンダリング時のみminHeightを適用
+      const minHeight = getMinimumHeightForWidth(node.id, width);
+      height = Math.max(minHeight, clampHeight(fallbackHeight));
+    }
+
     const size: NodeSize = { width, height };
     if (!stored || stored.width !== width || stored.height !== height) {
       state.nodeSizes.set(node.id, size);
@@ -1922,7 +1932,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
       const size = state.nodeSizes.get(nodeId);
       if (size) {
         const minHeight = Math.max(NODE_MIN_HEIGHT, previewHeight + chromeCandidate);
-        if (size.height < minHeight) {
+        const HEIGHT_THRESHOLD = 10;
+        if (size.height < minHeight && minHeight - size.height > HEIGHT_THRESHOLD) {
           size.height = minHeight;
           const node = state.nodes.find(item => item.id === nodeId);
           if (node) {
