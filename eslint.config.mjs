@@ -5,7 +5,7 @@ import unusedImports from 'eslint-plugin-unused-imports';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', '.serena', '.kamui', 'doc/NodeVision-skeleton-v1.0.4_secure/**']
+    ignores: ['**/dist', 'node_modules', '.serena', '.kamui', 'doc/NodeVision-skeleton-v1.0.4_secure/**']
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -38,6 +38,25 @@ export default tseslint.config(
           argsIgnorePattern: '^_'
         }
       ]
+    }
+  },
+  {
+    files: ['**/scripts/*.js'],
+    languageOptions: {
+      globals: {
+        require: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        module: 'readonly',
+        exports: 'writable',
+        console: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly'
+      }
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off'
     }
   }
 );

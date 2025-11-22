@@ -1,8 +1,9 @@
+import type { EditorNode } from '@nodevision/editor';
 import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 
-import { buildRendererHtml, type RendererPayload } from './ui-template';
 import type { BootStatus } from './types';
+import { buildRendererHtml, type RendererPayload } from './ui-template';
 
 const now = new Date().toISOString();
 
@@ -40,7 +41,7 @@ const bootStatus: BootStatus = {
   }
 };
 
-const sampleNodes = [
+const sampleNodes: EditorNode[] = [
   {
     id: 'n1',
     typeId: 'loadImage',

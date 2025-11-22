@@ -295,6 +295,22 @@ const loadRendererBundle = (): string => {
   );
 };
 
+// Helper to load package assets
+const loadPackageAsset = (pkg: string, pathInPkg: string): string => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pkgPath = require.resolve(`${pkg}/package.json`);
+    const assetPath = path.join(path.dirname(pkgPath), pathInPkg);
+    return fs.readFileSync(assetPath, 'utf-8');
+  } catch (e) {
+    console.warn(`[NodeVision] Failed to load asset ${pkg}/${pathInPkg}`, e);
+    return '';
+  }
+};
+
+const CROPPER_CSS = loadPackageAsset('cropperjs', 'dist/cropper.css');
+const CROPPER_JS = loadPackageAsset('cropperjs', 'dist/cropper.js');
+
 const buildRendererScripts = (encodedPayload: string): string => {
   const bootstrapScript = [
     '    <script>',
@@ -306,8 +322,9 @@ const buildRendererScripts = (encodedPayload: string): string => {
   ].join('\n');
 
   const rendererTag = ['    <script>', indentRendererScript(loadRendererBundle()), '    </script>'].join('\n');
+  const cropperScript = ['    <script>', CROPPER_JS, '    </script>'].join('\n');
 
-  return `${bootstrapScript}\n${rendererTag}`;
+  return `${bootstrapScript}\n${cropperScript}\n${rendererTag}`;
 };
 
 export const buildRendererHtml = (payload: RendererPayload): string => {
@@ -319,6 +336,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
     <meta charset="utf-8" />
     <title data-i18n-key="app.title">NodeVision Editor</title>
     <style>
+      ${CROPPER_CSS}
       :root {
         color-scheme: dark;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

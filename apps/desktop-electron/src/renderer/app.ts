@@ -4,22 +4,9 @@ import type CropperType from 'cropperjs';
 import type { TrimNodeSettings } from '@nodevision/editor';
 
 const resolveCropper = (): typeof CropperType | null => {
-  const win = window as unknown as {
-    Cropper?: typeof CropperType;
-    nodeRequire?: (id: string) => unknown;
-  };
-  if (win.Cropper) {
-    return win.Cropper;
-  }
-  if (typeof win.nodeRequire === 'function') {
-    try {
-      const mod = win.nodeRequire('cropperjs') as { default?: typeof CropperType } | undefined;
-      if (mod) {
-        return (mod.default ?? (mod as unknown as typeof CropperType)) as typeof CropperType;
-      }
-    } catch (error) {
-      console.warn('[NodeVision] failed to load cropperjs via nodeRequire', error);
-    }
+  const win = window as any;
+  if (typeof win.Cropper === 'function') {
+    return win.Cropper as typeof CropperType;
   }
   return null;
 };
@@ -27,7 +14,7 @@ const resolveCropper = (): typeof CropperType | null => {
 const Cropper: typeof CropperType =
   resolveCropper() ??
   (class {
-    constructor(_el: HTMLElement, _opts: unknown) {}
+    constructor(_el: HTMLElement, _opts: unknown) { }
     getData() {
       return { x: 0, y: 0, width: 0, height: 0, rotate: 0, scaleX: 1, scaleY: 1 };
     }
@@ -37,14 +24,14 @@ const Cropper: typeof CropperType =
     getCanvasData() {
       return { width: 1, height: 1 };
     }
-    setData(): void {}
-    setAspectRatio(): void {}
-    zoom(): void {}
-    rotate(): void {}
-    scaleX(): void {}
-    scaleY(): void {}
-    reset(): void {}
-    destroy(): void {}
+    setData(): void { }
+    setAspectRatio(): void { }
+    zoom(): void { }
+    rotate(): void { }
+    scaleX(): void { }
+    scaleY(): void { }
+    reset(): void { }
+    destroy(): void { }
   } as unknown as typeof CropperType);
 
 import { captureDomElements } from './dom';
@@ -850,6 +837,10 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const aspectRatio = getAspectRatio(session.draftAspectMode ?? 'free');
     let cropper: CropperType | null = null;
     try {
+      console.log('[debug] initializing Cropper. Value:', Cropper, 'Type:', typeof Cropper);
+      if (typeof Cropper !== 'function') {
+        console.error('[debug] Cropper is not a function/class!', Cropper);
+      }
       cropper = new Cropper(imageElement, {
         viewMode: 1,
         dragMode: 'move',
