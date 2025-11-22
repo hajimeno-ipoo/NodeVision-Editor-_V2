@@ -941,7 +941,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     modalContent.querySelector('[data-trim-save]')?.addEventListener('click', () => {
       const data = cropper.getData();
       const imageData = cropper.getImageData();
-      const canvasData = cropper.getCanvasData();
+
 
       const imgW = imageData.naturalWidth || imageData.width || imageElement.naturalWidth || 1;
       const imgH = imageData.naturalHeight || imageData.height || imageElement.naturalHeight || 1;
@@ -953,7 +953,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         height: data.height / imgH
       };
 
-      const zoom = imgW ? canvasData.width / imgW : 1;
+      const zoom = 1;
       const rotation = data.rotate ?? 0;
       const flipH = (data.scaleX ?? 1) < 0;
       const flipV = (data.scaleY ?? 1) < 0;
