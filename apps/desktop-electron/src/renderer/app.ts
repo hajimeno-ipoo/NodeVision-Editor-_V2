@@ -842,7 +842,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         console.error('[debug] Cropper is not a function/class!', Cropper);
       }
       cropper = new Cropper(imageElement, {
-        viewMode: 2,
+        viewMode: 0,
         dragMode: 'move',
         aspectRatio: aspectRatio || NaN,
         autoCropArea: 1,
@@ -853,10 +853,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
         background: false,
         responsive: true,
         ready: () => {
-          // Cropperが初期化された後、まずキャンバスをリセットして画像全体を表示
+          // Cropperが初期化された後、初期領域を復元
           if (cropper) {
-            cropper.reset();
-            // 少し遅延させてから初期領域を復元（Cropperの内部処理が完了するのを待つ）
             setTimeout(() => {
               restoreInitialRegion();
             }, 50);
