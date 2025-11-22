@@ -1250,9 +1250,6 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .trim-image-stage {
         position: relative;
-        width: 100%;
-        aspect-ratio: var(--trim-image-aspect, 16 / 9);
-        max-height: min(58vh, 480px);
         border-radius: 24px;
         overflow: hidden;
         background: rgba(255, 255, 255, 0.04);
@@ -1261,6 +1258,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         align-items: center;
         justify-content: center;
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        flex: 0 0 auto;
+        align-self: center;
       }
       .trim-grid-overlay {
         position: absolute;

@@ -639,7 +639,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         </div>
       </div>
       <div class="trim-stage-wrapper" data-trim-stage-wrapper>
-        <div class="trim-image-stage" data-trim-stage>
+        <div class="trim-image-stage" data-trim-stage style="aspect-ratio: ${session.sourcePreview.width ?? 1} / ${session.sourcePreview.height ?? 1}; width: ${Math.min(window.innerHeight * 0.58, 480) * ((session.sourcePreview.width ?? 1) / (session.sourcePreview.height ?? 1))}px; height: ${Math.min(window.innerHeight * 0.58, 480)}px;">
         <img src="${session.sourcePreview.url}" alt="${escapeHtml(session.sourcePreview.name)}" />
         <div class="trim-crop-box" data-trim-box data-trim-grid-visible="${String(session.showGrid)}">
           <div class="trim-crop-grid" aria-hidden="true">
@@ -729,48 +729,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
     toastKey: string
   ): Promise<void> => {
     const clamp01 = (value: number, limit: number): number => Math.min(limit, Math.max(0, value));
-    const clampRegion01 = (region: NonNullable<TrimNodeSettings['region']>): NonNullable<TrimNodeSettings['region']> => {
-      const width = clamp01(region.width, 1);
-      const height = clamp01(region.height, 1);
-      return {
-        x: clamp01(region.x, 1 - width),
-        y: clamp01(region.y, 1 - height),
-        width,
-        height
-      };
-    };
-
-    const convertStageRegionToImageRegionCached = (
-      region: NonNullable<TrimNodeSettings['region']>
-    ): NonNullable<TrimNodeSettings['region']> => {
-      const metrics = (rendererWindow as RendererBootstrapWindow & {
-        __NODEVISION_LAST_STAGE_METRICS?: {
-          stageRect: { left: number; top: number; width: number; height: number };
-          displayWidth: number;
-          displayHeight: number;
-          offsetX: number;
-          offsetY: number;
-        };
-      }).__NODEVISION_LAST_STAGE_METRICS;
-      if (!metrics || !metrics.stageRect?.width || !metrics.stageRect?.height) {
-        return region;
-      }
-      const { stageRect, displayWidth, displayHeight, offsetX, offsetY } = metrics;
-      const px = {
-        x: stageRect.left + region.x * stageRect.width,
-        y: stageRect.top + region.y * stageRect.height,
-        width: region.width * stageRect.width,
-        height: region.height * stageRect.height
-      };
-      const imageRegion = {
-        x: (px.x - (stageRect.left + offsetX)) / displayWidth,
-        y: (px.y - (stageRect.top + offsetY)) / displayHeight,
-        width: px.width / displayWidth,
-        height: px.height / displayHeight
-      };
-      return clampRegion01(imageRegion);
-    };
-
     const targetNode = state.nodes.find(entry => entry.id === nodeId);
     if (!targetNode) {
       closeActiveModal();
@@ -780,13 +738,34 @@ import { calculatePreviewSize } from './nodes/preview-size';
     mutate(settings);
     const sourcePreview = findTrimSourcePreview(nodeId);
     let region = settings.region ?? DEFAULT_TRIM_REGION;
-    if (settings.regionSpace === 'stage') {
-      region = convertStageRegionToImageRegionCached(region);
-      settings.region = region;
-      settings.regionSpace = 'image';
+    const aspectMode = settings.aspectMode ?? 'free';
+    // regionSpace は mutate 内で最新 metrics に基づき image へ変換される想定
+    if (aspectMode === 'square') {
+      const srcW = sourcePreview?.width ?? null;
+      const srcH = sourcePreview?.height ?? null;
+      if (srcW && srcH && srcW > 0 && srcH > 0) {
+        const aspect = srcH / srcW;
+        let { x, y, width, height } = region;
+        if (aspect >= 1) {
+          // 縦長ソース: 高さベースで幅を合わせる
+          width = height / aspect;
+        } else {
+          // 横長ソース: 幅ベースで高さを合わせる
+          height = width * aspect;
+        }
+        const cx = x + region.width / 2;
+        const cy = y + region.height / 2;
+        width = Math.min(1, width);
+        height = Math.min(1, height);
+        x = clamp01(cx - width / 2, 1 - width);
+        y = clamp01(cy - height / 2, 1 - height);
+        region = { x, y, width, height };
+        settings.region = region;
+      }
     }
-    const widthHint = sourcePreview?.width ? Math.round(sourcePreview.width * region.width) : null;
-    const heightHint = sourcePreview?.height ? Math.round(sourcePreview.height * region.height) : null;
+    const zoomFactor = settings.zoom ?? 1;
+    const widthHint = sourcePreview?.width ? Math.round(sourcePreview.width * region.width * zoomFactor) : null;
+    const heightHint = sourcePreview?.height ? Math.round(sourcePreview.height * region.height * zoomFactor) : null;
     const durationMs = sourcePreview?.durationMs ?? null;
     const sourceId = state.connections.find(conn => conn.toNodeId === nodeId && conn.toPortId === 'source')?.fromNodeId;
     const signature = sourcePreview ? buildTrimSignature(sourceId ?? nodeId, sourcePreview, settings) : null;
@@ -797,6 +776,23 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
     if (nodevision?.generateCroppedPreview && sourcePreview?.filePath) {
       try {
+        console.debug('[NodeVision][debug] ffmpeg crop request', {
+          nodeId,
+          region,
+          regionSpace: settings.regionSpace,
+          zoom: settings.zoom,
+          rotationDeg: settings.rotationDeg,
+          flipH: settings.flipHorizontal,
+          flipV: settings.flipVertical,
+          widthHint,
+          heightHint,
+          source: {
+            width: sourcePreview.width,
+            height: sourcePreview.height,
+            filePath: sourcePreview.filePath,
+            url: sourcePreview.url
+          }
+        });
         const response = await nodevision.generateCroppedPreview({
           sourcePath: sourcePreview.filePath,
           kind: sourcePreview.kind,
@@ -825,6 +821,15 @@ import { calculatePreviewSize } from './nodes/preview-size';
             cropFlipVertical: settings.flipVertical ?? false,
             isCroppedOutput: true
           };
+          console.debug('[NodeVision][debug] ffmpeg crop response', {
+            nodeId,
+            preview: {
+              url: response.preview.url,
+              width: response.preview.width,
+              height: response.preview.height,
+              duration: response.preview.durationMs
+            }
+          });
           state.mediaPreviews.set(nodeId, updated);
           commitState();
           closeActiveModal();
@@ -940,26 +945,16 @@ import { calculatePreviewSize } from './nodes/preview-size';
       if (!stageRect.width || !stageRect.height) {
         return null;
       }
-      const naturalWidth = imageElement.naturalWidth || session.sourcePreview?.width || imageElement.width;
-      const naturalHeight = imageElement.naturalHeight || session.sourcePreview?.height || imageElement.height;
-      if (!naturalWidth || !naturalHeight) {
+      const imgRect = imageElement.getBoundingClientRect();
+      if (!imgRect.width || !imgRect.height) {
         return null;
       }
-      const containerWidth = stageRect.width;
-      const containerHeight = stageRect.height;
-      const containerRatio = containerWidth / containerHeight;
-      const imageRatio = naturalWidth / naturalHeight;
-      let displayWidth = containerWidth;
-      let displayHeight = containerHeight;
-      if (imageRatio > containerRatio) {
-        displayWidth = containerWidth;
-        displayHeight = containerWidth / imageRatio;
-      } else {
-        displayHeight = containerHeight;
-        displayWidth = containerHeight * imageRatio;
-      }
-      const offsetX = (containerWidth - displayWidth) / 2;
-      const offsetY = (containerHeight - displayHeight) / 2;
+      // 実際の描画サイズをそのまま採用（stretch/contain どちらでも実測値で統一）
+      const zoomFactor = clampZoom(session.draftZoom ?? 1);
+      const displayWidth = imgRect.width * zoomFactor;
+      const displayHeight = imgRect.height * zoomFactor;
+      const offsetX = (imgRect.left - stageRect.left) - (displayWidth - imgRect.width) / 2;
+      const offsetY = (imgRect.top - stageRect.top) - (displayHeight - imgRect.height) / 2;
       const metricsResult: ImageStageMetrics = { stageRect, displayWidth, displayHeight, offsetX, offsetY };
       (rendererWindow as RendererBootstrapWindow & {
         __NODEVISION_LAST_STAGE_METRICS?: ImageStageMetrics;
@@ -976,19 +971,42 @@ import { calculatePreviewSize } from './nodes/preview-size';
         return { ...region };
       }
       const { stageRect, displayWidth, displayHeight, offsetX, offsetY } = metrics;
+
+      // ステージ座標（px）
       const px = {
         x: stageRect.left + region.x * stageRect.width,
         y: stageRect.top + region.y * stageRect.height,
         width: region.width * stageRect.width,
         height: region.height * stageRect.height
       };
-      const imageRegion = {
-        x: (px.x - (stageRect.left + offsetX)) / displayWidth,
-        y: (px.y - (stageRect.top + offsetY)) / displayHeight,
-        width: px.width / displayWidth,
-        height: px.height / displayHeight
+
+      // 画像が実際に描画されているビューポート
+      const viewport = {
+        left: stageRect.left + offsetX,
+        top: stageRect.top + offsetY,
+        right: stageRect.left + offsetX + displayWidth,
+        bottom: stageRect.top + offsetY + displayHeight,
+        width: displayWidth,
+        height: displayHeight
       };
-      return clampRegionPosition(imageRegion);
+
+      // ビューポート内にクリップ
+      const left = Math.max(px.x, viewport.left);
+      const top = Math.max(px.y, viewport.top);
+      const right = Math.min(px.x + px.width, viewport.right);
+      const bottom = Math.min(px.y + px.height, viewport.bottom);
+      const clippedWidth = Math.max(MIN_TRIM_REGION_SIZE * viewport.width, right - left);
+      const clippedHeight = Math.max(MIN_TRIM_REGION_SIZE * viewport.height, bottom - top);
+
+      // 幅・高さ別スケールで正規化（等方化しない）
+      const norm = {
+        x: (left - viewport.left) / viewport.width,
+        y: (top - viewport.top) / viewport.height,
+        width: clippedWidth / viewport.width,
+        height: clippedHeight / viewport.height
+      };
+
+      return clampRegionPosition(norm);
     };
 
     (rendererWindow as RendererBootstrapWindow & {

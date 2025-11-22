@@ -384,9 +384,6 @@ ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
     )}:${expr(region.y, 'ih')}`;
 
     const filterParts: string[] = [];
-    if (typeof payload?.zoom === 'number' && payload.zoom !== 1) {
-      filterParts.push(`scale=iw*${payload.zoom}:ih*${payload.zoom}`);
-    }
     if (payload?.flipHorizontal) {
       filterParts.push('hflip');
     }
@@ -396,7 +393,11 @@ ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
     if (typeof payload?.rotationDeg === 'number' && payload.rotationDeg !== 0) {
       filterParts.push(`rotate=${payload.rotationDeg * (Math.PI / 180)}:fillcolor=black`);
     }
+    // apply crop first, then final zoom scale so座標ずれを防ぐ
     filterParts.push(cropFilter);
+    if (typeof payload?.zoom === 'number' && payload.zoom !== 1) {
+      filterParts.push(`scale=iw*${payload.zoom}:ih*${payload.zoom}`);
+    }
     const filters = filterParts.join(',');
 
     if (kind === 'image') {
