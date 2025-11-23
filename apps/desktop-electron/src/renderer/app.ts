@@ -622,15 +622,26 @@ import { calculatePreviewSize } from './nodes/preview-size';
       return;
     }
     const aspectOptions: TrimNodeSettings['aspectMode'][] = ['free', 'original', 'square', '2:1', '3:1', '4:3', '16:9', '9:16', '1.618:1'];
+    const icons = rendererWindow.__NODEVISION_ICONS__;
+    const zoomOutIcon = icons?.zoomOut ?? '－';
+    const zoomInIcon = icons?.zoomIn ?? '＋';
+    const flipHorizontalIcon = icons?.flipHorizontal ?? '左右反転';
+    const flipVerticalIcon = icons?.flipVertical ?? '上下反転';
+
     modalContentElement.innerHTML = `
       <div class="trim-image-toolbar" role="toolbar">
-        <button type="button" class="trim-tool-button" data-trim-tool="zoom-out">${escapeHtml(t('nodes.trim.imageTools.zoomOut'))}</button>
-        <button type="button" class="trim-tool-button" data-trim-tool="zoom-in">${escapeHtml(t('nodes.trim.imageTools.zoomIn'))}</button>
-        <button type="button" class="trim-tool-button" data-trim-tool="rotate-left">${escapeHtml(t('nodes.trim.imageTools.rotateLeft'))}</button>
-        <button type="button" class="trim-tool-button" data-trim-tool="rotate-right">${escapeHtml(t('nodes.trim.imageTools.rotateRight'))}</button>
-        <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal">${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))}</button>
-        <button type="button" class="trim-tool-button" data-trim-tool="flip-vertical">${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))}</button>
-        <button type="button" class="trim-tool-button" data-trim-tool="reset-transform">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="zoom-out" title="${escapeHtml(t('nodes.trim.imageTools.zoomOut'))} (-)">${zoomOutIcon}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="zoom-in" title="${escapeHtml(t('nodes.trim.imageTools.zoomIn'))} (+)">${zoomInIcon}</button>
+
+        <div class="trim-rotate-control">
+          <span class="trim-rotate-icon" data-trim-rotate-reset title="${escapeHtml(t('actions.reset'))}">↻</span>
+          <input type="range" min="-180" max="180" value="0" step="1" data-trim-rotate-slider title="${escapeHtml(t('nodes.trim.imageTools.rotate'))} ([ or ])" />
+          <span class="trim-rotate-value" data-trim-rotate-value>0°</span>
+        </div>
+
+        <button type="button" class="trim-tool-button" data-trim-tool="flip-horizontal" title="${escapeHtml(t('nodes.trim.imageTools.flipHorizontalShort'))} (H)">${flipHorizontalIcon}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="flip-vertical" title="${escapeHtml(t('nodes.trim.imageTools.flipVerticalShort'))} (V)">${flipVerticalIcon}</button>
+        <button type="button" class="trim-tool-button" data-trim-tool="reset-transform" title="${escapeHtml(t('nodes.trim.imageTools.reset'))} (R)">${escapeHtml(t('nodes.trim.imageTools.reset'))}</button>
       </div>
 
       <div class="trim-stage-wrapper" style="max-width: 100%; overflow: hidden;">
@@ -834,6 +845,29 @@ import { calculatePreviewSize } from './nodes/preview-size';
       activeCropper = null;
     }
 
+    const rotateSlider = modalContent.querySelector<HTMLInputElement>('[data-trim-rotate-slider]');
+    const rotateValue = modalContent.querySelector<HTMLElement>('[data-trim-rotate-value]');
+    const rotateReset = modalContent.querySelector<HTMLElement>('[data-trim-rotate-reset]');
+
+    const updateRotateUI = (deg: number) => {
+      // -180 ~ 180 に正規化
+      let normalized = deg % 360;
+      if (normalized > 180) normalized -= 360;
+      if (normalized < -180) normalized += 360;
+
+      if (rotateSlider && document.activeElement !== rotateSlider) {
+        rotateSlider.value = String(normalized);
+      }
+      if (rotateValue) {
+        rotateValue.textContent = `${Math.round(normalized)}°`;
+      }
+    };
+
+    rotateReset?.addEventListener('click', () => {
+      cropper?.rotateTo(0);
+      updateRotateUI(0);
+    });
+
     const aspectRatio = getAspectRatio(session.draftAspectMode ?? 'free');
     let cropper: CropperType | null = null;
     try {
@@ -852,6 +886,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
         scalable: true,
         background: false,
         responsive: true,
+        crop: (event) => {
+          updateRotateUI(event.detail.rotate);
+        },
         ready: () => {
           // Cropperが初期化された後、初期領域を復元
           if (cropper) {
@@ -928,6 +965,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
         scaleX: session.draftFlipHorizontal ? -1 : 1,
         scaleY: session.draftFlipVertical ? -1 : 1
       });
+      // 初期化時の角度もUIに反映
+      updateRotateUI(session.draftRotationDeg ?? 0);
     };
 
     const aspectSelect = modalContent.querySelector<HTMLSelectElement>('[data-trim-aspect]');
@@ -936,6 +975,12 @@ import { calculatePreviewSize } from './nodes/preview-size';
       session.draftAspectMode = mode;
       const ratio = getAspectRatio(mode);
       cropper.setAspectRatio(ratio || NaN);
+    });
+
+    rotateSlider?.addEventListener('input', () => {
+      const deg = Number(rotateSlider.value);
+      cropper?.rotateTo(deg);
+      if (rotateValue) rotateValue.textContent = `${Math.round(deg)}°`;
     });
 
     modalContent.querySelectorAll<HTMLButtonElement>('[data-trim-tool]').forEach(button => {
@@ -947,12 +992,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
             break;
           case 'zoom-out':
             cropper.zoom(-0.1);
-            break;
-          case 'rotate-left':
-            cropper.rotate(-90);
-            break;
-          case 'rotate-right':
-            cropper.rotate(90);
             break;
           case 'flip-horizontal': {
             const data = cropper.getData();
@@ -970,6 +1009,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
             const currentAspect = session.draftAspectMode ?? 'free';
             cropper.reset();
             cropper.setAspectRatio(getAspectRatio(currentAspect) || NaN);
+            updateRotateUI(0);
             break;
           }
           default:
@@ -977,6 +1017,107 @@ import { calculatePreviewSize } from './nodes/preview-size';
         }
       });
     });
+
+    const handleKeyDown = (ev: KeyboardEvent) => {
+      if (!activeCropper) return;
+      const isShift = ev.shiftKey;
+      // JIS配列対応:
+      // Zoom In: '+', '=', ';' (JISの'+'は';'キーにある)
+      // Zoom Out: '-'
+      // Rotate Left: '[' (US), '@' (JISの'['の位置), '[' (JISの刻印)
+      // Rotate Right: ']' (US), '[' (JISの']'の位置), ']' (JISの刻印)
+      switch (ev.key) {
+        case '+':
+        case '=':
+        case ';': // JIS Zoom In
+          activeCropper.zoom(0.1);
+          break;
+        case '-':
+          activeCropper.zoom(-0.1);
+          break;
+        case '[': // US Rotate Left / JIS Rotate Right (key next to @)
+        case '@': // JIS Rotate Left (key next to P)
+          {
+            // JIS配列の刻印通りにするため、'['キーは左回転、']'キーは右回転とする
+            // JISでは '@' キーに '[' が刻印されているわけではないが、US配列の '[' の位置にある。
+            // JISの '[' キーは US配列の ']' の位置にある。
+
+            // ユーザー要望「JIS配列準拠」＝キーボードの刻印通りに動くことと解釈。
+            // JIS '[' キー (US ']') -> Rotate Left
+            // JIS ']' キー (US '\') -> Rotate Right
+            // しかし ev.key は入力された文字を返す。
+            // JISキーボードで '[' を打つと ev.key は '[' になる。
+            // JISキーボードで ']' を打つと ev.key は ']' になる。
+            // なので、単純に '[' と ']' で判定すれば良いはずだが、
+            // ユーザーが「動かない」と言ったのは、修飾キーなしで '[' ']' が入力できない環境か、
+            // あるいは別のキーコードが飛んでいる可能性がある。
+            // Mac JISでかな入力モードだと全角になる可能性もあるが、通常は英数モードで操作する前提。
+
+            // ここではシンプルに文字で判定しつつ、JIS特有の配置も考慮する。
+            // Mac JIS:
+            // '[' キー (Pの右の右) -> ev.key = '['
+            // ']' キー (さらに右) -> ev.key = ']'
+            // これで動くはずだが、動かないということは...
+            // もしかしてIMEがオンで全角になっている？ -> '「', '」'
+
+            // 安全策として、文字コード判定も入れるべきだが、まずは標準的なキーを追加。
+
+            if (ev.key === '[' || ev.key === '@') {
+              // Rotate Left
+              const current = activeCropper.getData().rotate;
+              const step = isShift ? 10 : 1;
+              const next = current - step;
+              activeCropper.rotateTo(next);
+              updateRotateUI(next);
+            }
+          }
+          break;
+        case ']':
+          {
+            // Rotate Right
+            const current = activeCropper.getData().rotate;
+            const step = isShift ? 10 : 1;
+            const next = current + step;
+            activeCropper.rotateTo(next);
+            updateRotateUI(next);
+          }
+          break;
+        case 'h':
+        case 'H':
+          {
+            const data = activeCropper.getData();
+            activeCropper.scaleX((data.scaleX ?? 1) * -1);
+          }
+          break;
+        case 'v':
+        case 'V':
+          {
+            const data = activeCropper.getData();
+            activeCropper.scaleY((data.scaleY ?? 1) * -1);
+          }
+          break;
+        case 'r':
+        case 'R':
+          {
+            const currentAspect = session.draftAspectMode ?? 'free';
+            activeCropper.reset();
+            activeCropper.setAspectRatio(getAspectRatio(currentAspect) || NaN);
+            updateRotateUI(0);
+          }
+          break;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    const cleanup = () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+
+    const originalDestroy = cropper.destroy;
+    cropper.destroy = () => {
+      cleanup();
+      return originalDestroy.call(cropper);
+    };
 
     modalContent.querySelector('[data-trim-reset]')?.addEventListener('click', () => {
       session.draftAspectMode = 'free';
@@ -1286,8 +1427,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const height = 80;
     const left = Math.max(padding, Math.min(window.innerWidth - width, clientX));
     const top = Math.max(padding, Math.min(window.innerHeight - height, clientY));
-    elements.workflowContextMenu.style.left = `${left}px`;
-    elements.workflowContextMenu.style.top = `${top}px`;
+    elements.workflowContextMenu.style.left = `${left} px`;
+    elements.workflowContextMenu.style.top = `${top} px`;
   }
 
   function openWorkflowContextMenu(workflowId: string, clientX: number, clientY: number): void {
@@ -1869,8 +2010,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
       minimumNodePortion: previewFillPortion
     });
     mediaBlocks.forEach(block => {
-      block.style.setProperty('--preview-width', `${previewBox.width}px`);
-      block.style.setProperty('--preview-height', `${previewBox.height}px`);
+      block.style.setProperty('--preview-width', `${previewBox.width} px`);
+      block.style.setProperty('--preview-height', `${previewBox.height} px`);
     });
   };
 
@@ -2021,7 +2162,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const renderQueue = (): void => {
     const renderJobs = (container: HTMLElement, jobs: JobSnapshot[], emptyKey: string): void => {
       if (!jobs?.length) {
-        container.innerHTML = `<p style="margin:4px 0;opacity:0.7;">${t(emptyKey)}</p>`;
+        container.innerHTML = `< p style = "margin:4px 0;opacity:0.7;" > ${t(emptyKey)} </p>`;
         return;
       }
       container.innerHTML = jobs

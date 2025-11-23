@@ -32,6 +32,7 @@ const encodePayload = (payload: RendererPayload): string =>
 const TRANSLATIONS_EMBED = JSON.stringify(UI_TRANSLATIONS);
 const SUPPORTED_LOCALES_EMBED = JSON.stringify(Object.keys(UI_TRANSLATIONS));
 
+
 const resolveFirstExistingPath = (candidates: string[]): string | null => {
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
@@ -132,6 +133,25 @@ const PAN_TOOL_ICON_SYMBOL = iconSymbolFromAsset(PAN_TOOL_ICON_DATA_URI, '✋');
 
 const FIT_TOOL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '中央.png'], 'image/png');
 const FIT_TOOL_ICON_SYMBOL = iconSymbolFromAsset(FIT_TOOL_ICON_DATA_URI, '🎯');
+
+const ZOOM_OUT_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '縮小.png'], 'image/png');
+const ZOOM_OUT_ICON_SYMBOL = iconSymbolFromAsset(ZOOM_OUT_ICON_DATA_URI, '－');
+
+const ZOOM_IN_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '拡大.png'], 'image/png');
+const ZOOM_IN_ICON_SYMBOL = iconSymbolFromAsset(ZOOM_IN_ICON_DATA_URI, '＋');
+
+const FLIP_HORIZONTAL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '左右反転.svg'], 'image/svg+xml');
+const FLIP_HORIZONTAL_ICON_SYMBOL = iconSymbolFromAsset(FLIP_HORIZONTAL_ICON_DATA_URI, '⇄');
+
+const FLIP_VERTICAL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '上下反転.svg'], 'image/svg+xml');
+const FLIP_VERTICAL_ICON_SYMBOL = iconSymbolFromAsset(FLIP_VERTICAL_ICON_DATA_URI, '⇅');
+
+const ICONS_EMBED = JSON.stringify({
+  zoomOut: ZOOM_OUT_ICON_SYMBOL,
+  zoomIn: ZOOM_IN_ICON_SYMBOL,
+  flipHorizontal: FLIP_HORIZONTAL_ICON_SYMBOL,
+  flipVertical: FLIP_VERTICAL_ICON_SYMBOL
+});
 
 const loadTypescriptModule = (): TypescriptModule => {
   if (cachedTypescript) {
@@ -316,6 +336,7 @@ const buildRendererScripts = (encodedPayload: string): string => {
     '    <script>',
     `      window.__NODEVISION_BOOTSTRAP__ = JSON.parse(decodeURIComponent('${encodedPayload}'));`,
     `      window.__NODEVISION_TRANSLATIONS__ = ${TRANSLATIONS_EMBED};`,
+    `      window.__NODEVISION_ICONS__ = ${ICONS_EMBED};`,
     `      window.__NODEVISION_SUPPORTED_LOCALES__ = ${SUPPORTED_LOCALES_EMBED};`,
     `      window.__NODEVISION_FALLBACK_LOCALE__ = '${DEFAULT_LOCALE}';`,
     '    </script>'
@@ -372,6 +393,44 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .cropper-rotate-handle:active {
         cursor: grabbing;
+      }
+      .trim-rotate-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 120px;
+        margin: 0 8px;
+      }
+      .trim-rotate-slider {
+        flex: 1;
+        cursor: pointer;
+        accent-color: #4d73ff;
+        height: 4px;
+        min-width: 0;
+      }
+      .trim-rotate-value {
+        font-variant-numeric: tabular-nums;
+        min-width: 3.5em;
+        text-align: right;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+        user-select: none;
+      }
+      .trim-rotate-icon {
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        color: rgba(255, 255, 255, 0.6);
+        transition: color 0.2s;
+        user-select: none;
+        padding: 4px;
+        margin: -4px;
+        border-radius: 4px;
+      }
+      .trim-rotate-icon:hover {
+        color: #4d73ff;
+        background: rgba(255, 255, 255, 0.1);
       }
       :root {
         color-scheme: dark;
@@ -1293,10 +1352,21 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         border-color: rgba(255, 224, 137, 0.8);
       }
       .trim-tool-button[data-trim-tool='zoom-in'],
-      .trim-tool-button[data-trim-tool='zoom-out'] {
+      .trim-tool-button[data-trim-tool='zoom-out'],
+      .trim-tool-button[data-trim-tool='flip-horizontal'],
+      .trim-tool-button[data-trim-tool='flip-vertical'] {
         width: 42px;
         padding: 0;
         font-size: 18px;
+      }
+      .trim-tool-button[data-trim-tool='zoom-in'] img,
+      .trim-tool-button[data-trim-tool='zoom-out'] img,
+      .trim-tool-button[data-trim-tool='flip-horizontal'] img,
+      .trim-tool-button[data-trim-tool='flip-vertical'] img {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+        filter: invert(1);
       }
       .trim-stage-wrapper {
         position: relative;
@@ -2635,6 +2705,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
                 <tr><td>Shift + 1</td><td data-i18n-key="help.fitSelection">Fit selection</td></tr>
                 <tr><td>⌥+= / ⌥+Shift+=</td><td data-i18n-key="help.zoomOut">Canvas zoom out</td></tr>
                 <tr><td>⌥+〜 / ⌥+Shift+；</td><td data-i18n-key="help.zoomIn">Canvas zoom in</td></tr>
+                <tr><td colspan="2" style="padding-top: 8px;"><strong data-i18n-key="nodes.trim.title">Trim</strong></td></tr>
+                <tr><td>+ / = / ;</td><td data-i18n-key="nodes.trim.imageTools.zoomIn">Zoom in</td></tr>
+                <tr><td>-</td><td data-i18n-key="nodes.trim.imageTools.zoomOut">Zoom out</td></tr>
+                <tr><td>[ / ] / @</td><td data-i18n-key="nodes.trim.imageTools.rotate">Rotate</td></tr>
+                <tr><td>H</td><td data-i18n-key="nodes.trim.imageTools.flipHorizontal">Flip horizontally</td></tr>
+                <tr><td>V</td><td data-i18n-key="nodes.trim.imageTools.flipVertical">Flip vertically</td></tr>
+                <tr><td>R</td><td data-i18n-key="nodes.trim.imageTools.reset">Reset transform</td></tr>
               </table>
             </div>
           </div>

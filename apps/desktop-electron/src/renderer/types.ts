@@ -6,6 +6,12 @@ export interface RendererBootstrapWindow extends Window {
   __NODEVISION_TRANSLATIONS__?: Record<string, Record<string, string>>;
   __NODEVISION_SUPPORTED_LOCALES__?: string[];
   __NODEVISION_FALLBACK_LOCALE__?: string;
+  __NODEVISION_ICONS__?: {
+    zoomOut: string;
+    zoomIn: string;
+    flipHorizontal: string;
+    flipVertical: string;
+  };
 }
 
 export type RendererNode = RendererPayload['nodes'][number];
@@ -231,17 +237,17 @@ export interface NodevisionApi {
     durationMs?: number | null;
   }) => Promise<
     | {
-        ok: true;
-        preview: {
-          url: string;
-          width: number | null;
-          height: number | null;
-          durationMs?: number | null;
-          type: string;
-          kind: 'image' | 'video';
-          ownedUrl: true;
-        };
-      }
+      ok: true;
+      preview: {
+        url: string;
+        width: number | null;
+        height: number | null;
+        durationMs?: number | null;
+        type: string;
+        kind: 'image' | 'video';
+        ownedUrl: true;
+      };
+    }
     | { ok: false; message?: string }
   >;
 }
