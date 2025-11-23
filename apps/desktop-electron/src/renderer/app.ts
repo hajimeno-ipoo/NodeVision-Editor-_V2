@@ -857,6 +857,53 @@ import { calculatePreviewSize } from './nodes/preview-size';
           if (cropper) {
             setTimeout(() => {
               restoreInitialRegion();
+
+              // 回転ハンドルの追加
+              const cropBox = imageElement.parentElement?.querySelector('.cropper-crop-box');
+              if (cropBox) {
+                const handle = document.createElement('div');
+                handle.className = 'cropper-rotate-handle';
+                cropBox.appendChild(handle);
+
+                let startAngle = 0;
+                let startRotate = 0;
+                let centerX = 0;
+                let centerY = 0;
+
+                const onPointerMove = (ev: PointerEvent) => {
+                  const x = ev.clientX - centerX;
+                  const y = ev.clientY - centerY;
+                  const angle = Math.atan2(y, x);
+                  const deg = (angle - startAngle) * (180 / Math.PI);
+                  cropper?.rotateTo(startRotate + deg);
+                };
+
+                const onPointerUp = () => {
+                  window.removeEventListener('pointermove', onPointerMove);
+                  window.removeEventListener('pointerup', onPointerUp);
+                  document.body.style.cursor = '';
+                };
+
+                handle.addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  const rect = cropBox.getBoundingClientRect();
+                  centerX = rect.left + rect.width / 2;
+                  centerY = rect.top + rect.height / 2;
+
+                  const x = e.clientX - centerX;
+                  const y = e.clientY - centerY;
+                  startAngle = Math.atan2(y, x);
+
+                  const data = cropper?.getData();
+                  startRotate = data?.rotate || 0;
+
+                  document.body.style.cursor = 'grabbing';
+                  window.addEventListener('pointermove', onPointerMove);
+                  window.addEventListener('pointerup', onPointerUp);
+                });
+              }
             }, 50);
           }
         }

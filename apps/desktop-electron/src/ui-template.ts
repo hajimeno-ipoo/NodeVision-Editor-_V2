@@ -337,6 +337,42 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
     <title data-i18n-key="app.title">NodeVision Editor</title>
     <style>
       ${CROPPER_CSS}
+      .cropper-rotate-handle {
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 24px;
+        height: 24px;
+        background-color: #4d73ff;
+        border-radius: 50%;
+        cursor: grab;
+        z-index: 2020;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      }
+      .cropper-rotate-handle::before {
+        content: '';
+        position: absolute;
+        top: -16px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: 16px;
+        background-color: #4d73ff;
+      }
+      .cropper-rotate-handle::after {
+        content: '↻';
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        line-height: 1;
+      }
+      .cropper-rotate-handle:active {
+        cursor: grabbing;
+      }
       :root {
         color-scheme: dark;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
