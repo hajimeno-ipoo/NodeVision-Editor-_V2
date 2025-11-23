@@ -2,6 +2,7 @@ export const UI_TRANSLATIONS = {
   'en-US': {
     'common.close': 'Close',
     'actions.save': 'Save',
+    'actions.saveAndClose': 'Save & Close',
     'actions.cancel': 'Cancel',
     'actions.reset': 'Reset',
     'app.title': 'NodeVision Editor',
@@ -261,6 +262,7 @@ export const UI_TRANSLATIONS = {
   'ja-JP': {
     'common.close': '閉じる',
     'actions.save': '保存',
+    'actions.saveAndClose': '保存して閉じる',
     'actions.cancel': 'キャンセル',
     'actions.reset': 'リセット',
     'app.title': 'NodeVisionエディター',

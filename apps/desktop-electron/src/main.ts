@@ -372,9 +372,15 @@ ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
 
     const expr = (value: number | undefined, base: 'iw' | 'ih'): string => {
       if (typeof value !== 'number' || Number.isNaN(value)) return base;
-      if (value <= 1 && value > 0) {
+      // Clamp normalized values to the range (0,1]
+      if (value > 0 && value <= 1) {
         return `${base}*${value}`;
       }
+      // If value slightly exceeds 1 due to floating‑point error, treat it as 1
+      if (value > 1 && value < 1.01) {
+        return `${base}*1`;
+      }
+      // Otherwise round to nearest integer (e.g., pixel values)
       return `${Math.round(value)}`;
     };
 
@@ -384,6 +390,11 @@ ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
     )}:${expr(region.y, 'ih')}`;
 
     const filterParts: string[] = [];
+    // CRITICAL: crop must be applied FIRST before any transformations
+    // to ensure coordinates are relative to the original image
+    filterParts.push(cropFilter);
+
+    // Then apply flip/rotate on the cropped region
     if (payload?.flipHorizontal) {
       filterParts.push('hflip');
     }
@@ -393,16 +404,19 @@ ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
     if (typeof payload?.rotationDeg === 'number' && payload.rotationDeg !== 0) {
       filterParts.push(`rotate=${payload.rotationDeg * (Math.PI / 180)}:fillcolor=black`);
     }
-    // apply crop first, then final zoom scale so座標ずれを防ぐ
-    filterParts.push(cropFilter);
+
+    // Finally apply zoom scale
     if (typeof payload?.zoom === 'number' && payload.zoom !== 1) {
       filterParts.push(`scale=iw*${payload.zoom}:ih*${payload.zoom}`);
     }
     const filters = filterParts.join(',');
+    console.log('[FFmpeg] filters:', filters);
+    console.log('[FFmpeg] filterParts:', filterParts);
 
     if (kind === 'image') {
       const outputPath = path.join(previewDir, `crop-${Date.now()}.png`);
       const args = ['-y', '-i', sourcePath, '-vf', filters, '-frames:v', '1', outputPath];
+      console.log('[FFmpeg] image args:', args);
       await runFfmpeg(ffmpegPath, args);
       return {
         ok: true,
@@ -509,7 +523,7 @@ function maybeStartHttpServer(status: BootStatus): void {
     enabled: true,
     port: status.settings.http.port,
     maxConcurrent: 2,
-     requestHistory: inspectHistory,
+    requestHistory: inspectHistory,
     validateToken: tokenValue => tokenManager.validate(tokenValue),
     handleInspect: (payload: InspectConcatRequest) =>
       inspectConcat(payload, {

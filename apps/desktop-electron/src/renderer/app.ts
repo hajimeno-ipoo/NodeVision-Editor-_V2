@@ -673,7 +673,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
         <button type="button" class="pill-button" data-trim-reset>${escapeHtml(t('actions.reset'))}</button>
         <span class="trim-modal-actions-spacer"></span>
         <button type="button" class="pill-button" data-trim-cancel>${escapeHtml(t('actions.cancel'))}</button>
-        <button type="button" class="pill-button primary" data-trim-save>${escapeHtml(t('actions.save'))}</button>
+        <button type="button" class="pill-button" data-trim-save>${escapeHtml(t('actions.save'))}</button>
+        <button type="button" class="pill-button primary" data-trim-save-close>${escapeHtml(t('actions.saveAndClose'))}</button>
       </div>
     `;
     const imageElement = modalContentElement.querySelector<HTMLImageElement>('[data-trim-image]');
@@ -710,7 +711,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const persistTrimSettings = async (
     nodeId: string,
     mutate: (settings: TrimNodeSettings) => void,
-    toastKey: string
+    toastKey: string,
+    closeModal = true
   ): Promise<void> => {
     const targetNode = state.nodes.find(entry => entry.id === nodeId);
     if (!targetNode) {
@@ -804,7 +806,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
           state.mediaPreviews.set(nodeId, updated);
           adjustDownstreamPreviewNodes(nodeId, updated.width, updated.height);
           commitState();
-          closeActiveModal();
+          if (closeModal) {
+            closeActiveModal();
+          }
           showToast(t(toastKey));
           renderNodes();
           return;
@@ -815,7 +819,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
     }
 
     applyFallback();
-    closeActiveModal();
+    if (closeModal) {
+      closeActiveModal();
+    }
     commitState();
     showToast(t(toastKey));
   };
@@ -890,7 +896,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         console.error('[debug] Cropper is not a function/class!', Cropper);
       }
       cropper = new Cropper(imageElement, {
-        viewMode: 0,
+        viewMode: 2,  // Image fills the container, ensuring consistent coordinate system
         dragMode: 'move',
         aspectRatio: aspectRatio || NaN,
         autoCropArea: 1,
@@ -903,19 +909,19 @@ import { calculatePreviewSize } from './nodes/preview-size';
         crop: (event) => {
           updateRotateUI(event.detail.rotate);
         },
-      ready: () => {
-        // Cropperが初期化された後、初期領域を復元
-        if (cropper) {
-          setTimeout(() => {
-            const active = cropper;
-            if (!active) return;
-            restoreInitialRegion();
+        ready: () => {
+          // Cropperが初期化された後、初期領域を復元
+          if (cropper) {
+            setTimeout(() => {
+              const active = cropper;
+              if (!active) return;
+              restoreInitialRegion();
 
-            // 余白を計算してハンドル位置を決定
-            const containerData = active.getContainerData();
-            const canvasData = active.getCanvasData();
-            const verticalMargin = containerData.height - canvasData.height;
-            const horizontalMargin = containerData.width - canvasData.width;
+              // 余白を計算してハンドル位置を決定
+              const containerData = active.getContainerData();
+              const canvasData = active.getCanvasData();
+              const verticalMargin = containerData.height - canvasData.height;
+              const horizontalMargin = containerData.width - canvasData.width;
 
               // 左右の余白が多い場合はハンドルを右側に配置
               const stage = modalContentElement?.querySelector('.trim-image-stage');
@@ -1164,10 +1170,11 @@ import { calculatePreviewSize } from './nodes/preview-size';
       closeActiveModal();
     });
 
-    modalContent.querySelector('[data-trim-save]')?.addEventListener('click', () => {
+
+    // Shared save logic - updates session draft values
+    const saveCropSettings = () => {
       const data = cropper.getData();
       const imageData = cropper.getImageData();
-
 
       const imgW = imageData.naturalWidth || imageData.width || imageElement.naturalWidth || 1;
       const imgH = imageData.naturalHeight || imageData.height || imageElement.naturalHeight || 1;
@@ -1191,18 +1198,53 @@ import { calculatePreviewSize } from './nodes/preview-size';
       session.draftFlipHorizontal = flipH;
       session.draftFlipVertical = flipV;
 
+      // Debug logging
+      console.log('[Crop Save] data:', data);
+      console.log('[Crop Save] cropBoxData:', cropper.getCropBoxData());
+      console.log('[Crop Save] imageData:', imageData);
+      console.log('[Crop Save] imgW:', imgW, 'imgH:', imgH);
+      console.log('[Crop Save] region:', region);
+      console.log('[Crop Save] containerData:', cropper.getContainerData());
+      console.log('[Crop Save] canvasData:', cropper.getCanvasData());
+    };
+
+    // Save button: save settings and keep modal open
+    modalContent.querySelector('[data-trim-save]')?.addEventListener('click', () => {
+      saveCropSettings();
+      // Pass false to keep modal open
       void persistTrimSettings(
         session.nodeId,
         settings => {
-          settings.region = region;
+          settings.region = session.draftRegion ?? DEFAULT_TRIM_REGION;
           settings.regionSpace = 'image';
-          settings.rotationDeg = rotation;
-          settings.zoom = zoom;
-          settings.flipHorizontal = flipH;
-          settings.flipVertical = flipV;
+          settings.rotationDeg = session.draftRotationDeg ?? 0;
+          settings.zoom = session.draftZoom ?? 1;
+          settings.flipHorizontal = session.draftFlipHorizontal ?? false;
+          settings.flipVertical = session.draftFlipVertical ?? false;
           settings.aspectMode = session.draftAspectMode ?? 'free';
         },
-        'nodes.trim.toast.imageSaved'
+        'nodes.trim.toast.imageSaved',
+        false  // Keep modal open
+      );
+    });
+
+    // Save & Close button: save settings and close modal
+    modalContent.querySelector('[data-trim-save-close]')?.addEventListener('click', () => {
+      saveCropSettings();
+      // Pass true (default) to close modal
+      void persistTrimSettings(
+        session.nodeId,
+        settings => {
+          settings.region = session.draftRegion ?? DEFAULT_TRIM_REGION;
+          settings.regionSpace = 'image';
+          settings.rotationDeg = session.draftRotationDeg ?? 0;
+          settings.zoom = session.draftZoom ?? 1;
+          settings.flipHorizontal = session.draftFlipHorizontal ?? false;
+          settings.flipVertical = session.draftFlipVertical ?? false;
+          settings.aspectMode = session.draftAspectMode ?? 'free';
+        },
+        'nodes.trim.toast.imageSaved',
+        true  // Close modal
       );
     });
   };
@@ -1887,15 +1929,17 @@ import { calculatePreviewSize } from './nodes/preview-size';
     settings: TrimNodeSettings
   ): string => {
     const region = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+    // Normalize floating-point values to avoid cache misses due to precision errors
+    const fmt = (n: number) => n.toFixed(6);
     return [
       sourceNodeId,
       sourcePreview.url,
       sourcePreview.width ?? 'auto',
       sourcePreview.height ?? 'auto',
-      region.x ?? 0,
-      region.y ?? 0,
-      region.width ?? 1,
-      region.height ?? 1,
+      fmt(region.x ?? 0),
+      fmt(region.y ?? 0),
+      fmt(region.width ?? 1),
+      fmt(region.height ?? 1),
       clampTrimRotation(settings.rotationDeg),
       clampTrimZoom(settings.zoom),
       settings.flipHorizontal ? 'fh' : 'nh',
@@ -1929,6 +1973,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
     )?.fromNodeId;
     const signature = buildTrimSignature(sourceId ?? node.id, sourcePreview, settings);
     const existing = state.mediaPreviews.get(node.id);
+    console.log('[Trim Preview] signature:', signature);
+    console.log('[Trim Preview] existing?.derivedFrom:', existing?.derivedFrom);
+    console.log('[Trim Preview] will skip?', existing?.derivedFrom === signature);
     if (existing?.derivedFrom === signature) {
       return;
     }
@@ -4273,6 +4320,27 @@ import { calculatePreviewSize } from './nodes/preview-size';
       state.activeWorkflowId = workflow.id;
       state.workflowName = workflow.name;
       state.workflowDirty = false;
+
+      // Migration: Clear old crop regions saved with viewMode 0
+      // After changing to viewMode 2, old coordinates are incorrect
+      let migrationPerformed = false;
+      state.nodes.forEach(node => {
+        if (node.typeId === 'trim') {
+          const settings = node.settings as TrimNodeSettings;
+          if (settings.region) {
+            // Reset to default region (full image)
+            settings.region = { x: 0, y: 0, width: 1, height: 1 };
+            migrationPerformed = true;
+          }
+        }
+      });
+
+      if (migrationPerformed) {
+        console.log('[Migration] Cleared old crop regions due to viewMode change');
+        // Mark as dirty to save the migrated workflow
+        state.workflowDirty = true;
+      }
+
       updateWorkflowNameUi();
       renderWorkflowList();
       closeWorkflowMenu();
