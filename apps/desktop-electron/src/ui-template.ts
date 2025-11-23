@@ -534,6 +534,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         object-fit: contain;
         display: block;
       }
+      .sidebar-icon:not([data-panel="panel-queue"]):not([data-panel="panel-diagnostics"]) .sidebar-icon-symbol {
+        filter: invert(1);
+      }
       .sidebar-icon:focus-visible {
         outline: 2px solid #7dc3ff;
         outline-offset: 3px;

@@ -18,6 +18,9 @@ export const DEFAULT_QUEUE_LIMITS: QueueLimits = {
   queueTimeoutMs: 180_000
 };
 
+export const DEFAULT_NODE_WIDTH = 336;
+export const DEFAULT_NODE_HEIGHT = 460;
+
 export const deepClone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 export const clonePorts = (ports: NodePort[] | undefined): NodePort[] =>
@@ -59,8 +62,8 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
   const nodeSizes = new Map<string, NodeSize>();
   nodes.forEach(node =>
     nodeSizes.set(node.id, {
-      width: Math.max(336, node.width ?? 336),
-      height: Math.max(460, node.height ?? 460)
+      width: Math.max(DEFAULT_NODE_WIDTH, node.width ?? DEFAULT_NODE_WIDTH),
+      height: Math.max(DEFAULT_NODE_HEIGHT, node.height ?? DEFAULT_NODE_HEIGHT)
     })
   );
   return {

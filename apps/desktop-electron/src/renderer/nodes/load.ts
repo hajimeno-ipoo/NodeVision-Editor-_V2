@@ -2,6 +2,7 @@ import type { RendererNode, NodevisionApi } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { getLoadNodeReservedHeight } from './preview-layout';
 import { calculatePreviewSize } from './preview-size';
+import { DEFAULT_NODE_HEIGHT } from '../state';
 
 export type LoadNodeKind = 'image' | 'video' | 'any';
 
@@ -82,12 +83,40 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
     return node ? getLoadNodeKindFromType(node.typeId) : 'any';
   };
 
+  const adjustConnectedPreviewNodes = (sourceNodeId: string): void => {
+    // Find Media Preview nodes connected to this source
+    const connectedPreviews = state.connections
+      .filter(conn => conn.fromNodeId === sourceNodeId && conn.toPortId === 'source')
+      .map(conn => conn.toNodeId)
+      .filter(nodeId => {
+        const node = state.nodes.find(n => n.id === nodeId);
+        return node?.typeId === 'mediaPreview';
+      });
+
+    // Adjust their heights if still at default
+    connectedPreviews.forEach(previewNodeId => {
+      const currentSize = state.nodeSizes.get(previewNodeId);
+      if (currentSize && currentSize.height === DEFAULT_NODE_HEIGHT) {
+        state.nodeSizes.set(previewNodeId, { ...currentSize, height: 600 });
+      }
+    });
+  };
+
   const measureImageDimensions = (nodeId: string, file: File, url: string): void => {
     if (typeof window.createImageBitmap === 'function') {
       void window
         .createImageBitmap(file)
         .then(bitmap => {
           updateMediaPreviewDimensions(nodeId, bitmap.width, bitmap.height);
+          // Adjust node height for portrait media
+          if (bitmap.height > bitmap.width) {
+            const currentSize = state.nodeSizes.get(nodeId);
+            if (currentSize && currentSize.height === DEFAULT_NODE_HEIGHT) {
+              state.nodeSizes.set(nodeId, { ...currentSize, height: 600 });
+              adjustConnectedPreviewNodes(nodeId);
+              renderNodes();
+            }
+          }
           if (typeof bitmap.close === 'function') {
             bitmap.close();
           }
@@ -96,7 +125,18 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
           const img = new Image();
           img.decoding = 'async';
           img.onload = () => {
-            updateMediaPreviewDimensions(nodeId, img.naturalWidth || img.width, img.naturalHeight || img.height);
+            const width = img.naturalWidth || img.width;
+            const height = img.naturalHeight || img.height;
+            updateMediaPreviewDimensions(nodeId, width, height);
+            // Adjust node height for portrait media
+            if (height > width) {
+              const currentSize = state.nodeSizes.get(nodeId);
+              if (currentSize && currentSize.height === DEFAULT_NODE_HEIGHT) {
+                state.nodeSizes.set(nodeId, { ...currentSize, height: 600 });
+                adjustConnectedPreviewNodes(nodeId);
+                renderNodes();
+              }
+            }
             img.src = '';
           };
           img.onerror = () => {
@@ -109,7 +149,18 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
     const fallbackImg = new Image();
     fallbackImg.decoding = 'async';
     fallbackImg.onload = () => {
-      updateMediaPreviewDimensions(nodeId, fallbackImg.naturalWidth || fallbackImg.width, fallbackImg.naturalHeight || fallbackImg.height);
+      const width = fallbackImg.naturalWidth || fallbackImg.width;
+      const height = fallbackImg.naturalHeight || fallbackImg.height;
+      updateMediaPreviewDimensions(nodeId, width, height);
+      // Adjust node height for portrait media
+      if (height > width) {
+        const currentSize = state.nodeSizes.get(nodeId);
+        if (currentSize && currentSize.height === DEFAULT_NODE_HEIGHT) {
+          state.nodeSizes.set(nodeId, { ...currentSize, height: 600 });
+          adjustConnectedPreviewNodes(nodeId);
+          renderNodes();
+        }
+      }
       fallbackImg.src = '';
     };
     fallbackImg.onerror = () => {
@@ -162,9 +213,20 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
 
     video.onloadedmetadata = () => {
       const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration * 1000) : null;
-      updateMediaPreviewDimensions(nodeId, video.videoWidth || null, video.videoHeight || null, {
+      const width = video.videoWidth || null;
+      const height = video.videoHeight || null;
+      updateMediaPreviewDimensions(nodeId, width, height, {
         durationMs
       });
+      // Adjust node height for portrait media
+      if (width && height && height > width) {
+        const currentSize = state.nodeSizes.get(nodeId);
+        if (currentSize && currentSize.height === DEFAULT_NODE_HEIGHT) {
+          state.nodeSizes.set(nodeId, { ...currentSize, height: 600 });
+          adjustConnectedPreviewNodes(nodeId);
+          renderNodes();
+        }
+      }
       cleanup();
     };
 

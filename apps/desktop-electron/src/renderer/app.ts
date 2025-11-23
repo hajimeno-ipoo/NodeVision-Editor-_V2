@@ -779,6 +779,19 @@ import { calculatePreviewSize } from './nodes/preview-size';
             cropFlipVertical: settings.flipVertical ?? false,
             isCroppedOutput: true
           };
+          // For now, we don't know the exact cropped dimensions until it's generated, 
+          // but we can try to use the hint if available or wait for the next update.
+          // If it's just a region crop, we might be able to calculate it.
+          // For simplicity, we'll skip adjustment here and rely on the actual generation or subsequent updates.
+          // But deriveTrimPreview is often called before the actual crop generation.
+          // Let's rely on updateMediaPreviewDimensions if it's called, OR if we set it here.
+          // In this block, we are setting state.mediaPreviews directly.
+          // If we have cropRegion, we can calculate expected dimensions.
+          if (sourcePreview.width && sourcePreview.height && region) {
+            const estimatedWidth = Math.round(sourcePreview.width * region.width);
+            const estimatedHeight = Math.round(sourcePreview.height * region.height);
+            adjustDownstreamPreviewNodes(nodeId, estimatedWidth, estimatedHeight);
+          }
           console.debug('[NodeVision][debug] ffmpeg crop response', {
             nodeId,
             preview: {
@@ -789,6 +802,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
             }
           });
           state.mediaPreviews.set(nodeId, updated);
+          adjustDownstreamPreviewNodes(nodeId, updated.width, updated.height);
           commitState();
           closeActiveModal();
           showToast(t(toastKey));
@@ -1908,13 +1922,38 @@ import { calculatePreviewSize } from './nodes/preview-size';
         ownedUrl: false,
         derivedFrom: signature
       });
+      adjustDownstreamPreviewNodes(node.id, sourcePreview.width, sourcePreview.height);
       renderNodes();
       return;
     }
     const cropRegion = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+
+    // Calculate effective dimensions for the trimmed preview
+    // Assuming cropRegion is normalized (0-1) as we force cropSpace: 'image'
+    // If cropRegion uses pixel values (stage space), this might need adjustment,
+    // but media-preview.ts logic suggests it expects normalized values or handles > 1 as 1.
+    // For safety, we'll assume if it's small (<= 1) it's normalized.
+    let effectiveWidth = sourcePreview.width;
+    let effectiveHeight = sourcePreview.height;
+
+    if (sourcePreview.width && sourcePreview.height) {
+      // If region is clearly normalized (standard for image crop)
+      if (cropRegion.width <= 1 && cropRegion.height <= 1) {
+        effectiveWidth = Math.round(sourcePreview.width * cropRegion.width);
+        effectiveHeight = Math.round(sourcePreview.height * cropRegion.height);
+      } else {
+        // If region is in pixels (unlikely given media-preview logic but possible in legacy/stage modes)
+        // We use the region dimensions directly if they seem to be pixels
+        effectiveWidth = Math.round(cropRegion.width);
+        effectiveHeight = Math.round(cropRegion.height);
+      }
+    }
+
     cleanupMediaPreview(node.id);
     state.mediaPreviews.set(node.id, {
       ...sourcePreview,
+      width: effectiveWidth,
+      height: effectiveHeight,
       cropRegion,
       cropSpace: 'image' as const,
       cropRotationDeg: settings.rotationDeg ?? 0,
@@ -1925,19 +1964,32 @@ import { calculatePreviewSize } from './nodes/preview-size';
       derivedFrom: signature,
       name: `${sourcePreview.name} (trim)`
     });
+
+    // Trigger downstream adjustment with the new effective dimensions
+    adjustDownstreamPreviewNodes(node.id, effectiveWidth, effectiveHeight);
+
     renderNodes();
   };
+
+  const trimPreviewPending = new Set<string>();
 
   const scheduleTrimPreviewUpdate = (node: RendererNode): void => {
     if (node.typeId !== 'trim') {
       return;
     }
     if (trimPreviewTasks.has(node.id)) {
+      trimPreviewPending.add(node.id);
       return;
     }
     const task = deriveTrimPreview(node)
       .catch(error => console.warn('[NodeVision] trim preview update failed', error))
-      .finally(() => trimPreviewTasks.delete(node.id));
+      .finally(() => {
+        trimPreviewTasks.delete(node.id);
+        if (trimPreviewPending.has(node.id)) {
+          trimPreviewPending.delete(node.id);
+          scheduleTrimPreviewUpdate(node);
+        }
+      });
     trimPreviewTasks.set(node.id, task);
   };
 
@@ -2140,6 +2192,42 @@ import { calculatePreviewSize } from './nodes/preview-size';
     return needsRerender;
   };
 
+  const adjustDownstreamPreviewNodes = (nodeId: string, width: number | null, height: number | null): void => {
+    if (!width || !height || height <= width) {
+      return;
+    }
+
+    const connectedPreviews = state.connections
+      .filter(conn => conn.fromNodeId === nodeId)
+      .map(conn => conn.toNodeId)
+      .filter(toNodeId => {
+        const node = state.nodes.find(n => n.id === toNodeId);
+        return node?.typeId === 'mediaPreview' || node?.typeId === 'trim';
+      });
+
+    let changed = false;
+    connectedPreviews.forEach(targetNodeId => {
+      const targetNode = state.nodes.find(n => n.id === targetNodeId);
+      if (!targetNode) return;
+
+      if (targetNode.typeId === 'trim') {
+        scheduleTrimPreviewUpdate(targetNode);
+        return;
+      }
+
+      // Logic for mediaPreview nodes
+      const currentSize = state.nodeSizes.get(targetNodeId);
+      if (currentSize && currentSize.height === 460) {
+        state.nodeSizes.set(targetNodeId, { ...currentSize, height: 600 });
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      renderNodes();
+    }
+  };
+
   const updateMediaPreviewDimensions = (
     nodeId: string,
     width: number | null,
@@ -2156,6 +2244,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
       height,
       ...(extra ?? {})
     });
+
+    adjustDownstreamPreviewNodes(nodeId, width, height);
+
     renderNodes();
   };
 
@@ -4302,6 +4393,10 @@ import { calculatePreviewSize } from './nodes/preview-size';
       return;
     }
     if (!isEventInsideCanvas(event)) {
+      return;
+    }
+    // Prevent canvas zoom when trim modal is open
+    if (activeModal?.type === 'trim') {
       return;
     }
     event.preventDefault();
