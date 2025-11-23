@@ -394,6 +394,22 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .cropper-rotate-handle:active {
         cursor: grabbing;
       }
+      /* Portrait mode: move handle to right side */
+      .trim-image-stage.is-portrait .cropper-rotate-handle {
+        bottom: auto;
+        top: 50%;
+        left: auto;
+        right: -40px;
+        transform: translate(0, -50%);
+      }
+      .trim-image-stage.is-portrait .cropper-rotate-handle::before {
+        top: 50%;
+        left: -16px;
+        bottom: auto;
+        transform: translate(0, -50%);
+        width: 16px;
+        height: 2px;
+      }
       .trim-rotate-control {
         display: flex;
         align-items: center;
@@ -1376,12 +1392,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         width: 100%;
         max-width: 96vw;
         padding: 12px 0 28px;
-        overflow: hidden;
+        z-index: 10;
+        /* overflow: hidden; removed to allow handle visibility */
       }
       .trim-image-stage {
         position: relative;
         border-radius: 24px;
-        overflow: hidden;
+        /* overflow: hidden; removed to allow handle visibility */
         background: rgba(255, 255, 255, 0.04);
         margin: 0 auto 20px;
         display: flex;
@@ -1392,6 +1409,11 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         align-self: center;
         width: min(90vw, 880px);
         height: min(55vh, 560px);
+        /* padding: 24px; removed to maximize image size */
+        box-sizing: border-box;
+      }
+      .trim-image-stage .cropper-container {
+        overflow: visible !important;
       }
       .trim-grid-overlay {
         position: absolute;

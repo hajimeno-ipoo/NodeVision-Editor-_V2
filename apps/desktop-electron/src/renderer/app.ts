@@ -903,11 +903,29 @@ import { calculatePreviewSize } from './nodes/preview-size';
         crop: (event) => {
           updateRotateUI(event.detail.rotate);
         },
-        ready: () => {
-          // Cropperが初期化された後、初期領域を復元
-          if (cropper) {
-            setTimeout(() => {
-              restoreInitialRegion();
+      ready: () => {
+        // Cropperが初期化された後、初期領域を復元
+        if (cropper) {
+          setTimeout(() => {
+            const active = cropper;
+            if (!active) return;
+            restoreInitialRegion();
+
+            // 余白を計算してハンドル位置を決定
+            const containerData = active.getContainerData();
+            const canvasData = active.getCanvasData();
+            const verticalMargin = containerData.height - canvasData.height;
+            const horizontalMargin = containerData.width - canvasData.width;
+
+              // 左右の余白が多い場合はハンドルを右側に配置
+              const stage = modalContentElement?.querySelector('.trim-image-stage');
+              if (stage) {
+                if (horizontalMargin > verticalMargin) {
+                  stage.classList.add('is-portrait');
+                } else {
+                  stage.classList.remove('is-portrait');
+                }
+              }
 
               // 回転ハンドルの追加
               const cropBox = imageElement.parentElement?.querySelector('.cropper-crop-box');
