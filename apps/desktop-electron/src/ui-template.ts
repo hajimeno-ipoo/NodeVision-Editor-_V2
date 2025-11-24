@@ -1182,13 +1182,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         max-width: 100%;
         max-height: 100%;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-toolbar {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview, .node-type-export) .node-media-toolbar {
         display: grid;
         grid-template-columns: auto 1fr auto;
         gap: 8px;
         align-items: center;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-arrow {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-arrow {
         border-radius: 999px;
         width: 32px;
         height: 28px;
@@ -1203,11 +1203,11 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         color: rgba(48, 48, 60, 0.7);
         transition: all 0.15s ease;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-arrow:hover:not(:disabled) {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-arrow:hover:not(:disabled) {
         background: rgba(0, 0, 0, 0.05);
         color: rgba(48, 48, 60, 0.95);
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-arrow:disabled {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-arrow:disabled {
         opacity: 0.3;
         cursor: not-allowed;
       }
@@ -1221,25 +1221,35 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-file-dropdown {
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        border-radius: 999px;
-        padding: 4px 12px;
-        background: rgba(255, 255, 255, 0.8);
-        font-size: 12px;
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-file-dropdown {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        border: 1px solid #d7dbe2;
+        border-radius: 18px;
+        padding: 9px 42px 9px 16px;
+        background:
+          linear-gradient(180deg, #fcfcfd 0%, #f3f4f7 100%),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238b9099' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center;
+        font-size: 13.5px;
+        font-weight: 500;
         cursor: pointer;
-        min-width: 120px;
+        min-width: 160px;
         max-width: 100%;
         flex: 1;
         outline: none;
         transition: all 0.15s ease;
-        color: #333;
+        color: #6f7580;
+        box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px rgba(0, 0, 0, 0.05);
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-file-dropdown:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.95);
-        border-color: rgba(0, 0, 0, 0.25);
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-file-dropdown:hover:not(:disabled) {
+        background:
+          linear-gradient(180deg, #ffffff 0%, #f5f6f8 100%),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238b9099' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center;
+        border-color: #c6ccd6;
+        box-shadow: inset 0 1px 0 #ffffff, 0 2px 4px rgba(0, 0, 0, 0.08);
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-file-dropdown:disabled {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-file-dropdown:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }

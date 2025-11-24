@@ -14,29 +14,39 @@ const buildExportLauncher = (
 ): string => {
   const { escapeHtml, t } = context;
   const settings: ExportSettings = (node.settings as ExportSettings) || {};
-  const format = settings.format || 'mp4';
-  const quality = settings.quality || 'high';
+  const format: ExportSettings['format'] = settings.format ?? undefined;
+  const quality: ExportSettings['quality'] = settings.quality ?? undefined;
 
   return `
     <div class="node-launcher">
       <div class="node-controls" style="display: flex; flex-direction: column; gap: 12px;">
-        <label class="control-label" style="margin: 0;">
+        <label class="control-label" style="margin: 0; padding-left: 8px;">
           <span class="control-label-text" style="display: block; margin-bottom: 6px;">${escapeHtml(t('nodes.export.format'))}</span>
-          <select class="control-select" data-export-format data-node-id="${escapeHtml(node.id)}" style="width: 100%;">
-            <option value="mp4" ${format === 'mp4' ? 'selected' : ''}>MP4 (H.264)</option>
-            <option value="mov" ${format === 'mov' ? 'selected' : ''}>MOV (ProRes)</option>
-            <option value="png" ${format === 'png' ? 'selected' : ''}>PNG Sequence</option>
-            <option value="jpg" ${format === 'jpg' ? 'selected' : ''}>JPG Sequence</option>
-          </select>
+          <div class="node-media-toolbar">
+            <button type="button" class="node-media-arrow" data-export-nav="format" data-direction="prev" data-node-id="${escapeHtml(node.id)}" aria-label="previous format">◀</button>
+            <select class="control-select node-media-file-dropdown" data-export-format data-node-id="${escapeHtml(node.id)}">
+              <option value="" ${!format ? 'selected' : ''}>${escapeHtml(t('nodes.load.noFile'))}</option>
+              <option value="mp4" ${format === 'mp4' ? 'selected' : ''}>MP4 (H.264)</option>
+              <option value="mov" ${format === 'mov' ? 'selected' : ''}>MOV (ProRes)</option>
+              <option value="png" ${format === 'png' ? 'selected' : ''}>PNG (Image)</option>
+              <option value="jpg" ${format === 'jpg' ? 'selected' : ''}>JPG (Image)</option>
+            </select>
+            <button type="button" class="node-media-arrow" data-export-nav="format" data-direction="next" data-node-id="${escapeHtml(node.id)}" aria-label="next format">▶</button>
+          </div>
         </label>
 
-        <label class="control-label" style="margin: 0;">
+        <label class="control-label" style="margin: 0; padding-left: 8px;">
           <span class="control-label-text" style="display: block; margin-bottom: 6px;">${escapeHtml(t('nodes.export.quality'))}</span>
-          <select class="control-select" data-export-quality data-node-id="${escapeHtml(node.id)}" style="width: 100%;">
-            <option value="high" ${quality === 'high' ? 'selected' : ''}>${escapeHtml(t('nodes.export.qualityHigh'))}</option>
-            <option value="medium" ${quality === 'medium' ? 'selected' : ''}>${escapeHtml(t('nodes.export.qualityMedium'))}</option>
-            <option value="low" ${quality === 'low' ? 'selected' : ''}>${escapeHtml(t('nodes.export.qualityLow'))}</option>
-          </select>
+          <div class="node-media-toolbar">
+            <button type="button" class="node-media-arrow" data-export-nav="quality" data-direction="prev" data-node-id="${escapeHtml(node.id)}" aria-label="previous quality">◀</button>
+            <select class="control-select node-media-file-dropdown" data-export-quality data-node-id="${escapeHtml(node.id)}">
+              <option value="" ${!quality ? 'selected' : ''}>${escapeHtml(t('nodes.load.noFile'))}</option>
+              <option value="high" ${quality === 'high' ? 'selected' : ''}>${escapeHtml(t('nodes.export.qualityHigh'))}</option>
+              <option value="medium" ${quality === 'medium' ? 'selected' : ''}>${escapeHtml(t('nodes.export.qualityMedium'))}</option>
+              <option value="low" ${quality === 'low' ? 'selected' : ''}>${escapeHtml(t('nodes.export.qualityLow'))}</option>
+            </select>
+            <button type="button" class="node-media-arrow" data-export-nav="quality" data-direction="next" data-node-id="${escapeHtml(node.id)}" aria-label="next quality">▶</button>
+          </div>
         </label>
 
         <button 
@@ -66,6 +76,21 @@ const bindExportEvents = (
   context: NodeRendererContext
 ): void => {
   const { state } = context;
+
+  const cycleSelect = (select: HTMLSelectElement | null, direction: 'prev' | 'next'): void => {
+    if (!select) return;
+    const options = Array.from(select.options).filter(opt => opt.value !== '');
+    if (options.length === 0) return;
+    const currentValue = select.value;
+    const currentIndex = options.findIndex(opt => opt.value === currentValue);
+    const fallbackIndex = 0;
+    const activeIndex = currentIndex >= 0 ? currentIndex : fallbackIndex;
+    const delta = direction === 'next' ? 1 : -1;
+    const nextIndex = (activeIndex + delta + options.length) % options.length;
+    const nextValue = options[nextIndex].value;
+    select.value = nextValue;
+    select.dispatchEvent(new Event('change'));
+  };
 
   // Format selector
   const formatSelect = document.querySelector<HTMLSelectElement>(
@@ -101,6 +126,23 @@ const bindExportEvents = (
     });
   }
 
+  // Arrow buttons for cycling format/quality
+  const navButtons = document.querySelectorAll<HTMLButtonElement>(
+    `[data-export-nav][data-node-id="${node.id}"]`
+  );
+  navButtons.forEach(btn => {
+    const target = btn.dataset.exportNav as 'format' | 'quality' | undefined;
+    const direction = btn.dataset.direction as 'prev' | 'next' | undefined;
+    if (!target || !direction) return;
+    btn.addEventListener('click', () => {
+      if (target === 'format') {
+        cycleSelect(formatSelect, direction);
+      } else {
+        cycleSelect(qualitySelect, direction);
+      }
+    });
+  });
+
   // Export button
   const exportBtn = document.querySelector<HTMLButtonElement>(
     `[data-export-btn][data-node-id="${node.id}"]`
@@ -111,7 +153,7 @@ const bindExportEvents = (
       if (!targetNode) return;
 
       const settings: ExportSettings = (targetNode.settings as ExportSettings) || {};
-      const format = settings.format || 'mp4';
+      const format: ExportSettings['format'] = (settings.format as ExportSettings['format']) || 'mp4';
       const quality = settings.quality || 'high';
 
       // TODO: Implement actual export logic
