@@ -722,15 +722,24 @@ import { calculatePreviewSize } from './nodes/preview-size';
       closeActiveModal();
       return;
     }
-    const settings = ensureTrimSettings(targetNode, activeModal?.type === 'trim' ? activeModal.activeSlot : undefined);
+    const activeSlot = activeModal?.type === 'trim' ? activeModal.activeSlot : undefined;
+    const settings = ensureTrimSettings(targetNode, activeSlot);
     mutate(settings);
-    const sourcePreview = findTrimSourcePreview(nodeId);
+    const sourcePreview = findTrimSourcePreview(nodeId, activeSlot);
     const region = settings.region ?? DEFAULT_TRIM_REGION;
     const zoomFactor = settings.zoom ?? 1;
     const widthHint = sourcePreview?.width ? Math.round(sourcePreview.width * region.width * zoomFactor) : null;
     const heightHint = sourcePreview?.height ? Math.round(sourcePreview.height * region.height * zoomFactor) : null;
     const durationMs = sourcePreview?.durationMs ?? null;
-    const sourceId = state.connections.find(conn => conn.toNodeId === nodeId && conn.toPortId === 'source')?.fromNodeId;
+
+    let sourceId: string | undefined;
+    if (targetNode.typeId === 'batchcrop' && activeSlot) {
+      sourceId = state.connections.find(conn => conn.toNodeId === nodeId && conn.toPortId === `input-${activeSlot}`)
+        ?.fromNodeId;
+    } else {
+      sourceId = state.connections.find(conn => conn.toNodeId === nodeId && conn.toPortId === 'source')?.fromNodeId;
+    }
+
     const signature = sourcePreview ? buildTrimSignature(sourceId ?? nodeId, sourcePreview, settings) : null;
 
     const applyFallback = () => {
@@ -784,29 +793,44 @@ import { calculatePreviewSize } from './nodes/preview-size';
             cropFlipVertical: settings.flipVertical ?? false,
             isCroppedOutput: true
           };
-          // For now, we don't know the exact cropped dimensions until it's generated, 
-          // but we can try to use the hint if available or wait for the next update.
-          // If it's just a region crop, we might be able to calculate it.
-          // For simplicity, we'll skip adjustment here and rely on the actual generation or subsequent updates.
-          // But deriveTrimPreview is often called before the actual crop generation.
-          // Let's rely on updateMediaPreviewDimensions if it's called, OR if we set it here.
-          // In this block, we are setting state.mediaPreviews directly.
-          // If we have cropRegion, we can calculate expected dimensions.
-          if (sourcePreview.width && sourcePreview.height && region) {
-            const estimatedWidth = Math.round(sourcePreview.width * region.width);
-            const estimatedHeight = Math.round(sourcePreview.height * region.height);
-            adjustDownstreamPreviewNodes(nodeId, estimatedWidth, estimatedHeight);
-          }
-          console.debug('[NodeVision][debug] ffmpeg crop response', {
-            nodeId,
-            preview: {
-              url: response.preview.url,
-              width: response.preview.width,
-              height: response.preview.height,
-              duration: response.preview.durationMs
+
+          if (targetNode.typeId === 'batchcrop' && activeSlot) {
+            // Batch Cropノードの場合、outputsプロパティで各スロットを管理
+            const existing = state.mediaPreviews.get(nodeId);
+            const slot = activeSlot;
+            const outputPort = `output-${slot}`;
+            const nodeActiveSlot = (targetNode as any).data?.activeSlot ?? 1;
+
+            // 既存のoutputsを保持
+            const newOutputs = { ...(existing?.outputs ?? {}) };
+            newOutputs[outputPort] = updated;
+
+            // activeSlotの場合のみoutput-monitorも更新
+            if (slot === nodeActiveSlot) {
+              newOutputs['output-monitor'] = updated;
             }
-          });
-          state.mediaPreviews.set(nodeId, updated);
+
+            // メインプレビューは現在のactiveSlotのものを使用
+            // ただし、activeSlotのクロップ済み画像がない場合は、既存のメインを保持
+            const mainPreview = newOutputs[`output-${nodeActiveSlot}`] || existing || {
+              ...updated,
+              // メインプレビューとして設定するが、個別の出力には影響させない
+              width: 0,
+              height: 0,
+              url: '',
+              name: 'Batch Crop'
+            };
+
+            state.mediaPreviews.set(nodeId, {
+              ...mainPreview,
+              outputs: newOutputs
+            });
+          } else {
+            // 通常のTrimノードの場合
+            state.mediaPreviews.set(nodeId, updated);
+          }
+
+
           adjustDownstreamPreviewNodes(nodeId, updated.width, updated.height);
           commitState();
           if (closeModal) {
@@ -815,6 +839,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
           showToast(t(toastKey));
           renderNodes();
           return;
+
         }
       } catch (error) {
         console.warn('[NodeVision] generateCroppedPreview failed, fallback to client crop', error);
@@ -1992,6 +2017,14 @@ import { calculatePreviewSize } from './nodes/preview-size';
     if (node.typeId !== 'trim') {
       return;
     }
+    const existing = state.mediaPreviews.get(node.id);
+
+    // FFmpegで既にクロップ済みの画像がある場合は、それを保持
+    if (existing && existing.ownedUrl && existing.isCroppedOutput) {
+      console.log('[Trim Preview] FFmpeg cropped image exists, skipping client-side preview update');
+      return;
+    }
+
     const sourcePreview = findTrimSourcePreview(node.id);
     if (!sourcePreview) {
       cleanupMediaPreview(node.id);
@@ -2002,7 +2035,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
       conn => conn.toNodeId === node.id && conn.toPortId === 'source'
     )?.fromNodeId;
     const signature = buildTrimSignature(sourceId ?? node.id, sourcePreview, settings);
-    const existing = state.mediaPreviews.get(node.id);
     console.log('[Trim Preview] signature:', signature);
     console.log('[Trim Preview] existing?.derivedFrom:', existing?.derivedFrom);
     console.log('[Trim Preview] will skip?', existing?.derivedFrom === signature);
@@ -2070,10 +2102,25 @@ import { calculatePreviewSize } from './nodes/preview-size';
     if (node.typeId !== 'batchcrop') return;
 
     const activeSlot = (node as any).data?.activeSlot ?? 1;
-    const outputs: Record<string, NodeMediaPreview> = {};
+    const existing = state.mediaPreviews.get(node.id);
+    const outputs: Record<string, NodeMediaPreview> = { ...(existing?.outputs ?? {}) };
     let mainPreview: NodeMediaPreview | undefined;
 
     for (let i = 1; i <= 3; i++) {
+      const outputPort = `output-${i}`;
+
+      // FFmpegで既にクロップ済みの画像がある場合は、それを保持
+      const existingOutput = outputs[outputPort];
+      if (existingOutput && existingOutput.ownedUrl && existingOutput.isCroppedOutput) {
+        // FFmpegで生成されたクロップ済み画像を保持
+        if (i === activeSlot) {
+          mainPreview = existingOutput;
+          outputs['output-monitor'] = existingOutput;
+        }
+        continue;
+      }
+
+      // FFmpegで生成されていない場合のみ、クライアント側で計算
       const settings = ensureTrimSettings(node, i);
       const cropRegion = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
 
@@ -2084,7 +2131,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
         return { width: Math.round(cropRegion.width), height: Math.round(cropRegion.height) };
       };
 
-      const outputPort = `output-${i}`;
       const sourcePreview = findTrimSourcePreview(node.id, i);
 
       if (sourcePreview) {
@@ -2115,7 +2161,6 @@ import { calculatePreviewSize } from './nodes/preview-size';
     }
 
     if (mainPreview) {
-      cleanupMediaPreview(node.id);
       state.mediaPreviews.set(node.id, {
         ...mainPreview,
         outputs

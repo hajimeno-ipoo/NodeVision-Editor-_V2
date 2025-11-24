@@ -95,8 +95,17 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     const sourceNodeId = connection?.fromNodeId ?? null;
     const sourceNode = sourceNodeId ? state.nodes.find(entry => entry.id === sourceNodeId) : undefined;
     let preview = sourceNodeId ? getMediaPreview(sourceNodeId) : undefined;
-    if (preview?.outputs && connection?.fromPortId && preview.outputs[connection.fromPortId]) {
-      preview = preview.outputs[connection.fromPortId];
+
+    // Batch Cropノードなど、outputsプロパティを持つノードの場合
+    if (preview?.outputs && connection?.fromPortId) {
+      // 該当する出力ポートのプレビューを取得
+      if (preview.outputs[connection.fromPortId]) {
+        preview = preview.outputs[connection.fromPortId];
+      } else {
+        // 該当する出力ポートにプレビューがない場合は、undefinedにする
+        // （メインプレビューを使用しない）
+        preview = undefined;
+      }
     }
     const nodeSize = state.nodeSizes.get(node.id) ?? { width: node.width ?? 0, height: node.height ?? 0 };
     const chrome = getNodeChromePadding(node.id);
