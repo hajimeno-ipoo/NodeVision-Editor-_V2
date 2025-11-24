@@ -19,7 +19,7 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     category: 'Input',
     description: 'Open a local image file',
     keywords: ['load', 'open', 'input', 'image', 'photo'],
-    width: 240,
+    width: 280,
     height: 128,
     outputs: [
       { id: 'media', label: 'Media', direction: 'output', dataType: 'video', required: true }
@@ -32,7 +32,7 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     category: 'Input',
     description: 'Open a local video file',
     keywords: ['load', 'open', 'input', 'video'],
-    width: 240,
+    width: 280,
     height: 128,
     outputs: [
       { id: 'media', label: 'Media', direction: 'output', dataType: 'video', required: true }

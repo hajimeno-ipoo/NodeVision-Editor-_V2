@@ -752,6 +752,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         height: 100%;
         object-fit: contain;
         display: block;
+        filter: invert(1);
       }
       .canvas-controls-divider {
         width: 1px;

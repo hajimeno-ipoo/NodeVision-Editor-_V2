@@ -612,15 +612,16 @@ import { calculatePreviewSize } from './nodes/preview-size';
     if (!modalTitleElement || !modalContentElement) {
       return;
     }
-    modalTitleElement.textContent = t('nodes.trim.imageButton');
     modalContentElement.innerHTML = '';
     if (!session.sourcePreview) {
+      modalTitleElement.innerHTML = `<img src="file:///Users/apple/Desktop/AI アプリ/NodeVision Editor _V2/doc/icon/アラート.png" alt="Alert" style="height: 1.5em; vertical-align: middle; filter: invert(1);">`;
       const warning = document.createElement('p');
       warning.className = 'trim-modal-placeholder';
       warning.textContent = t('nodes.trim.modalPlaceholder.noImage');
       modalContentElement.appendChild(warning);
       return;
     }
+    modalTitleElement.textContent = t('nodes.trim.imageButton');
     const aspectOptions: TrimNodeSettings['aspectMode'][] = ['free', 'original', 'square', '2:1', '3:1', '4:3', '16:9', '9:16', '1.618:1'];
     const icons = rendererWindow.__NODEVISION_ICONS__;
     const zoomOutIcon = icons?.zoomOut ?? '－';
@@ -1501,8 +1502,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const height = 80;
     const left = Math.max(padding, Math.min(window.innerWidth - width, clientX));
     const top = Math.max(padding, Math.min(window.innerHeight - height, clientY));
-    elements.workflowContextMenu.style.left = `${left} px`;
-    elements.workflowContextMenu.style.top = `${top} px`;
+    elements.workflowContextMenu.style.left = `${left}px`;
+    elements.workflowContextMenu.style.top = `${top}px`;
   }
 
   function openWorkflowContextMenu(workflowId: string, clientX: number, clientY: number): void {
@@ -4448,6 +4449,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       fitSelection();
     } else if (!modifier && !event.altKey && event.key === '.') {
       event.preventDefault();
+
       fitSelection();
     } else if (!modifier && !event.altKey && event.key.toLowerCase() === 'h') {
       event.preventDefault();
