@@ -36,8 +36,23 @@ const cloneSettings = (): TrimNodeSettings => ({
   aspectMode: DEFAULT_TRIM_SETTINGS.aspectMode
 });
 
-export const ensureTrimSettings = (node: RendererNode): TrimNodeSettings => {
-  const current = node.settings;
+export const ensureTrimSettings = (node: RendererNode, slot?: number): TrimNodeSettings => {
+  let current: TrimNodeSettings | undefined;
+
+  if (slot !== undefined) {
+    const data = (node as any).data || {};
+    if (!data.batchSettings) {
+      data.batchSettings = {};
+      (node as any).data = data;
+    }
+    if (!data.batchSettings[slot]) {
+      data.batchSettings[slot] = cloneSettings();
+    }
+    current = data.batchSettings[slot];
+  } else {
+    current = node.settings;
+  }
+
   if (current && current.kind === 'trim') {
     // Drop legacy time-based fields
     delete (current as unknown as { startMs?: unknown }).startMs;
@@ -72,7 +87,9 @@ export const ensureTrimSettings = (node: RendererNode): TrimNodeSettings => {
     return current;
   }
   const next = cloneSettings();
-  node.settings = next;
+  if (slot === undefined) {
+    node.settings = next;
+  }
   return next;
 };
 

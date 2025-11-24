@@ -94,7 +94,10 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     );
     const sourceNodeId = connection?.fromNodeId ?? null;
     const sourceNode = sourceNodeId ? state.nodes.find(entry => entry.id === sourceNodeId) : undefined;
-    const preview = sourceNodeId ? getMediaPreview(sourceNodeId) : undefined;
+    let preview = sourceNodeId ? getMediaPreview(sourceNodeId) : undefined;
+    if (preview?.outputs && connection?.fromPortId && preview.outputs[connection.fromPortId]) {
+      preview = preview.outputs[connection.fromPortId];
+    }
     const nodeSize = state.nodeSizes.get(node.id) ?? { width: node.width ?? 0, height: node.height ?? 0 };
     const chrome = getNodeChromePadding(node.id);
     const nodeWidth = nodeSize.width || node.width || 0;

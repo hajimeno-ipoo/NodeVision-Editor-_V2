@@ -69,6 +69,7 @@ export interface NodeMediaPreview {
   cropFlipVertical?: boolean;
   /** ffmpeg 等で実ファイルをクロップ済みの場合のフラグ */
   isCroppedOutput?: boolean;
+  outputs?: Record<string, NodeMediaPreview>;
 }
 
 export interface NodeSize {

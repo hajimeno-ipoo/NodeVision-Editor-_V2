@@ -61,11 +61,12 @@ import type {
   NodevisionApi,
   NodeSize,
   CanvasTool,
-  NodeMediaPreview
+  NodeMediaPreview,
+  StoredWorkflow
 } from './types';
+import type { NodeConnection } from '@nodevision/editor';
 import { createNodeRenderers } from './nodes';
 import type { NodeRendererModule } from './nodes/types';
-import type { StoredWorkflow } from './types';
 import { syncPendingPortHighlight } from './ports';
 import { getLoadNodeReservedHeight, getMediaPreviewReservedHeight } from './nodes/preview-layout';
 import { calculatePreviewSize } from './nodes/preview-size';
@@ -126,6 +127,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
     draftAspectMode: TrimNodeSettings['aspectMode'];
     showGrid: boolean;
     lastPreferredAxis: 'width' | 'height' | null;
+    activeSlot?: number;
   };
 
   type ActiveModalState = TrimImageModalState;
@@ -720,7 +722,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       closeActiveModal();
       return;
     }
-    const settings = ensureTrimSettings(targetNode);
+    const settings = ensureTrimSettings(targetNode, activeModal?.type === 'trim' ? activeModal.activeSlot : undefined);
     mutate(settings);
     const sourcePreview = findTrimSourcePreview(nodeId);
     const region = settings.region ?? DEFAULT_TRIM_REGION;
@@ -1249,7 +1251,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
       );
     });
   };
-  const openTrimModal = async (nodeId: string): Promise<void> => {
+  const openTrimModal = async (nodeId: string, activeSlot: number = 1): Promise<void> => {
     ensureModalHost();
     modalLastFocused =
       document.activeElement instanceof HTMLElement ? (document.activeElement as HTMLElement) : null;
@@ -1258,8 +1260,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
       console.warn('[NodeVision] trim modal requested for missing node', nodeId);
       return;
     }
-    const settings = ensureTrimSettings(targetNode);
-    const sourcePreview = findTrimSourcePreview(nodeId);
+    const settings = ensureTrimSettings(targetNode, activeSlot);
+    const sourcePreview = findTrimSourcePreview(nodeId, activeSlot);
     let modalPreview: NodeMediaPreview | null = null;
     if (sourcePreview) {
       const frameCanvas = await captureFrameForPreview(sourcePreview);
@@ -1291,7 +1293,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
       draftFlipVertical: settings.flipVertical ?? false,
       draftAspectMode: settings.aspectMode ?? 'free',
       showGrid: false,
-      lastPreferredAxis: null
+      lastPreferredAxis: null,
+      activeSlot
     };
     renderActiveModal();
   };
@@ -1949,14 +1952,40 @@ import { calculatePreviewSize } from './nodes/preview-size';
     ].join('|');
   };
 
-  const findTrimSourcePreview = (nodeId: string): NodeMediaPreview | null => {
-    const connection = state.connections.find(
-      conn => conn.toNodeId === nodeId && conn.toPortId === 'source'
-    );
-    if (!connection) {
-      return null;
+  const findTrimSourcePreview = (nodeId: string, slotIndex: number = 0): NodeMediaPreview | null => {
+    const node = state.nodes.find(n => n.id === nodeId);
+    if (!node) return null;
+    // For batch crop, we look for the specific input slot
+    // Input ports are usually ordered. For batch crop: input-1, input-2, input-3
+    // We can assume the connection logic maintains order or we check port IDs if they are predictable
+    // Let's try to find the connection to the specific input port
+
+    let targetConnection: NodeConnection | undefined;
+
+    if (node.typeId === 'batchcrop') {
+      // Batch crop has inputs: input-1, input-2, input-3
+      // slotIndex is 1-based from the UI (1, 2, 3)
+      const targetPortId = `input-${slotIndex}`;
+      targetConnection = state.connections.find(c => c.toNodeId === nodeId && c.toPortId === targetPortId);
+    } else {
+      // Standard trim node logic (single input)
+      targetConnection = state.connections.find(c => c.toNodeId === nodeId);
     }
-    return state.mediaPreviews.get(connection.fromNodeId) ?? null;
+
+    if (!targetConnection) return null;
+
+    // Trace back to find the source preview
+    // This is a simplified trace - it assumes the immediate upstream node has the preview
+    // or we might need to walk up the graph. 
+    // Existing logic likely relies on `state.mediaPreviews` being populated for the upstream node.
+
+    const sourceNodeId = targetConnection.fromNodeId;
+    const preview = state.mediaPreviews.get(sourceNodeId);
+    if (preview) return preview;
+
+    // If immediate upstream doesn't have preview, we might need to recurse or check if it's a pass-through
+    // For now, let's assume the immediate parent has it or we return null (standard behavior)
+    return null;
   };
 
   const deriveTrimPreview = async (node: RendererNode): Promise<void> => {
@@ -2037,17 +2066,79 @@ import { calculatePreviewSize } from './nodes/preview-size';
     renderNodes();
   };
 
+  const deriveBatchCropPreview = async (node: RendererNode): Promise<void> => {
+    if (node.typeId !== 'batchcrop') return;
+
+    const activeSlot = (node as any).data?.activeSlot ?? 1;
+    const outputs: Record<string, NodeMediaPreview> = {};
+    let mainPreview: NodeMediaPreview | undefined;
+
+    for (let i = 1; i <= 3; i++) {
+      const settings = ensureTrimSettings(node, i);
+      const cropRegion = settings.region ?? { x: 0, y: 0, width: 1, height: 1 };
+
+      const getEffectiveSize = (w: number, h: number) => {
+        if (cropRegion.width <= 1 && cropRegion.height <= 1) {
+          return { width: Math.round(w * cropRegion.width), height: Math.round(h * cropRegion.height) };
+        }
+        return { width: Math.round(cropRegion.width), height: Math.round(cropRegion.height) };
+      };
+
+      const outputPort = `output-${i}`;
+      const sourcePreview = findTrimSourcePreview(node.id, i);
+
+      if (sourcePreview) {
+        const { width, height } = getEffectiveSize(sourcePreview.width ?? 0, sourcePreview.height ?? 0);
+        const preview: NodeMediaPreview = {
+          ...sourcePreview,
+          width,
+          height,
+          cropRegion,
+          cropSpace: 'image',
+          cropRotationDeg: settings.rotationDeg ?? 0,
+          cropZoom: settings.zoom ?? 1,
+          cropFlipHorizontal: settings.flipHorizontal ?? false,
+          cropFlipVertical: settings.flipVertical ?? false,
+          ownedUrl: false,
+          name: `${sourcePreview.name} (crop ${i})`
+        };
+        outputs[outputPort] = preview;
+        if (i === activeSlot) {
+          mainPreview = preview;
+          outputs['output-monitor'] = preview;
+        }
+      }
+    }
+
+    if (!mainPreview && Object.keys(outputs).length > 0) {
+      mainPreview = Object.values(outputs)[0];
+    }
+
+    if (mainPreview) {
+      cleanupMediaPreview(node.id);
+      state.mediaPreviews.set(node.id, {
+        ...mainPreview,
+        outputs
+      });
+      adjustDownstreamPreviewNodes(node.id, mainPreview.width, mainPreview.height);
+    } else {
+      cleanupMediaPreview(node.id);
+    }
+    renderNodes();
+  };
+
   const trimPreviewPending = new Set<string>();
 
   const scheduleTrimPreviewUpdate = (node: RendererNode): void => {
-    if (node.typeId !== 'trim') {
+    if (node.typeId !== 'trim' && node.typeId !== 'batchcrop') {
       return;
     }
     if (trimPreviewTasks.has(node.id)) {
       trimPreviewPending.add(node.id);
       return;
     }
-    const task = deriveTrimPreview(node)
+
+    const task = (node.typeId === 'batchcrop' ? deriveBatchCropPreview(node) : deriveTrimPreview(node))
       .catch(error => console.warn('[NodeVision] trim preview update failed', error))
       .finally(() => {
         trimPreviewTasks.delete(node.id);
@@ -3727,7 +3818,11 @@ import { calculatePreviewSize } from './nodes/preview-size';
       minPreviewWidth: MIN_PREVIEW_WIDTH,
       getTemplateByType,
       getMediaPreview,
-      openTrimModal
+      openTrimModal,
+      scheduleTrimPreviewUpdate: (nodeId: string) => {
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (node) scheduleTrimPreviewUpdate(node);
+      }
     });
     modules.forEach(module => {
       module.typeIds.forEach(typeId => {

@@ -69,6 +69,28 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     defaultSettings: DEFAULT_TRIM_SETTINGS
   },
   {
+    typeId: 'batchcrop',
+    nodeVersion: '1.0.0',
+    title: 'Batch Crop',
+    category: 'Edit',
+    description: 'Apply crop to multiple images',
+    keywords: ['batch', 'crop', 'trim', 'edit', 'multiple'],
+    width: 360,
+    height: 520,
+    inputs: [
+      { id: 'input-1', label: 'Source 1', direction: 'input', dataType: 'video', required: true },
+      { id: 'input-2', label: 'Source 2', direction: 'input', dataType: 'video', required: false },
+      { id: 'input-3', label: 'Source 3', direction: 'input', dataType: 'video', required: false }
+    ],
+    outputs: [
+      { id: 'output-1', label: 'Result 1', direction: 'output', dataType: 'video', required: true },
+      { id: 'output-2', label: 'Result 2', direction: 'output', dataType: 'video', required: false },
+      { id: 'output-3', label: 'Result 3', direction: 'output', dataType: 'video', required: false },
+      { id: 'output-monitor', label: 'Monitor', direction: 'output', dataType: 'video', required: false }
+    ],
+    defaultSettings: DEFAULT_TRIM_SETTINGS
+  },
+  {
     typeId: 'resize',
     nodeVersion: '1.0.0',
     title: 'Resize',

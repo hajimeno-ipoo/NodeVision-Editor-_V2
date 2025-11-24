@@ -5,6 +5,11 @@ import path from 'node:path';
 
 import { rememberHttpTokenPreview } from '@nodevision/settings';
 
+export enum NodeType {
+  LOADMEDIA = 'loadmedia',
+  BATCHCROP = 'batchcrop'
+}
+
 export interface TokenRecord {
   label: string;
   value: string;
@@ -51,7 +56,7 @@ export interface TokenStore {
 
 /* c8 ignore start */
 class KeytarTokenStore implements TokenStore {
-  constructor(private serviceName: string, private keytar: typeof import('keytar')) {}
+  constructor(private serviceName: string, private keytar: typeof import('keytar')) { }
 
   async save(label: string, record: TokenRecord): Promise<void> {
     await this.keytar.setPassword(this.serviceName, label, JSON.stringify(record));
@@ -74,7 +79,7 @@ class KeytarTokenStore implements TokenStore {
 /* c8 ignore end */
 
 class FileTokenStore implements TokenStore {
-  constructor(private readonly filePath: string) {}
+  constructor(private readonly filePath: string) { }
 
   private async readAll(): Promise<Record<string, TokenRecord>> {
     try {
