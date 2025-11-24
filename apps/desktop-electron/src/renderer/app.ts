@@ -4305,7 +4305,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
         ];
         return haystacks.some(text => text && text.includes(normalized));
       })
-      .slice(0, 6);
+      .slice(0, 20);
     elements.suggestions.innerHTML = '';
     results.forEach((template, index) => {
       const li = document.createElement('li');
