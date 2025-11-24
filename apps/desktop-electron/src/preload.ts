@@ -15,6 +15,8 @@ interface NodeVisionBridge {
   loadWorkflows(): Promise<{ ok: boolean; workflows?: WorkflowRecord[]; message?: string }>;
   saveWorkflows(workflows: WorkflowRecord[]): Promise<{ ok: boolean; message?: string }>;
   storeMediaFile(payload: { name: string; buffer: ArrayBuffer }): Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
+  getSiblingMediaFile(payload: { currentPath: string; direction: 'next' | 'prev'; nodeKind?: 'image' | 'video' | 'any' }): Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
+  loadFileByPath(payload: { filePath: string }): Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
   generateCroppedPreview(payload: {
     sourcePath: string;
     kind: 'image' | 'video';
@@ -40,6 +42,8 @@ const api: NodeVisionBridge = {
   loadWorkflows: () => ipcRenderer.invoke('nodevision:workflows:load'),
   saveWorkflows: workflows => ipcRenderer.invoke('nodevision:workflows:save', { workflows }),
   storeMediaFile: payload => ipcRenderer.invoke('nodevision:media:store', payload),
+  getSiblingMediaFile: payload => ipcRenderer.invoke('nodevision:media:getSiblingFile', payload),
+  loadFileByPath: payload => ipcRenderer.invoke('nodevision:media:loadFileByPath', payload),
   generateCroppedPreview: payload => ipcRenderer.invoke('nodevision:preview:crop', payload)
 };
 

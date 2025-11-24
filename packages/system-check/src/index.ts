@@ -29,8 +29,8 @@ const getExeca = async (): Promise<ExecaModule['execa']> => {
   return execaRunner;
 };
 
-export const DEFAULT_TOTAL_LIMIT_BYTES = 1_000_000_000; // 1GB
-export const DEFAULT_SINGLE_JOB_LIMIT_BYTES = 500_000_000; // 500MB
+export const DEFAULT_TOTAL_LIMIT_BYTES = 10_000_000_000; // 10GB
+export const DEFAULT_SINGLE_JOB_LIMIT_BYTES = 5_000_000_000; // 5GB
 
 export type BinaryLicense = 'lgpl' | 'gpl' | 'nonfree' | 'unknown';
 

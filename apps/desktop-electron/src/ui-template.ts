@@ -1197,6 +1197,19 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         justify-content: center;
         font-size: 14px;
         font-weight: 600;
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        color: rgba(48, 48, 60, 0.7);
+        transition: all 0.15s ease;
+      }
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-arrow:hover:not(:disabled) {
+        background: rgba(0, 0, 0, 0.05);
+        color: rgba(48, 48, 60, 0.95);
+      }
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-arrow:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
       }
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-filename {
         border: 1px solid rgba(0, 0, 0, 0.15);
@@ -1207,6 +1220,28 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-file-dropdown {
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 999px;
+        padding: 4px 12px;
+        background: rgba(255, 255, 255, 0.8);
+        font-size: 12px;
+        cursor: pointer;
+        min-width: 120px;
+        max-width: 100%;
+        flex: 1;
+        outline: none;
+        transition: all 0.15s ease;
+        color: #333;
+      }
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-file-dropdown:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: rgba(0, 0, 0, 0.25);
+      }
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-file-dropdown:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview) .node-media-aspect {
         margin: 10px 0 0;

@@ -349,6 +349,100 @@ ipcMain.handle('nodevision:media:store', async (_event, payload) => {
   }
 });
 
+ipcMain.handle('nodevision:media:getSiblingFile', async (_event, payload) => {
+  try {
+    const currentPath: string | undefined = payload?.currentPath;
+    const direction: 'next' | 'prev' = payload?.direction;
+    const nodeKind: 'image' | 'video' | 'any' = payload?.nodeKind ?? 'any';
+
+    if (!currentPath || !direction) {
+      throw new Error('currentPath and direction are required');
+    }
+
+    const dirPath = path.dirname(currentPath);
+    const currentName = path.basename(currentPath);
+
+    // Define media file extensions
+    const imageExts = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']);
+    const videoExts = new Set(['.mp4', '.mov', '.m4v', '.mkv', '.webm', '.avi', '.flv']);
+
+    // Read directory
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+    // Filter for media files based on node kind
+    const mediaFiles = entries
+      .filter(entry => entry.isFile())
+      .filter(entry => {
+        const ext = path.extname(entry.name).toLowerCase();
+        if (nodeKind === 'image') {
+          return imageExts.has(ext);
+        } else if (nodeKind === 'video') {
+          return videoExts.has(ext);
+        } else {
+          return imageExts.has(ext) || videoExts.has(ext);
+        }
+      })
+      .map(entry => entry.name)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+    // Find current file index
+    const currentIndex = mediaFiles.indexOf(currentName);
+    if (currentIndex === -1) {
+      return { ok: false, message: 'Current file not found in directory' };
+    }
+
+    // Calculate target index
+    const targetIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+
+    // Check bounds
+    if (targetIndex < 0 || targetIndex >= mediaFiles.length) {
+      return { ok: false, message: direction === 'next' ? 'No next file' : 'No previous file' };
+    }
+
+    const targetName = mediaFiles[targetIndex];
+    const targetPath = path.join(dirPath, targetName);
+
+    // Read file as buffer
+    const buffer = await fs.readFile(targetPath);
+
+    return {
+      ok: true,
+      name: targetName,
+      path: targetPath,
+      buffer: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+    };
+  } catch (error) {
+    console.error('[NodeVision] getSiblingFile failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+
+ipcMain.handle('nodevision:media:loadFileByPath', async (_event, payload) => {
+  try {
+    const filePath: string | undefined = payload?.filePath;
+
+    if (!filePath) {
+      throw new Error('filePath is required');
+    }
+
+    // Read file as buffer
+    const buffer = await fs.readFile(filePath);
+    const fileName = path.basename(filePath);
+
+    return {
+      ok: true,
+      name: fileName,
+      path: filePath,
+      buffer: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+    };
+  } catch (error) {
+    console.error('[NodeVision] loadFileByPath failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+
 ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
   try {
     if (!cachedSettings) {
@@ -543,8 +637,13 @@ async function bootstrapFoundation(): Promise<BootStatus> {
   await ensureTempRoot(settings.tempRoot);
   const tempStatus = await enforceTempRoot(settings.tempRoot).catch(error => {
     if (error instanceof ResourceLimitError) {
+      const isTotal = error.status.overTotalLimit;
+      const limitType = isTotal ? 'Total tempRoot limit' : 'Single item limit';
+      const limitValue = isTotal ? error.status.maxTotalBytes : error.status.maxSingleJobBytes;
+      const currentVal = isTotal ? error.status.totalBytes : error.status.largestEntryBytes;
+
       throw new Error(
-        `tempRoot limit exceeded: total=${error.status.totalBytes} bytes (limit ${error.status.maxTotalBytes}), largest=${error.status.largestEntryBytes} bytes at ${error.status.largestEntryPath}`
+        `${limitType} exceeded: ${currentVal} bytes (limit ${limitValue}). Largest item: ${error.status.largestEntryBytes} bytes at ${error.status.largestEntryPath}`
       );
     }
     throw error;

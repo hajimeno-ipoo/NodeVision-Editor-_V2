@@ -243,7 +243,8 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
     }
   };
 
-  const ingestMediaFile = (nodeId: string, file: File): void => {
+  const ingestMediaFile = (nodeId: string, file: File, options?: { addToHistory?: boolean; filePath?: string }): void => {
+    const addToHistory = options?.addToHistory ?? false;
     const mode = getLoadNodeKindById(nodeId);
     const kind = inferMediaKind(file);
     if (mode === 'image' && kind !== 'image') {
@@ -259,10 +260,12 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
 
     const saveAndPreview = async () => {
       cleanupMediaPreview(nodeId);
-      let storedPath: string | null = null;
+      let storedPath: string | null = options?.filePath || null;
       let storedUrl: string | null = null;
       const bridge = (window as unknown as { nodevision?: NodevisionApi }).nodevision;
-      if (typeof bridge?.storeMediaFile === 'function') {
+
+      // Only store if we don't have a path yet
+      if (!storedPath && typeof bridge?.storeMediaFile === 'function') {
         try {
           const buffer = await file.arrayBuffer();
           const stored = await bridge.storeMediaFile({ name: file.name || 'media', buffer });
@@ -301,6 +304,26 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
         ownedUrl: Boolean(storedPath || storedUrl) || previewUrl.startsWith('blob:'),
         filePath: storedPath
       });
+
+      // Update history for navigation (only when explicitly requested)
+      if (addToHistory && storedPath) {
+        // Directory history for arrow navigation
+        const dirPath = storedPath.substring(0, storedPath.lastIndexOf('/'));
+        if (dirPath) {
+          state.directoryHistory.set(dirPath, storedPath);
+        }
+
+        // Node file history for dropdown
+        const existingHistory = state.nodeFileHistory.get(nodeId) || [];
+        if (!existingHistory.includes(storedPath)) {
+          const newHistory = [storedPath, ...existingHistory];
+          if (newHistory.length > 20) {
+            newHistory.length = 20; // Keep max 20 items
+          }
+          state.nodeFileHistory.set(nodeId, newHistory);
+        }
+      }
+
       renderNodes();
       if (kind === 'image') {
         measureImageDimensions(nodeId, file, previewUrl);
@@ -325,8 +348,84 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
       input.value = '';
       return;
     }
-    ingestMediaFile(nodeId, file);
+    ingestMediaFile(nodeId, file, { addToHistory: true });
     input.value = '';
+  };
+
+  const handleNavigateSiblingFile = async (nodeId: string, direction: 'next' | 'prev'): Promise<void> => {
+    const preview = state.mediaPreviews.get(nodeId);
+    const currentPath = preview?.filePath;
+    const fileHistory = state.nodeFileHistory.get(nodeId) || [];
+
+    // No history to navigate
+    if (fileHistory.length === 0) {
+      showToast(t('nodes.load.noHistory'), 'info');
+      return;
+    }
+
+    // Find current index in history
+    let currentIndex = -1;
+    if (currentPath) {
+      currentIndex = fileHistory.indexOf(currentPath);
+    }
+
+    // Calculate next index (linear, no wrapping)
+    // History is [Newest, ..., Oldest]
+    // Prev (Left) -> Older (Index + 1)
+    // Next (Right) -> Newer (Index - 1)
+    let nextIndex: number;
+    if (currentIndex === -1) {
+      // Not in history, start from beginning (newest)
+      nextIndex = 0;
+    } else {
+      if (direction === 'next') {
+        nextIndex = currentIndex - 1;
+      } else {
+        nextIndex = currentIndex + 1;
+      }
+    }
+
+    // Boundary check
+    if (nextIndex < 0 || nextIndex >= fileHistory.length) {
+      // End of history reached
+      return;
+    }
+
+    const nextPath = fileHistory[nextIndex];
+    if (!nextPath) {
+      showToast(t('toast.mediaFailed'), 'error');
+      return;
+    }
+
+    // Load file from path
+    const bridge = (window as unknown as { nodevision?: NodevisionApi }).nodevision;
+    if (typeof bridge?.loadFileByPath !== 'function') {
+      console.error('[NodeVision] loadFileByPath not available');
+      showToast(t('toast.mediaFailed'), 'error');
+      return;
+    }
+
+    try {
+      const result = await bridge.loadFileByPath({ filePath: nextPath });
+
+      if (!result.ok || !result.buffer || !result.name) {
+        showToast(result.message || t('toast.mediaFailed'), 'error');
+        return;
+      }
+
+      // Convert ArrayBuffer to File object
+      const blob = new Blob([result.buffer]);
+      const file = new File([blob], result.name, {
+        type: result.name.match(/\.(jpe?g|png|gif|webp|bmp)$/i) ? 'image/*' : 'video/*'
+      });
+
+      // Load the file (don't add to history - arrow navigation)
+      // Pass filePath to ensure preview.filePath is set correctly for dropdown selection
+      ingestMediaFile(nodeId, file, { filePath: nextPath });
+    } catch (error) {
+      console.error('[NodeVision] history navigation failed', error);
+      showToast(t('toast.mediaFailed'), 'error');
+    }
   };
 
   const buildLoadNodeMediaSection = (node: RendererNode): string => {
@@ -367,11 +466,65 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
         : t('nodes.load.aspectUnknown');
     const aspectHtml = `<p class="node-media-aspect">${escapeHtml(aspectText)}</p>`;
 
+    const hasPreview = Boolean(preview);
+
+    // Check navigation boundaries to disable buttons visually
+    const fileHistory = state.nodeFileHistory.get(nodeId) || [];
+    const currentPath = preview?.filePath;
+
+    // Debug logging for dropdown selection
+    if (fileHistory.length > 0) {
+      console.log('[NodeVision] Dropdown Debug:', {
+        nodeId,
+        currentPath,
+        historyLength: fileHistory.length,
+        firstHistory: fileHistory[0],
+        matchFound: fileHistory.includes(currentPath || '')
+      });
+    }
+
+    let currentIndex = -1;
+    if (currentPath && fileHistory.length > 0) {
+      currentIndex = fileHistory.indexOf(currentPath);
+    }
+
+    // History is [Newest, ..., Oldest]
+    // Index 0 is Newest
+    // Index Length-1 is Oldest
+    const isNewest = currentIndex === 0;
+    const isOldest = currentIndex === fileHistory.length - 1;
+    const isEmpty = fileHistory.length === 0;
+
+    // Prev (Left) goes to Older (Index + 1) -> Disable if Oldest
+    const prevBtnDisabled = hasPreview && !isEmpty && !isOldest ? '' : 'disabled';
+    // Next (Right) goes to Newer (Index - 1) -> Disable if Newest
+    const nextBtnDisabled = hasPreview && !isEmpty && !isNewest ? '' : 'disabled';
+
+    // Always show dropdown format
+    const currentFileName = preview?.name || fileLabel;
+
+    let options: string;
+    if (fileHistory.length > 0) {
+      // Show history
+      options = fileHistory.map(path => {
+        const fileName = path.substring(path.lastIndexOf('/') + 1);
+        const selected = path === currentPath ? ' selected' : '';
+        return `<option value="${escapeHtml(path)}"${selected}>${escapeHtml(fileName)}</option>`;
+      }).join('');
+    } else if (currentPath) {
+      // Show only current file
+      options = `<option value="${escapeHtml(currentPath)}" selected>${escapeHtml(currentFileName)}</option>`;
+    } else {
+      // No file selected
+      options = `<option value="" selected>${escapeHtml(currentFileName)}</option>`;
+    }
+
+    const fileDisplayHtml = `<select class="node-media-file-dropdown" data-node-id="${escapeHtml(nodeId)}"${hasPreview ? '' : ' disabled'}>${options}</select>`;
     const toolbar = `
       <div class="node-media-toolbar">
-        <button type="button" class="node-media-arrow" disabled aria-hidden="true">◀</button>
-        <span class="node-media-filename" title="${fileLabel}">${fileLabel}</span>
-        <button type="button" class="node-media-arrow" disabled aria-hidden="true">▶</button>
+        <button type="button" class="node-media-arrow node-media-prev" ${prevBtnDisabled} data-direction="prev">◀</button>
+        ${fileDisplayHtml}
+        <button type="button" class="node-media-arrow node-media-next" ${nextBtnDisabled} data-direction="next">▶</button>
       </div>
     `;
 
@@ -406,6 +559,55 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
       element
         .querySelectorAll<HTMLInputElement>('input[data-media-input]')
         .forEach(input => input.addEventListener('change', () => handleMediaInputChange(node.id, input)));
+
+      element
+        .querySelectorAll<HTMLButtonElement>('.node-media-arrow')
+        .forEach(button => {
+          button.addEventListener('click', () => {
+            const direction = button.dataset.direction as 'next' | 'prev';
+            if (direction) {
+              void handleNavigateSiblingFile(node.id, direction);
+            }
+          });
+        });
+
+      element
+        .querySelectorAll<HTMLSelectElement>('.node-media-file-dropdown')
+        .forEach(select => {
+          select.addEventListener('change', async () => {
+            const selectedPath = select.value;
+            if (!selectedPath) return;
+
+            const bridge = (window as unknown as { nodevision?: NodevisionApi }).nodevision;
+            if (typeof bridge?.loadFileByPath !== 'function') {
+              console.error('[NodeVision] loadFileByPath not available');
+              showToast(t('toast.mediaFailed'), 'error');
+              return;
+            }
+
+            try {
+              const result = await bridge.loadFileByPath({ filePath: selectedPath });
+
+              if (!result.ok || !result.buffer || !result.name) {
+                showToast(result.message || t('toast.mediaFailed'), 'error');
+                return;
+              }
+
+              // Convert ArrayBuffer to File object
+              const blob = new Blob([result.buffer]);
+              const file = new File([blob], result.name, {
+                type: result.name.match(/\.(jpe?g|png|gif|webp|bmp)$/i) ? 'image/*' : 'video/*'
+              });
+
+              // Load the file (don't add to history - dropdown selection)
+              // Pass filePath to ensure preview.filePath is set correctly for dropdown selection
+              ingestMediaFile(node.id, file, { filePath: selectedPath });
+            } catch (error) {
+              console.error('[NodeVision] dropdown file load failed', error);
+              showToast(t('toast.mediaFailed'), 'error');
+            }
+          });
+        });
     }
   });
 

@@ -121,6 +121,8 @@ export interface RendererState {
   workflowMenuOpen?: boolean;
   workflowContextMenuOpen?: boolean;
   workflowContextTargetId: string | null;
+  directoryHistory: Map<string, string>;
+  nodeFileHistory: Map<string, string[]>;
 }
 
 export interface HistoryEntry {
@@ -222,6 +224,8 @@ export interface NodevisionApi {
   loadWorkflows?: () => Promise<{ ok: boolean; workflows?: StoredWorkflow[]; message?: string }>;
   saveWorkflows?: (workflows: StoredWorkflow[]) => Promise<{ ok: boolean; message?: string }>;
   storeMediaFile?: (payload: { name: string; buffer: ArrayBuffer }) => Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
+  getSiblingMediaFile?: (payload: { currentPath: string; direction: 'next' | 'prev'; nodeKind?: 'image' | 'video' | 'any' }) => Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
+  loadFileByPath?: (payload: { filePath: string }) => Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
   generateCroppedPreview?: (payload: {
     sourcePath: string;
     kind: 'image' | 'video';

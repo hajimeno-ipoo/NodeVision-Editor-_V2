@@ -99,6 +99,8 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
     workflowSearch: '',
     workflowMenuOpen: false,
     workflowContextMenuOpen: false,
-    workflowContextTargetId: null
+    workflowContextTargetId: null,
+    directoryHistory: new Map<string, string>(),
+    nodeFileHistory: new Map<string, string[]>()
   };
 };
