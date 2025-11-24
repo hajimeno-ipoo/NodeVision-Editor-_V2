@@ -76,7 +76,7 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     description: 'Apply crop to multiple images',
     keywords: ['batch', 'crop', 'trim', 'edit', 'multiple'],
     width: 360,
-    height: 520,
+    height: 640,
     inputs: [
       { id: 'input-1', label: 'Source 1', direction: 'input', dataType: 'video', required: true },
       { id: 'input-2', label: 'Source 2', direction: 'input', dataType: 'video', required: false },
