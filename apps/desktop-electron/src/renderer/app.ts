@@ -2830,9 +2830,10 @@ import { calculatePreviewSize } from './nodes/preview-size';
     const target = dot ?? portEl;
     const rect = target.getBoundingClientRect();
     const canvasRect = elements.canvas.getBoundingClientRect();
+    // Divide by zoom because the SVG is inside the scaled canvas
     return {
-      x: rect.left - canvasRect.left + rect.width / 2,
-      y: rect.top - canvasRect.top + rect.height / 2
+      x: (rect.left - canvasRect.left + rect.width / 2) / state.zoom,
+      y: (rect.top - canvasRect.top + rect.height / 2) / state.zoom
     };
   };
 
@@ -2880,9 +2881,12 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const renderConnectionPaths = (): void => {
     if (!elements.connectionLayer) return;
     const rect = elements.canvas.getBoundingClientRect();
-    elements.connectionLayer.setAttribute('viewBox', '0 0 ' + rect.width + ' ' + rect.height);
-    elements.connectionLayer.setAttribute('width', String(rect.width));
-    elements.connectionLayer.setAttribute('height', String(rect.height));
+    // Adjust SVG dimensions to account for canvas zoom
+    const width = rect.width / state.zoom;
+    const height = rect.height / state.zoom;
+    elements.connectionLayer.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    elements.connectionLayer.setAttribute('width', String(width));
+    elements.connectionLayer.setAttribute('height', String(height));
     const segments: string[] = [];
     const pushPath = (start: Point | null, end: Point | null, extraClass = ''): void => {
       if (!start || !end) return;
