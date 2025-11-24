@@ -27,13 +27,24 @@ interface NodeVisionBridge {
     flipHorizontal?: boolean;
     flipVertical?: boolean;
     aspectMode?: string;
-    widthHint?: number | null;
-    heightHint?: number | null;
     durationMs?: number | null;
   }): Promise<unknown>;
+  showSaveDialog(payload: {
+    title?: string;
+    defaultPath?: string;
+    filters?: { name: string; extensions: string[] }[];
+  }): Promise<{ filePath?: string; canceled: boolean }>;
+  enqueueExportJob(payload: {
+    sourcePath: string;
+    outputPath: string;
+    format: string;
+    quality: string;
+  }): Promise<{ ok: boolean; message?: string }>;
 }
 
 const api: NodeVisionBridge = {
+  showSaveDialog: (payload) => ipcRenderer.invoke('nodevision:dialog:save', payload),
+  enqueueExportJob: (payload) => ipcRenderer.invoke('nodevision:queue:export', payload),
   enqueueDemoJob: payload => ipcRenderer.invoke('nodevision:queue:enqueue', payload ?? {}),
   cancelAllJobs: () => ipcRenderer.invoke('nodevision:queue:cancelAll'),
   getQueueSnapshot: () => ipcRenderer.invoke('nodevision:queue:snapshot'),

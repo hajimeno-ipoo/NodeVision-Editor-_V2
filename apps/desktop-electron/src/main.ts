@@ -258,9 +258,42 @@ ipcMain.handle('nodevision:queue:enqueue', async (_event, payload) => {
     return { ok: true };
   } catch (error) {
     if (error instanceof QueueFullError) {
-      return { ok: false, code: 'QUEUE_FULL', max: error.maxQueueLength };
+      return { ok: false, error: 'queue_full', message: 'Job queue is full' };
     }
     throw error;
+  }
+});
+
+const executeExportJob = async (
+  _ctx: JobRunContext,
+  payload: { sourcePath: string; outputPath: string; format: string; quality: string }
+): Promise<JobRunResult> => {
+  const { sourcePath, outputPath } = payload;
+
+  const detection = await detectFFmpeg({});
+  if (!detection.ffmpeg) {
+    throw new Error('FFmpeg not found');
+  }
+
+  // Basic export: ffmpeg -i input -y output
+  // TODO: Apply quality settings and handle cancellation
+  const args = ['-i', sourcePath, '-y', outputPath];
+
+  await runFfmpeg(detection.ffmpeg.path, args);
+
+  return { outputPath };
+};
+
+ipcMain.handle('nodevision:queue:export', async (_event, payload) => {
+  try {
+    jobQueue.enqueue({
+      name: `Export ${path.basename(payload.outputPath)}`,
+      metadata: { type: 'export', ...payload },
+      execute: (ctx) => executeExportJob(ctx, payload)
+    });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
   }
 });
 
@@ -308,6 +341,15 @@ ipcMain.handle('nodevision:logs:export', async (_event, payload) => {
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : String(error) };
   }
+});
+
+ipcMain.handle('nodevision:dialog:save', async (_event, payload) => {
+  const { filePath, canceled } = await dialog.showSaveDialog({
+    title: payload?.title,
+    defaultPath: payload?.defaultPath,
+    filters: payload?.filters
+  });
+  return { filePath, canceled };
 });
 
 ipcMain.handle('nodevision:workflows:load', async () => {

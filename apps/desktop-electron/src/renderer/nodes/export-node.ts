@@ -152,15 +152,65 @@ const bindExportEvents = (
       const targetNode = state.nodes.find(n => n.id === node.id);
       if (!targetNode) return;
 
+      const { t } = context;
       const settings: ExportSettings = (targetNode.settings as ExportSettings) || {};
       const format: ExportSettings['format'] = (settings.format as ExportSettings['format']) || 'mp4';
       const quality = settings.quality || 'high';
 
-      // TODO: Implement actual export logic
-      console.log('[Export] Starting export:', { format, quality });
+      // Open save dialog
+      const extensions = format === 'png' || format === 'jpg' ? [format] : [format === 'mov' ? 'mov' : 'mp4'];
 
-      // For now, just show a placeholder message
-      alert(`Export started:\nFormat: ${format}\nQuality: ${quality}\n\nThis feature will be fully implemented soon.`);
+      try {
+        const result = await window.nodevision.showSaveDialog({
+          title: t('nodes.export.save'),
+          filters: [
+            { name: format.toUpperCase(), extensions }
+          ]
+        });
+
+        if (result.canceled || !result.filePath) {
+          return;
+        }
+
+        // Update settings with output path
+        targetNode.settings = {
+          ...settings,
+          outputPath: result.filePath
+        } as any;
+
+        // Find source file path from connected node
+        const connection = context.state.connections.find(
+          c => c.toNodeId === node.id && c.toPortId === 'program'
+        );
+
+        if (!connection) {
+          alert('No input connected');
+          return;
+        }
+
+        const sourcePreview = context.state.mediaPreviews.get(connection.fromNodeId);
+        if (!sourcePreview?.filePath) {
+          alert('Source file not found');
+          return;
+        }
+
+        // Enqueue export job
+        const jobResult = await window.nodevision.enqueueExportJob({
+          sourcePath: sourcePreview.filePath,
+          outputPath: result.filePath,
+          format,
+          quality
+        });
+
+        if (!jobResult.ok) {
+          console.error('[Export] Job enqueue failed:', jobResult.message);
+          alert(`Export failed: ${jobResult.message}`);
+        } else {
+          console.log('[Export] Job enqueued successfully');
+        }
+      } catch (error) {
+        console.error('[Export] Failed to open save dialog:', error);
+      }
     });
   }
 };
