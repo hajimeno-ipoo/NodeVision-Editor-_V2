@@ -140,22 +140,6 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     ]
   },
   {
-    typeId: 'crop',
-    nodeVersion: '1.0.0',
-    title: 'Crop',
-    category: 'Transform',
-    description: 'Trim the visible area to a custom frame',
-    keywords: ['crop', 'frame', 'bounds'],
-    width: 220,
-    height: 140,
-    inputs: [
-      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
-    ],
-    outputs: [
-      { id: 'cropped', label: 'Cropped', direction: 'output', dataType: 'video', required: true }
-    ]
-  },
-  {
     typeId: 'speed',
     nodeVersion: '1.0.0',
     title: 'Speed',

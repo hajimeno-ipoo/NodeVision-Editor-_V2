@@ -2142,7 +2142,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         list-style: none;
         padding: 0;
         margin: 8px 0 0;
-        max-height: 180px;
+        max-height: 500px;
         overflow: auto;
         border-radius: 10px;
         border: 1px solid rgba(255, 255, 255, 0.08);
