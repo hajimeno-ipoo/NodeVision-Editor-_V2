@@ -2954,9 +2954,10 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   const getRelativePoint = (event: PointerEvent | MouseEvent): Point => {
     const rect = elements.canvas.getBoundingClientRect();
+    // Divide by zoom to match the SVG coordinate system
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
+      x: (event.clientX - rect.left) / state.zoom,
+      y: (event.clientY - rect.top) / state.zoom
     };
   };
 
@@ -3017,7 +3018,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const renderConnectionPaths = (): void => {
     if (!elements.connectionLayer) return;
     const rect = elements.canvas.getBoundingClientRect();
-    // Adjust SVG dimensions to account for canvas zoom
+    // SVG is inside the scaled canvas, so we need to divide by zoom
     const width = rect.width / state.zoom;
     const height = rect.height / state.zoom;
     elements.connectionLayer.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
