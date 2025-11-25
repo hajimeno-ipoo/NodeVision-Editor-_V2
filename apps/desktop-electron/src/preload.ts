@@ -40,12 +40,15 @@ interface NodeVisionBridge {
     format: string;
     quality: string;
     nodes?: any[];
+    slot?: number;
   }): Promise<{ ok: boolean; message?: string }>;
+  enqueueZipJob(payload: { files: string[]; outputPath: string; password?: string }): Promise<{ ok: boolean; message?: string }>;
 }
 
 const api: NodeVisionBridge = {
   showSaveDialog: (payload) => ipcRenderer.invoke('nodevision:dialog:save', payload),
   enqueueExportJob: (payload) => ipcRenderer.invoke('nodevision:queue:export', payload),
+  enqueueZipJob: (payload) => ipcRenderer.invoke('nodevision:queue:zip', payload),
   enqueueDemoJob: payload => ipcRenderer.invoke('nodevision:queue:enqueue', payload ?? {}),
   cancelAllJobs: () => ipcRenderer.invoke('nodevision:queue:cancelAll'),
   getQueueSnapshot: () => ipcRenderer.invoke('nodevision:queue:snapshot'),

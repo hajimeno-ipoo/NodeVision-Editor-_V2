@@ -1,9 +1,11 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, createWriteStream } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import crypto from 'node:crypto';
 import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
+import archiver from 'archiver';
+import zipEncrypted from 'archiver-zip-encrypted';
 
 import { DEFAULT_NODE_TEMPLATES, seedDemoNodes } from '@nodevision/editor';
 import {
@@ -47,6 +49,8 @@ const FFMPEG_LICENSE_URLS: Record<BinaryLicense, string> = {
 };
 const WORKFLOW_STORE_FILE = 'nodevision-workflows.json';
 
+archiver.registerFormat('zip-encrypted', zipEncrypted as any);
+
 const getWorkflowStorePath = (): string => path.join(app.getPath('userData'), WORKFLOW_STORE_FILE);
 
 const tokenManager = createTokenManager();
@@ -81,6 +85,30 @@ const isWithin = (candidate: string | null, target: string): boolean => {
   }
   const prefix = normalizedTarget.endsWith(path.sep) ? normalizedTarget : `${normalizedTarget}${path.sep}`;
   return normalizedCandidate.startsWith(prefix);
+};
+
+const createZipArchive = async (files: string[], outputPath: string, password?: string): Promise<void> => {
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+
+  await new Promise<void>((resolve, reject) => {
+    const output = createWriteStream(outputPath);
+    const archive = archiver(
+      password ? ('zip-encrypted' as any) : 'zip',
+      password
+        ? { zlib: { level: 9 }, encryptionMethod: 'aes256', password } as any
+        : { zlib: { level: 9 } }
+    );
+
+    output.on('close', () => resolve());
+    output.on('error', reject);
+    archive.on('error', reject);
+
+    archive.pipe(output);
+    files.forEach(file => {
+      archive.file(file, { name: path.basename(file) });
+    });
+    archive.finalize().catch(reject);
+  });
 };
 
 const gatherBundleHints = (): string[] => {
@@ -476,6 +504,30 @@ ipcMain.handle('nodevision:queue:export', async (_event, payload) => {
       name: `Export ${path.basename(payload.outputPath)}`,
       metadata: { type: 'export', ...payload },
       execute: (ctx) => executeExportJob(ctx, payload)
+    });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('nodevision:queue:zip', async (_event, payload) => {
+  try {
+    const files = (payload?.files as string[]) ?? [];
+    const outputPath = payload?.outputPath as string;
+    const password = payload?.password as string | undefined;
+
+    if (!files.length || !outputPath) {
+      return { ok: false, message: 'files または outputPath が不足しています' };
+    }
+
+    jobQueue.enqueue({
+      name: `Zip ${path.basename(outputPath)}`,
+      metadata: { type: 'zip', outputPath, files },
+      execute: async () => {
+        await createZipArchive(files, outputPath, password);
+        return { outputPath };
+      }
     });
     return { ok: true };
   } catch (error) {

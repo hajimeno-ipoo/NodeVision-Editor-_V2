@@ -13,9 +13,14 @@
     "@nodevision/settings": "workspace:*",
     "@nodevision/system-check": "workspace:*",
     "@nodevision/tokens": "workspace:*",
+    "archiver": "^7.0.1",
+    "archiver-zip-encrypted": "^2.0.0",
     "cropperjs": "1.6.2",
     "electron": "^32.1.2",
     "interactjs": "^1.10.27",
     "tslib": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/archiver": "^7.0.0"
   }
 }

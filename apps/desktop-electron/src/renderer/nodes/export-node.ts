@@ -1,6 +1,7 @@
 import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { buildNodeInfoSection } from './shared';
+import { ensureTrimSettings } from './trim-shared';
 
 interface ExportSettings {
   format?: 'mp4' | 'mov' | 'png' | 'jpg';
@@ -47,6 +48,14 @@ const buildExportLauncher = (
             </select>
             <button type="button" class="node-media-arrow" data-export-nav="quality" data-direction="next" data-node-id="${escapeHtml(node.id)}" aria-label="next quality">▶</button>
           </div>
+        </label>
+
+        <label class="control-label" style="margin: 0; padding-left: 8px;" data-export-zip-row>
+          <span class="control-label-text" style="display: block; margin-bottom: 6px;">ZIP でまとめる（バッチ時のみ）</span>
+          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; background: rgba(0,0,0,0.03);">
+            <input type="checkbox" data-export-zip data-node-id="${escapeHtml(node.id)}" />
+            <span style="font-size: 12px; opacity: 0.8;">スロット全部を書き出して ZIP にまとめるよ</span>
+          </label>
         </label>
 
         <button 
@@ -143,7 +152,81 @@ const bindExportEvents = (
     });
   });
 
-  // Export button
+  const zipRow = document.querySelector<HTMLElement>(`[data-export-zip-row]`);
+  const zipCheckbox = document.querySelector<HTMLInputElement>(`[data-export-zip][data-node-id="${node.id}"]`);
+
+  const findProgramConnection = () =>
+    context.state.connections.find(c => c.toNodeId === node.id && c.toPortId === 'program');
+
+  const isBatchSource = () => {
+    const conn = findProgramConnection();
+    if (!conn) return false;
+    const upstream = state.nodes.find(n => n.id === conn.fromNodeId);
+    return upstream?.typeId === 'batchcrop';
+  };
+
+  const updateZipVisibility = () => {
+    if (!zipRow) return;
+    zipRow.style.display = isBatchSource() ? 'block' : 'none';
+    if (!isBatchSource() && zipCheckbox) {
+      zipCheckbox.checked = false;
+    }
+  };
+
+  updateZipVisibility();
+
+  const parsePathParts = (filePath: string) => {
+    const parts = filePath.split(/[/\\]/);
+    const fileName = parts.pop() || '';
+    const sep = filePath.includes('\\') ? '\\' : '/';
+    const dir = parts.join(sep) || (sep === '\\' ? '.\\' : './');
+    const dot = fileName.lastIndexOf('.');
+    const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+    const ext = dot > 0 ? fileName.slice(dot) : '';
+    return { dir, base, ext, sep };
+  };
+
+  const collectUpstreamNodes = (startNodeId: string): any[] => {
+    const nodes: any[] = [];
+    let currentId = startNodeId;
+    let depth = 0;
+    const MAX_DEPTH = 50;
+
+    while (currentId && depth < MAX_DEPTH) {
+      const currentNode = context.state.nodes.find(n => n.id === currentId);
+      if (!currentNode) break;
+
+      const nodeSettings = currentNode.settings || {};
+      const mediaNode: any = {
+        id: currentNode.id,
+        typeId: currentNode.typeId,
+        nodeVersion: '1.0.0',
+        ...nodeSettings
+      };
+
+      if (currentNode.typeId === 'loadVideo' || currentNode.typeId === 'loadImage') {
+        mediaNode.path = (nodeSettings as any).filePath;
+      } else if (currentNode.typeId === 'trim') {
+        if ((nodeSettings as any).region) {
+          mediaNode.region = (nodeSettings as any).region;
+        } else if ((nodeSettings as any).cropRegion) {
+          mediaNode.region = (nodeSettings as any).cropRegion;
+        }
+      }
+
+      if (currentNode.typeId !== 'mediaPreview') {
+        nodes.unshift(mediaNode);
+      }
+
+      const inputPorts = ['program', 'source', 'input', 'input-1', 'input-2', 'input-3', 'base', 'background'];
+      const conn = context.state.connections.find(c => c.toNodeId === currentId && inputPorts.includes(c.toPortId));
+      if (!conn) break;
+      currentId = conn.fromNodeId;
+      depth++;
+    }
+    return nodes;
+  };
+
   const exportBtn = document.querySelector<HTMLButtonElement>(
     `[data-export-btn][data-node-id="${node.id}"]`
   );
@@ -156,123 +239,169 @@ const bindExportEvents = (
       const settings: ExportSettings = (targetNode.settings as ExportSettings) || {};
       const format: ExportSettings['format'] = (settings.format as ExportSettings['format']) || 'mp4';
       const quality = settings.quality || 'high';
+      const wantsZip = !!zipCheckbox?.checked;
 
-      // Open save dialog
-      const extensions = format === 'png' || format === 'jpg' ? [format] : [format === 'mov' ? 'mov' : 'mp4'];
+      const programConnection = findProgramConnection();
+      if (!programConnection) {
+        alert('No input connected');
+        return;
+      }
+
+      const sourceNode = state.nodes.find(n => n.id === programConnection.fromNodeId);
+      const isBatch = sourceNode?.typeId === 'batchcrop';
+
+      const extensions = format === 'png' || format === 'jpg'
+        ? [format]
+        : [format === 'mov' ? 'mov' : 'mp4'];
+
+      // If ZIP希望なら拡張子をzipに合わせる
+      const dialogExtensions = wantsZip && isBatch ? ['zip'] : extensions;
+      const dialogName = wantsZip && isBatch ? 'ZIP' : format.toUpperCase();
 
       try {
         const result = await window.nodevision.showSaveDialog({
           title: t('nodes.export.save'),
-          filters: [
-            { name: format.toUpperCase(), extensions }
-          ]
+          filters: [{ name: dialogName, extensions: dialogExtensions }]
         });
+        if (result.canceled || !result.filePath) return;
 
-        if (result.canceled || !result.filePath) {
-          return;
-        }
+        targetNode.settings = { ...settings, outputPath: result.filePath } as any;
 
-        // Update settings with output path
-        targetNode.settings = {
-          ...settings,
-          outputPath: result.filePath
-        } as any;
-
-        // Find source file path from connected node
-        const connection = context.state.connections.find(
-          c => c.toNodeId === node.id && c.toPortId === 'program'
-        );
-
-        if (!connection) {
-          alert('No input connected');
-          return;
-        }
-
-        // Helper to collect upstream nodes
-        const collectUpstreamNodes = (startNodeId: string): any[] => {
-          const nodes: any[] = [];
-          let currentId = startNodeId;
-
-          // Max depth to prevent infinite loops
-          let depth = 0;
-          const MAX_DEPTH = 50;
-
-          while (currentId && depth < MAX_DEPTH) {
-            const currentNode = context.state.nodes.find(n => n.id === currentId);
-            if (!currentNode) break;
-
-            const settings = currentNode.settings || {};
-            // Map EditorNode to MediaNode structure
-            const mediaNode: any = {
-              id: currentNode.id,
-              typeId: currentNode.typeId,
-              nodeVersion: '1.0.0', // Default version
-              ...settings
-            };
-
-            // Specific mappings based on node type
-            if (currentNode.typeId === 'loadVideo' || currentNode.typeId === 'loadImage') {
-              mediaNode.path = (settings as any).filePath;
-            } else if (currentNode.typeId === 'trim') {
-              // Ensure region is properly structured if present
-              if ((settings as any).region) {
-                mediaNode.region = (settings as any).region;
-              } else if ((settings as any).cropRegion) {
-                mediaNode.region = (settings as any).cropRegion;
-              }
-            }
-
-            // Skip mediaPreview nodes from the execution chain, but continue traversal
-            if (currentNode.typeId !== 'mediaPreview') {
-              nodes.unshift(mediaNode); // Add to beginning (execution order)
-            }
-
-            // Find input connection
-            // Check for common input port IDs
-            const inputPorts = ['program', 'source', 'input', 'input-1', 'base', 'background'];
-            const conn = context.state.connections.find(c =>
-              c.toNodeId === currentId && inputPorts.includes(c.toPortId)
-            );
-            if (!conn) break;
-            currentId = conn.fromNodeId;
-            depth++;
+        if (!isBatch) {
+          const upstreamNodes = collectUpstreamNodes(programConnection.fromNodeId);
+          const exportMediaNode = { id: node.id, typeId: 'export', nodeVersion: '1.0.0', container: format };
+          const chain = [...upstreamNodes, exportMediaNode];
+          const jobResult = await window.nodevision.enqueueExportJob({
+            sourcePath: '',
+            outputPath: result.filePath,
+            format,
+            quality,
+            nodes: chain
+          });
+          if (!jobResult.ok) {
+            console.error('[Export] Job enqueue failed:', jobResult.message);
+            alert(`Export failed: ${jobResult.message}`);
+          } else {
+            console.log('[Export] Job enqueued successfully');
           }
-          return nodes;
-        };
-
-        const upstreamNodes = collectUpstreamNodes(connection.fromNodeId);
-
-        console.log('[Export] Collected upstream nodes:', JSON.stringify(upstreamNodes, null, 2));
-
-        // Add the export node itself to the end of the chain
-        const exportMediaNode = {
-          id: node.id,
-          typeId: 'export',
-          nodeVersion: '1.0.0',
-          container: format,
-          // TODO: Add other export settings like codec, pixelFormat if available
-        };
-
-        const chain = [...upstreamNodes, exportMediaNode];
-        console.log('[Export] Full node chain:', JSON.stringify(chain, null, 2));
-
-        // Enqueue export job with the full chain
-        const jobResult = await window.nodevision.enqueueExportJob({
-          sourcePath: '', // Deprecated, but kept for type compatibility if needed
-          outputPath: result.filePath,
-          format,
-          quality,
-          nodes: chain
-        });
-
-        if (!jobResult.ok) {
-          console.error('[Export] Job enqueue failed:', jobResult.message);
-          alert(`Export failed: ${jobResult.message}`);
-        } else {
-          console.log('[Export] Job enqueued successfully');
+          return;
         }
+
+        // === Batch Export Path ===
+        const batchNode = sourceNode;
+        const connectedSlots = [1, 2, 3].filter(slot =>
+          state.connections.some(c => c.toNodeId === batchNode.id && c.toPortId === `input-${slot}`)
+        );
+        if (connectedSlots.length === 0) {
+          alert('バッチ入力がありません');
+          return;
+        }
+
+        const { dir, base, ext: chosenExt, sep } = parsePathParts(result.filePath);
+        const mediaExt = chosenExt && chosenExt !== '.zip' ? chosenExt : `.${format === 'mov' ? 'mov' : format === 'png' ? 'png' : format === 'jpg' ? 'jpg' : 'mp4'}`;
+        const zipPath = wantsZip ? (chosenExt === '.zip' ? result.filePath : `${result.filePath}.zip`) : null;
+
+        const builtChains: { slot: number; outputPath: string; nodes: any[] }[] = [];
+
+        for (const slot of connectedSlots) {
+          const inputConn = state.connections.find(c => c.toNodeId === batchNode.id && c.toPortId === `input-${slot}`);
+          if (!inputConn) continue;
+          const upstreamNodes = collectUpstreamNodes(inputConn.fromNodeId).filter(n => n.typeId !== 'batchcrop');
+
+          const trimSettings = ensureTrimSettings(batchNode, slot);
+          const slotPreview = state.mediaPreviews.get(batchNode.id)?.outputs?.[`output-${slot}`];
+
+          // region を取得（優先順位: preview.cropRegion -> batchSettings.region -> デフォルト）
+          const isFullRegion = (r: any) =>
+            r &&
+            typeof r.width === 'number' &&
+            typeof r.height === 'number' &&
+            r.x === 0 &&
+            r.y === 0 &&
+            r.width >= 0.999 &&
+            r.height >= 0.999;
+
+          const pickRegion = () => {
+            if (slotPreview?.cropRegion && !isFullRegion(slotPreview.cropRegion)) return slotPreview.cropRegion;
+            if (trimSettings.region && typeof trimSettings.region.width === 'number' && typeof trimSettings.region.height === 'number' && !isFullRegion(trimSettings.region)) {
+              return trimSettings.region;
+            }
+            if (slotPreview?.cropRegion) return slotPreview.cropRegion;
+            if (trimSettings.region) return trimSettings.region;
+            return { x: 0, y: 0, width: 1, height: 1 };
+          };
+
+          // 画像座標(0-1)に正規化する
+          const normalizeRegion = (region: any, preview: any) => {
+            if (!preview || !preview.width || !preview.height || !region) return region ?? { x: 0, y: 0, width: 1, height: 1 };
+            const { width, height } = preview;
+            const toNorm = (v: number | undefined, base: number) => {
+              if (typeof v !== 'number') return 0;
+              if (v <= 1 && v >= 0) return v; // 既に正規化済み
+              return v / base;
+            };
+            return {
+              x: toNorm(region.x, width),
+              y: toNorm(region.y, height),
+              width: toNorm(region.width, width),
+              height: toNorm(region.height, height)
+            };
+          };
+
+          const region = normalizeRegion(pickRegion(), slotPreview);
+          const regionSpace: 'image' = slotPreview?.cropSpace === 'stage' ? 'image' : 'image';
+
+          const trimNode = {
+            id: `${batchNode.id}-slot${slot}-trim`,
+            typeId: 'trim',
+            nodeVersion: '1.0.0',
+            region,
+            regionSpace,
+            rotationDeg: trimSettings.rotationDeg,
+            zoom: trimSettings.zoom,
+            flipHorizontal: trimSettings.flipHorizontal,
+            flipVertical: trimSettings.flipVertical,
+            aspectMode: trimSettings.aspectMode
+          };
+
+          const exportMediaNode = { id: node.id, typeId: 'export', nodeVersion: '1.0.0', container: format };
+          const chain = [...upstreamNodes, trimNode, exportMediaNode];
+          const outputPath = `${dir}${dir.endsWith(sep) ? '' : sep}${base}_slot${slot}${mediaExt}`;
+          builtChains.push({ slot, outputPath, nodes: chain });
+        }
+
+        const writtenPaths: string[] = [];
+        for (const entry of builtChains) {
+          const jobResult = await window.nodevision.enqueueExportJob({
+            sourcePath: '',
+            outputPath: entry.outputPath,
+            format,
+            quality,
+            nodes: entry.nodes,
+            slot: entry.slot
+          } as any);
+          if (!jobResult.ok) {
+            console.error('[Export] Job enqueue failed:', jobResult.message);
+            alert(`Export failed (slot ${entry.slot}): ${jobResult.message}`);
+            return;
+          }
+          writtenPaths.push(entry.outputPath);
+        }
+
+        if (zipPath && writtenPaths.length > 0) {
+          const zipResult = await window.nodevision.enqueueZipJob({
+            files: writtenPaths,
+            outputPath: zipPath
+          });
+          if (!zipResult?.ok) {
+            alert(`ZIPジョブ登録に失敗しました: ${zipResult?.message ?? 'unknown error'}`);
+            return;
+          }
+        }
+
+        console.log('[Export] Batch job(s) enqueued successfully');
       } catch (error) {
-        console.error('[Export] Failed to open save dialog:', error);
+        console.error('[Export] Failed to export:', error);
       }
     });
   }
