@@ -2,6 +2,10 @@ import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { buildNodeInfoSection } from './shared';
 import { ensureTrimSettings } from './trim-shared';
+// Node modules via preload-exposed nodeRequire
+const path: typeof import('path') | undefined = (window as any).nodeRequire?.('path');
+const os: typeof import('os') | undefined = (window as any).nodeRequire?.('os');
+const fsPromises: typeof import('fs').promises | undefined = (window as any).nodeRequire?.('fs')?.promises;
 
 interface ExportSettings {
   format?: 'mp4' | 'mov' | 'png' | 'jpg';
@@ -301,6 +305,13 @@ const bindExportEvents = (
         const mediaExt = chosenExt && chosenExt !== '.zip' ? chosenExt : `.${format === 'mov' ? 'mov' : format === 'png' ? 'png' : format === 'jpg' ? 'jpg' : 'mp4'}`;
         const zipPath = wantsZip ? (chosenExt === '.zip' ? result.filePath : `${result.filePath}.zip`) : null;
 
+        // ZIPの場合は一時ディレクトリに出力し、あとでZIPにまとめる
+        let tempDirForZip: string | null = null;
+        if (wantsZip && os && path && fsPromises) {
+          tempDirForZip = path.join(os.tmpdir(), `nodevision-batch-${Date.now()}`);
+          await fsPromises.mkdir(tempDirForZip, { recursive: true });
+        }
+
         const builtChains: { slot: number; outputPath: string; nodes: any[] }[] = [];
 
         for (const slot of connectedSlots) {
@@ -366,7 +377,8 @@ const bindExportEvents = (
 
           const exportMediaNode = { id: node.id, typeId: 'export', nodeVersion: '1.0.0', container: format };
           const chain = [...upstreamNodes, trimNode, exportMediaNode];
-          const outputPath = `${dir}${dir.endsWith(sep) ? '' : sep}${base}_slot${slot}${mediaExt}`;
+          const outputDir = tempDirForZip ?? dir;
+          const outputPath = `${outputDir}${outputDir.endsWith(sep) ? '' : sep}${base}_slot${slot}${mediaExt}`;
           builtChains.push({ slot, outputPath, nodes: chain });
         }
 
@@ -391,7 +403,8 @@ const bindExportEvents = (
         if (zipPath && writtenPaths.length > 0) {
           const zipResult = await window.nodevision.enqueueZipJob({
             files: writtenPaths,
-            outputPath: zipPath
+            outputPath: zipPath,
+            cleanupPaths: writtenPaths
           });
           if (!zipResult?.ok) {
             alert(`ZIPジョブ登録に失敗しました: ${zipResult?.message ?? 'unknown error'}`);

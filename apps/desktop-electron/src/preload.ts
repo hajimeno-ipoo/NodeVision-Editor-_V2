@@ -42,7 +42,7 @@ interface NodeVisionBridge {
     nodes?: any[];
     slot?: number;
   }): Promise<{ ok: boolean; message?: string }>;
-  enqueueZipJob(payload: { files: string[]; outputPath: string; password?: string }): Promise<{ ok: boolean; message?: string }>;
+  enqueueZipJob(payload: { files: string[]; outputPath: string; password?: string; cleanupPaths?: string[] }): Promise<{ ok: boolean; message?: string }>;
 }
 
 const api: NodeVisionBridge = {

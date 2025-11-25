@@ -516,6 +516,7 @@ ipcMain.handle('nodevision:queue:zip', async (_event, payload) => {
     const files = (payload?.files as string[]) ?? [];
     const outputPath = payload?.outputPath as string;
     const password = payload?.password as string | undefined;
+    const cleanupPaths = (payload?.cleanupPaths as string[]) ?? [];
 
     if (!files.length || !outputPath) {
       return { ok: false, message: 'files または outputPath が不足しています' };
@@ -526,6 +527,16 @@ ipcMain.handle('nodevision:queue:zip', async (_event, payload) => {
       metadata: { type: 'zip', outputPath, files },
       execute: async () => {
         await createZipArchive(files, outputPath, password);
+        // cleanup
+        await Promise.all(
+          cleanupPaths.map(async p => {
+            try {
+              await fs.unlink(p);
+            } catch {
+              /* ignore */
+            }
+          })
+        );
         return { outputPath };
       }
     });
