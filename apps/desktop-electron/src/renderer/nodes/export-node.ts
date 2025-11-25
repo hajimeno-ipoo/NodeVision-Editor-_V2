@@ -18,7 +18,7 @@ const buildExportLauncher = (
   const quality: ExportSettings['quality'] = settings.quality ?? undefined;
 
   return `
-    <div class="node-launcher">
+    <div class="node-launcher" style="min-height: 660px; padding-bottom: 32px;">
       <div class="node-controls" style="display: flex; flex-direction: column; gap: 12px;">
         <label class="control-label" style="margin: 0; padding-left: 8px;">
           <span class="control-label-text" style="display: block; margin-bottom: 6px;">${escapeHtml(t('nodes.export.format'))}</span>
@@ -60,9 +60,9 @@ const buildExportLauncher = (
         </button>
 
         ${settings.outputPath ? `
-          <div class="export-info" style="margin-top: 8px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.1);">
-            <small style="display: block; margin-bottom: 4px; opacity: 0.7;">${escapeHtml(t('nodes.export.savedTo'))}</small>
-            <div class="export-path" style="font-size: 11px; word-break: break-all; opacity: 0.8;">${escapeHtml(settings.outputPath)}</div>
+          <div class="export-info" style="margin-top: 12px; padding: 12px 12px 0 16px; border-top: 1px solid rgba(0,0,0,0.1);">
+            <small style="display: block; margin-bottom: 6px; opacity: 0.7;">${escapeHtml(t('nodes.export.savedTo'))}</small>
+            <div class="export-path" style="font-size: 11px; word-break: break-all; opacity: 0.85;">${escapeHtml(settings.outputPath)}</div>
           </div>
         ` : ''}
       </div>
