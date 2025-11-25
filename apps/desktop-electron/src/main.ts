@@ -402,12 +402,39 @@ const executeExportJob = async (
   if (isVideo) {
     // Video Quality Settings (CRF + Preset + Audio Bitrate)
     if (quality === 'high') {
-      qualityArgs.push('-crf', '18', '-preset', 'slow', '-b:a', '320k');
+      qualityArgs.push(
+        '-crf',
+        '18',
+        '-preset',
+        'slow',
+        '-b:a',
+        '320k',
+        '-metadata',
+        'nv_preset=slow'
+      );
     } else if (quality === 'low') {
-      qualityArgs.push('-crf', '28', '-preset', 'veryfast', '-b:a', '128k');
+      qualityArgs.push(
+        '-crf',
+        '28',
+        '-preset',
+        'veryfast',
+        '-b:a',
+        '128k',
+        '-metadata',
+        'nv_preset=veryfast'
+      );
     } else {
       // Medium (Default)
-      qualityArgs.push('-crf', '23', '-preset', 'medium', '-b:a', '192k');
+      qualityArgs.push(
+        '-crf',
+        '23',
+        '-preset',
+        'medium',
+        '-b:a',
+        '192k',
+        '-metadata',
+        'nv_preset=medium'
+      );
     }
   } else if (isJpg) {
     // JPG Quality Settings (q:v range 2-31, lower is better)
