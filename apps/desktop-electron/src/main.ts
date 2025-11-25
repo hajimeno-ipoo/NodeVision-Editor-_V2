@@ -288,8 +288,20 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
 
           // Handle special parameter formatting
           if (stage.typeId === 'crop') {
-            if (k === 'width') return `w=${v}`;
-            if (k === 'height') return `h=${v}`;
+            if (k === 'width') {
+              // If v is a string expression like "iw*0.55", use it as-is
+              if (typeof v === 'string') return `w=${v}`;
+              // For numeric values close to 1.0 (100%), use 'iw' instead
+              const numVal = v as number;
+              if (Math.abs(numVal - 1.0) < 0.0001) return 'w=iw';
+              return `w=${numVal}`;
+            }
+            if (k === 'height') {
+              if (typeof v === 'string') return `h=${v}`;
+              const numVal = v as number;
+              if (Math.abs(numVal - 1.0) < 0.0001) return 'h=ih';
+              return `h=${numVal}`;
+            }
           }
           if (stage.typeId === 'setsar') {
             if (k === 'value') return `sar=${v}`;
