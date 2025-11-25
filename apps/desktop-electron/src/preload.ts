@@ -39,6 +39,7 @@ interface NodeVisionBridge {
     outputPath: string;
     format: string;
     quality: string;
+    nodes?: any[];
   }): Promise<{ ok: boolean; message?: string }>;
 }
 

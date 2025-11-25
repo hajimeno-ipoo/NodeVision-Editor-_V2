@@ -188,18 +188,81 @@ const bindExportEvents = (
           return;
         }
 
-        const sourcePreview = context.state.mediaPreviews.get(connection.fromNodeId);
-        if (!sourcePreview?.filePath) {
-          alert('Source file not found');
-          return;
-        }
+        // Helper to collect upstream nodes
+        const collectUpstreamNodes = (startNodeId: string): any[] => {
+          const nodes: any[] = [];
+          let currentId = startNodeId;
 
-        // Enqueue export job
+          // Max depth to prevent infinite loops
+          let depth = 0;
+          const MAX_DEPTH = 50;
+
+          while (currentId && depth < MAX_DEPTH) {
+            const currentNode = context.state.nodes.find(n => n.id === currentId);
+            if (!currentNode) break;
+
+            const settings = currentNode.settings || {};
+            // Map EditorNode to MediaNode structure
+            const mediaNode: any = {
+              id: currentNode.id,
+              typeId: currentNode.typeId,
+              nodeVersion: '1.0.0', // Default version
+              ...settings
+            };
+
+            // Specific mappings based on node type
+            if (currentNode.typeId === 'loadVideo' || currentNode.typeId === 'loadImage') {
+              mediaNode.path = (settings as any).filePath;
+            } else if (currentNode.typeId === 'trim') {
+              // Ensure region is properly structured if present
+              if ((settings as any).region) {
+                mediaNode.region = (settings as any).region;
+              } else if ((settings as any).cropRegion) {
+                mediaNode.region = (settings as any).cropRegion;
+              }
+            }
+
+            // Skip mediaPreview nodes from the execution chain, but continue traversal
+            if (currentNode.typeId !== 'mediaPreview') {
+              nodes.unshift(mediaNode); // Add to beginning (execution order)
+            }
+
+            // Find input connection
+            // Check for common input port IDs
+            const inputPorts = ['program', 'source', 'input', 'input-1', 'base', 'background'];
+            const conn = context.state.connections.find(c =>
+              c.toNodeId === currentId && inputPorts.includes(c.toPortId)
+            );
+            if (!conn) break;
+            currentId = conn.fromNodeId;
+            depth++;
+          }
+          return nodes;
+        };
+
+        const upstreamNodes = collectUpstreamNodes(connection.fromNodeId);
+
+        console.log('[Export] Collected upstream nodes:', JSON.stringify(upstreamNodes, null, 2));
+
+        // Add the export node itself to the end of the chain
+        const exportMediaNode = {
+          id: node.id,
+          typeId: 'export',
+          nodeVersion: '1.0.0',
+          container: format,
+          // TODO: Add other export settings like codec, pixelFormat if available
+        };
+
+        const chain = [...upstreamNodes, exportMediaNode];
+        console.log('[Export] Full node chain:', JSON.stringify(chain, null, 2));
+
+        // Enqueue export job with the full chain
         const jobResult = await window.nodevision.enqueueExportJob({
-          sourcePath: sourcePreview.filePath,
+          sourcePath: '', // Deprecated, but kept for type compatibility if needed
           outputPath: result.filePath,
           format,
-          quality
+          quality,
+          nodes: chain
         });
 
         if (!jobResult.ok) {

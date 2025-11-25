@@ -305,6 +305,15 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
         filePath: storedPath
       });
 
+      // Persist file path to node settings for export
+      const targetNode = state.nodes.find(n => n.id === nodeId);
+      if (targetNode && storedPath) {
+        targetNode.settings = {
+          ...(targetNode.settings || {}),
+          filePath: storedPath
+        } as any;
+      }
+
       // Update history for navigation (only when explicitly requested)
       if (addToHistory && storedPath) {
         // Directory history for arrow navigation

@@ -16,7 +16,9 @@ import {
   QueueFullError,
   type InspectConcatRequest,
   type JobRunContext,
-  type JobRunResult
+  type JobRunResult,
+  buildFFmpegPlan,
+  FFmpegPlan
 } from '@nodevision/engine';
 import { getSettingsFilePath, loadSettings, NodeVisionSettings, updateSettings } from '@nodevision/settings';
 import {
@@ -149,13 +151,18 @@ const getQueueSnapshot = (): QueueSnapshot => {
 
 const runFfmpeg = (ffmpegPath: string, args: string[]): Promise<void> =>
   new Promise((resolve, reject) => {
-    const child = spawn(ffmpegPath, args, { stdio: 'ignore' });
+    const child = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    let stderr = '';
+    child.stderr?.on('data', data => {
+      stderr += data.toString();
+    });
     child.on('error', reject);
     child.on('exit', code => {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`ffmpeg exited with code ${code}`));
+        console.error('[FFmpeg] Error output:', stderr);
+        reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
       }
     });
   });
@@ -264,22 +271,120 @@ ipcMain.handle('nodevision:queue:enqueue', async (_event, payload) => {
   }
 });
 
+const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
+  const args: string[] = [];
+  const filterChain: string[] = [];
+  let lastLabel = '0:v'; // Assuming single video input for now
+
+  for (const stage of plan.stages) {
+    if (stage.stage === 'input') {
+      args.push(...stage.args);
+      args.push('-i', stage.path);
+    } else if (stage.stage === 'filter') {
+      // Construct filter parameters
+      const paramsList = Object.entries(stage.params)
+        .map(([k, v]) => {
+          if (v === undefined || v === null) return null;
+
+          // Handle special parameter formatting
+          if (stage.typeId === 'crop') {
+            if (k === 'width') return `w=${v}`;
+            if (k === 'height') return `h=${v}`;
+          }
+          if (stage.typeId === 'setsar') {
+            if (k === 'value') return `sar=${v}`;
+          }
+          if (stage.typeId === 'speed') {
+            if (k === 'ratio') return null; // ratio is internal
+          }
+          if (stage.typeId === 'overlay') {
+            // Internal params to skip for the filter string
+            if (['sourcePath', 'escapedSource', 'label'].includes(k)) return null;
+          }
+          if (stage.typeId === 'text') {
+            if (['text', 'escapedText'].includes(k)) return null;
+            if (k === 'fontSize') return `fontsize=${v}`;
+            if (k === 'color') return `fontcolor=${v}`;
+          }
+
+          return `${k}=${v}`;
+        })
+        .filter((v): v is string => v !== null);
+
+      const params = paramsList.join(':');
+      const nextLabel = `tmp${filterChain.length}`;
+
+      if (stage.typeId === 'overlay') {
+        // Use movie filter to load the overlay source
+        const ovlLabel = `ovl${filterChain.length}`;
+        // movie filter takes the escaped path
+        const source = stage.params.escapedSource || stage.params.sourcePath;
+        filterChain.push(`movie='${source}'[${ovlLabel}]`);
+        filterChain.push(`[${lastLabel}][${ovlLabel}]overlay=${params}[${nextLabel}]`);
+      } else if (stage.typeId === 'text') {
+        // drawtext filter
+        const text = stage.params.escapedText || stage.params.text;
+        // Basic drawtext construction - might need fontfile path in real app
+        filterChain.push(`[${lastLabel}]drawtext=text='${text}':${params}[${nextLabel}]`);
+      } else {
+        filterChain.push(`[${lastLabel}]${stage.typeId}=${params}[${nextLabel}]`);
+      }
+      lastLabel = nextLabel;
+    } else if (stage.stage === 'output') {
+      // Output stage args
+      args.push(...stage.args);
+      if (stage.pixelFormat) {
+        args.push('-pix_fmt', stage.pixelFormat);
+      }
+    }
+  }
+
+  if (filterChain.length > 0) {
+    args.push('-filter_complex', filterChain.join(';'));
+    args.push('-map', `[${lastLabel}]`);
+    // Map audio from first input if exists (simple assumption)
+    args.push('-map', '0:a?');
+  }
+
+  args.push('-y', outputPath);
+  return args;
+};
+
 const executeExportJob = async (
   _ctx: JobRunContext,
-  payload: { sourcePath: string; outputPath: string; format: string; quality: string }
+  payload: { sourcePath: string; outputPath: string; format: string; quality: string; nodes?: any[] }
 ): Promise<JobRunResult> => {
-  const { sourcePath, outputPath } = payload;
+  const { sourcePath, outputPath, nodes } = payload;
 
   const detection = await detectFFmpeg({});
   if (!detection.ffmpeg) {
     throw new Error('FFmpeg not found');
   }
 
-  // Basic export: ffmpeg -i input -y output
-  // TODO: Apply quality settings and handle cancellation
-  const args = ['-i', sourcePath, '-y', outputPath];
+  let args: string[] = [];
 
-  await runFfmpeg(detection.ffmpeg.path, args);
+  if (nodes && nodes.length > 0) {
+    try {
+      // Build FFmpeg plan from nodes
+      const plan = buildFFmpegPlan({ nodes } as any);
+      args = planToArgs(plan, outputPath);
+      console.log('Generated FFmpeg args:', args);
+    } catch (error) {
+      console.error('Failed to build FFmpeg plan:', error);
+      // Fallback to simple export if plan building fails
+      args = ['-i', sourcePath, '-y', outputPath];
+    }
+  } else {
+    // Fallback/Legacy mode
+    args = ['-i', sourcePath, '-y', outputPath];
+  }
+
+  try {
+    await runFfmpeg(detection.ffmpeg.path, args);
+  } catch (error) {
+    console.error('[Export Job] FFmpeg execution failed:', error);
+    throw error;
+  }
 
   return { outputPath };
 };

@@ -713,7 +713,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
 
   const persistTrimSettings = async (
     nodeId: string,
-    mutate: (settings: TrimNodeSettings) => void,
+    mutate: (settings: TrimNodeSettings, targetNode: RendererNode) => void,
     toastKey: string,
     closeModal = true
   ): Promise<void> => {
@@ -723,8 +723,11 @@ import { calculatePreviewSize } from './nodes/preview-size';
       return;
     }
     const activeSlot = activeModal?.type === 'trim' ? activeModal.activeSlot : undefined;
-    const settings = ensureTrimSettings(targetNode, activeSlot);
-    mutate(settings);
+    let settings = ensureTrimSettings(targetNode, activeSlot);
+    mutate(settings, targetNode);
+
+    // Re-get settings to ensure we have the updated values for FFmpeg
+    settings = targetNode.settings as TrimNodeSettings;
     const sourcePreview = findTrimSourcePreview(nodeId, activeSlot);
     const region = settings.region ?? DEFAULT_TRIM_REGION;
     const zoomFactor = settings.zoom ?? 1;
@@ -1242,14 +1245,19 @@ import { calculatePreviewSize } from './nodes/preview-size';
       // Pass false to keep modal open
       void persistTrimSettings(
         session.nodeId,
-        settings => {
-          settings.region = session.draftRegion ?? DEFAULT_TRIM_REGION;
-          settings.regionSpace = 'image';
-          settings.rotationDeg = session.draftRotationDeg ?? 0;
-          settings.zoom = session.draftZoom ?? 1;
-          settings.flipHorizontal = session.draftFlipHorizontal ?? false;
-          settings.flipVertical = session.draftFlipVertical ?? false;
-          settings.aspectMode = session.draftAspectMode ?? 'free';
+        (_settings, node) => {
+          if (!node.settings) {
+            node.settings = {} as TrimNodeSettings;
+          }
+          const ns = node.settings as TrimNodeSettings;
+          ns.kind = 'trim';
+          ns.region = session.draftRegion ?? DEFAULT_TRIM_REGION;
+          ns.regionSpace = 'image';
+          ns.rotationDeg = session.draftRotationDeg ?? 0;
+          ns.zoom = session.draftZoom ?? 1;
+          ns.flipHorizontal = session.draftFlipHorizontal ?? false;
+          ns.flipVertical = session.draftFlipVertical ?? false;
+          ns.aspectMode = session.draftAspectMode ?? 'free';
         },
         'nodes.trim.toast.imageSaved',
         false  // Keep modal open
@@ -1262,14 +1270,19 @@ import { calculatePreviewSize } from './nodes/preview-size';
       // Pass true (default) to close modal
       void persistTrimSettings(
         session.nodeId,
-        settings => {
-          settings.region = session.draftRegion ?? DEFAULT_TRIM_REGION;
-          settings.regionSpace = 'image';
-          settings.rotationDeg = session.draftRotationDeg ?? 0;
-          settings.zoom = session.draftZoom ?? 1;
-          settings.flipHorizontal = session.draftFlipHorizontal ?? false;
-          settings.flipVertical = session.draftFlipVertical ?? false;
-          settings.aspectMode = session.draftAspectMode ?? 'free';
+        (_settings, node) => {
+          if (!node.settings) {
+            node.settings = {} as TrimNodeSettings;
+          }
+          const ns = node.settings as TrimNodeSettings;
+          ns.kind = 'trim';
+          ns.region = session.draftRegion ?? DEFAULT_TRIM_REGION;
+          ns.regionSpace = 'image';
+          ns.rotationDeg = session.draftRotationDeg ?? 0;
+          ns.zoom = session.draftZoom ?? 1;
+          ns.flipHorizontal = session.draftFlipHorizontal ?? false;
+          ns.flipVertical = session.draftFlipVertical ?? false;
+          ns.aspectMode = session.draftAspectMode ?? 'free';
         },
         'nodes.trim.toast.imageSaved',
         true  // Close modal
