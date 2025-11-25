@@ -391,6 +391,35 @@ const executeExportJob = async (
     args = ['-i', sourcePath, '-y', outputPath];
   }
 
+  // Apply quality settings
+  const quality = payload.quality || 'medium';
+  const ext = path.extname(outputPath).toLowerCase();
+  const isVideo = ['.mp4', '.mov', '.mkv', '.webm'].includes(ext);
+  const isJpg = ['.jpg', '.jpeg'].includes(ext);
+
+  if (isVideo) {
+    // Video Quality Settings (CRF + Preset + Audio Bitrate)
+    if (quality === 'high') {
+      args.push('-crf', '18', '-preset', 'slow', '-b:a', '320k');
+    } else if (quality === 'low') {
+      args.push('-crf', '28', '-preset', 'veryfast', '-b:a', '128k');
+    } else {
+      // Medium (Default)
+      args.push('-crf', '23', '-preset', 'medium', '-b:a', '192k');
+    }
+  } else if (isJpg) {
+    // JPG Quality Settings (q:v range 2-31, lower is better)
+    if (quality === 'high') {
+      args.push('-q:v', '2');
+    } else if (quality === 'low') {
+      args.push('-q:v', '10');
+    } else {
+      // Medium
+      args.push('-q:v', '5');
+    }
+  }
+  // PNG is lossless by default, so no quality flags needed
+
   try {
     await runFfmpeg(detection.ffmpeg.path, args);
   } catch (error) {
