@@ -397,25 +397,38 @@ const executeExportJob = async (
   const isVideo = ['.mp4', '.mov', '.mkv', '.webm'].includes(ext);
   const isJpg = ['.jpg', '.jpeg'].includes(ext);
 
+  const qualityArgs: string[] = [];
+
   if (isVideo) {
     // Video Quality Settings (CRF + Preset + Audio Bitrate)
     if (quality === 'high') {
-      args.push('-crf', '18', '-preset', 'slow', '-b:a', '320k');
+      qualityArgs.push('-crf', '18', '-preset', 'slow', '-b:a', '320k');
     } else if (quality === 'low') {
-      args.push('-crf', '28', '-preset', 'veryfast', '-b:a', '128k');
+      qualityArgs.push('-crf', '28', '-preset', 'veryfast', '-b:a', '128k');
     } else {
       // Medium (Default)
-      args.push('-crf', '23', '-preset', 'medium', '-b:a', '192k');
+      qualityArgs.push('-crf', '23', '-preset', 'medium', '-b:a', '192k');
     }
   } else if (isJpg) {
     // JPG Quality Settings (q:v range 2-31, lower is better)
     if (quality === 'high') {
-      args.push('-q:v', '2');
+      qualityArgs.push('-q:v', '2');
     } else if (quality === 'low') {
-      args.push('-q:v', '10');
+      qualityArgs.push('-q:v', '10');
     } else {
       // Medium
-      args.push('-q:v', '5');
+      qualityArgs.push('-q:v', '5');
+    }
+  }
+  // 品質オプションが出力パスより後ろに行くと ffmpeg に無視されるので、-y <output> の手前へ差し込む
+  if (qualityArgs.length > 0) {
+    const outputFlagIndex = args.findIndex(
+      (v, i) => v === '-y' && args[i + 1] === outputPath
+    );
+    if (outputFlagIndex !== -1) {
+      args.splice(outputFlagIndex, 0, ...qualityArgs);
+    } else {
+      args.push(...qualityArgs);
     }
   }
   // PNG is lossless by default, so no quality flags needed
