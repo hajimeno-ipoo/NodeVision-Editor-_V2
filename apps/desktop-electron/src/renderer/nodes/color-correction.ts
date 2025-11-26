@@ -11,6 +11,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
     type Processor = CanvasColorProcessor | WebGLColorProcessor;
     const processors = new Map<string, Processor>();
     const lastSourceByNode = new Map<string, string>();
+    const hasGeneratedVideoPreview = new Map<string, boolean>(); // 動画プレビューを既に生成したかを追跡
 
     const createProcessor = (): Processor => {
         try {
@@ -20,10 +21,138 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         }
     };
 
+    // FFmpeg preview generation state
+    let isGeneratingFFmpeg = false;
+    let pendingFFmpegNode: RendererNode | null = null;
+
     /**
-     * 上流ノードから元画像の URL を取得
+     * FFmpegを使って動画にカラー補正を適用したプレビューを生成
      */
-    const getSourceImageUrl = (node: RendererNode): string | null => {
+    const generateFFmpegVideoPreview = async (node: RendererNode) => {
+        if (isGeneratingFFmpeg) {
+            pendingFFmpegNode = node;
+            return;
+        }
+
+        isGeneratingFFmpeg = true;
+        pendingFFmpegNode = null;
+
+        try {
+            // 上流ノードチェーンを収集
+            const collectUpstreamNodes = (startNodeId: string): any[] => {
+                const nodes: any[] = [];
+                let currentId = startNodeId;
+                let depth = 0;
+                const MAX_DEPTH = 50;
+
+                while (currentId && depth < MAX_DEPTH) {
+                    const currentNode = state.nodes.find(n => n.id === currentId);
+                    if (!currentNode) break;
+
+                    const nodeSettings = currentNode.settings || {};
+                    const mediaNode: any = {
+                        id: currentNode.id,
+                        typeId: currentNode.typeId,
+                        nodeVersion: '1.0.0',
+                        ...nodeSettings
+                    };
+
+                    if (currentNode.typeId === 'loadVideo' || currentNode.typeId === 'loadImage') {
+                        mediaNode.path = (nodeSettings as any).filePath;
+                    }
+
+                    nodes.unshift(mediaNode);
+
+                    const inputPorts = ['program', 'source', 'input', 'base', 'background'];
+                    const conn = state.connections.find(c => c.toNodeId === currentId && inputPorts.includes(c.toPortId));
+                    if (!conn) break;
+                    currentId = conn.fromNodeId;
+                    depth++;
+                }
+                return nodes;
+            };
+
+            const chain = collectUpstreamNodes(node.id);
+            if (chain.length === 0) {
+                console.warn('[ColorCorrection] No upstream nodes found for FFmpeg generation');
+                return;
+            }
+
+            console.log('[ColorCorrection] Generating FFmpeg preview with chain:', chain.map(n => n.typeId).join(' -> '));
+
+            if (!window.nodevision.generatePreview) {
+                console.error('[ColorCorrection] FFmpeg generatePreview not available');
+                return;
+            }
+
+            const result = await window.nodevision.generatePreview({ nodes: chain });
+
+            if (result.ok && result.url) {
+                console.log('[ColorCorrection] FFmpeg preview generated successfully:', result.url);
+
+                state.mediaPreviews.set(node.id, {
+                    url: result.url,
+                    name: 'Preview',
+                    kind: 'video', // 動画として設定
+                    width: 1280,
+                    height: 720,
+                    size: 0,
+                    type: 'video/mp4',
+                    ownedUrl: true
+                });
+
+                // UI更新: renderNodes()を呼ばずに、接続されているメディアプレビューノードを直接更新
+                requestAnimationFrame(() => {
+                    const connectedPreviewNodes = state.connections
+                        .filter(c => c.fromNodeId === node.id)
+                        .map(c => c.toNodeId);
+
+                    connectedPreviewNodes.forEach(previewNodeId => {
+                        const previewNode = state.nodes.find(n => n.id === previewNodeId);
+                        if (previewNode && previewNode.typeId === 'mediaPreview') {
+                            // メディアプレビューノードのvideoタグを直接更新
+                            const nodeElement = document.querySelector(`[data-node-id="${previewNodeId}"]`);
+                            if (nodeElement && result.url) {
+                                console.log('[ColorCorrection] Updating media preview node', previewNodeId);
+
+                                // videoタグを探す（動画プレビューの場合）
+                                const video = nodeElement.querySelector('video');
+                                if (video) {
+                                    console.log('[ColorCorrection] Found video element, updating src to', result.url);
+                                    (video as HTMLVideoElement).src = result.url;
+                                    (video as HTMLVideoElement).load();
+                                } else {
+                                    // videoタグがまだない場合は全体を再描画
+                                    console.log('[ColorCorrection] Video element not found, triggering renderNodes()');
+                                    context.renderNodes();
+                                }
+                            }
+                        }
+                    });
+                });
+            } else {
+                console.error('[ColorCorrection] FFmpeg preview generation failed:', result);
+            }
+        } catch (error) {
+            console.error('[ColorCorrection] FFmpeg preview generation error:', error);
+        } finally {
+            isGeneratingFFmpeg = false;
+
+            // Retry pending request
+            if (pendingFFmpegNode) {
+                const nextNode = pendingFFmpegNode;
+                pendingFFmpegNode = null;
+                setTimeout(() => generateFFmpegVideoPreview(nextNode), 100);
+            }
+        }
+    };
+
+    type SourceMedia = { url: string; isVideo: boolean } | null;
+
+    /**
+     * 上流ノードから元メディアの URL と種別を取得
+     */
+    const getSourceMedia = (node: RendererNode): SourceMedia => {
         const inputPorts = ['program', 'source', 'input', 'base', 'background'];
         const conn = state.connections.find(c => c.toNodeId === node.id && inputPorts.includes(c.toPortId));
         if (!conn) return null;
@@ -32,12 +161,12 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         if (!sourceNode) return null;
 
         const preview = state.mediaPreviews.get(sourceNode.id);
-        if (preview?.url) return preview.url;
+        if (preview?.url) return { url: preview.url, isVideo: preview.kind === 'video' };
 
         if (sourceNode.typeId === 'loadVideo' || sourceNode.typeId === 'loadImage') {
             const settings = sourceNode.settings as any;
             if (settings?.filePath) {
-                return settings.filePath;
+                return { url: settings.filePath, isVideo: sourceNode.typeId === 'loadVideo' };
             }
         }
 
@@ -47,35 +176,63 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
     /**
      * メディアプレビューノードへ補正後の dataURL を反映
      */
-    const propagateToMediaPreview = (node: RendererNode, processor: Processor) => {
-        const dataUrl = processor.toDataURL();
-        const size = processor.getSize();
+    const propagateToMediaPreview = (node: RendererNode, processor?: Processor) => {
+        const dataUrl = processor ? processor.toDataURL() : null;
+        const size = processor?.getSize();
+
+        console.log('[ColorCorrection] Propagating preview for node', node.id, 'hasDataUrl:', !!dataUrl, 'size:', size);
+
+        // upstream ノード（このカラーコレクションノード）のプレビューを state に保持 or クリア
+        if (dataUrl) {
+            state.mediaPreviews.set(node.id, {
+                url: dataUrl,
+                name: 'Preview',
+                kind: 'image',
+                width: size?.width ?? 0,
+                height: size?.height ?? 0,
+                size: 0,
+                type: 'image/png',
+                ownedUrl: true
+            });
+            console.log('[ColorCorrection] Updated state.mediaPreviews for node', node.id);
+        } else {
+            state.mediaPreviews.delete(node.id);
+            console.log('[ColorCorrection] Removed state.mediaPreviews for node', node.id);
+        }
+
         const connectedPreviewNodes = state.connections
             .filter(c => c.fromNodeId === node.id)
             .map(c => c.toNodeId);
 
-        connectedPreviewNodes.forEach(previewNodeId => {
-            const previewNode = state.nodes.find(n => n.id === previewNodeId);
-            if (previewNode && previewNode.typeId === 'mediaPreview') {
-                // DOM反映（即時表示）
-                const img = document.querySelector(`.node-media[data-node-id="${previewNodeId}"] img`);
-                if (img) {
-                    (img as HTMLImageElement).src = dataUrl;
-                }
-            }
-        });
+        console.log('[ColorCorrection] Connected preview nodes:', connectedPreviewNodes);
 
-        // upstream ノード（このカラーコレクションノード）のプレビューを state に保持
-        state.mediaPreviews.set(node.id, {
-            url: dataUrl,
-            name: 'Preview',
-            kind: 'image',
-            width: size?.width ?? 0,
-            height: size?.height ?? 0,
-            size: 0,
-            type: 'image/png',
-            ownedUrl: true
-        });
+        // Check if we have connected preview nodes - if so, we need to trigger a re-render
+        // so that the media preview nodes can display the updated preview
+        if (connectedPreviewNodes.length > 0) {
+            // Use requestAnimationFrame to avoid blocking the current rendering
+            requestAnimationFrame(() => {
+                connectedPreviewNodes.forEach(previewNodeId => {
+                    const previewNode = state.nodes.find(n => n.id === previewNodeId);
+                    if (previewNode && previewNode.typeId === 'mediaPreview') {
+                        // Try direct DOM manipulation first (fast path)
+                        const img = document.querySelector(`.node-media[data-node-id="${previewNodeId}"] img`);
+                        console.log('[ColorCorrection] Found preview img element:', !!img, 'for node', previewNodeId);
+
+                        if (img && dataUrl) {
+                            (img as HTMLImageElement).src = dataUrl;
+                            console.log('[ColorCorrection] Updated preview img src via direct DOM');
+                        } else if (img && !dataUrl) {
+                            (img as HTMLImageElement).src = '';
+                            console.log('[ColorCorrection] Cleared preview img src via direct DOM');
+                        } else if (!img && dataUrl) {
+                            // If img doesn't exist yet, trigger a full re-render
+                            console.log('[ColorCorrection] Preview img not found, triggering renderNodes()');
+                            context.renderNodes();
+                        }
+                    }
+                });
+            });
+        }
     };
 
     const buildControls = (node: RendererNode): string => {
@@ -111,6 +268,9 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
 
         return `
       <div class="node-controls" style="padding: 12px;">
+        <div class="cc-renderer-indicator" data-renderer="unknown" style="font-size: 11px; color: #9aa0a6; margin-bottom: 8px;">
+          レンダラー: -
+        </div>
         ${renderSlider('nodes.colorCorrection.exposure', 'exposure', -2, 2, 0.1, settings.exposure ?? 0)}
         ${renderSlider('nodes.colorCorrection.brightness', 'brightness', -1, 1, 0.05, settings.brightness ?? 0)}
         ${renderSlider('nodes.colorCorrection.contrast', 'contrast', 0, 3, 0.05, settings.contrast ?? 1)}
@@ -137,42 +297,79 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                     processors.set(node.id, processor);
                 }
 
-                // 画像をロードして初期補正を適用
-                const sourceUrl = getSourceImageUrl(node);
-                if (sourceUrl) {
+                const rendererBadge = element.querySelector<HTMLElement>('.cc-renderer-indicator');
+                if (rendererBadge) {
+                    const isWebGL = processor instanceof WebGLColorProcessor;
+                    rendererBadge.dataset.renderer = isWebGL ? 'webgl' : 'canvas';
+                    rendererBadge.textContent = `レンダラー: ${isWebGL ? 'WebGL' : 'Canvas'}`;
+                }
+
+                // メディアをロードして初期補正を適用
+                const sourceMedia = getSourceMedia(node);
+                if (sourceMedia) {
                     try {
-                        let imageUrl = sourceUrl;
-                        if (sourceUrl.startsWith('file://')) {
-                            const result = await window.nodevision.loadImageAsDataURL({ filePath: sourceUrl });
-                            if (result.ok && result.dataURL) {
-                                imageUrl = result.dataURL;
+                        if (sourceMedia.isVideo) {
+                            // 動画の場合はFFmpegで処理（初回のみ）
+                            const needsGeneration = !hasGeneratedVideoPreview.get(node.id);
+                            if (needsGeneration) {
+                                console.log('[ColorCorrection]動画ソースを検出、初回FFmpegプレビューを生成中...');
+                                hasGeneratedVideoPreview.set(node.id, true);
+                                await generateFFmpegVideoPreview(node);
+
+                                // レンダラーバッジを更新
+                                if (rendererBadge) {
+                                    rendererBadge.dataset.renderer = 'ffmpeg';
+                                    rendererBadge.textContent = 'レンダラー: FFmpeg (動画)';
+                                }
+                            } else {
+                                console.log('[ColorCorrection]動画プレビューは既に生成済み、スキップ');
+                                // レンダラーバッジを更新
+                                if (rendererBadge) {
+                                    rendererBadge.dataset.renderer = 'ffmpeg';
+                                    rendererBadge.textContent = 'レンダラー: FFmpeg (動画)';
+                                }
                             }
+                        } else {
+                            // 静止画の場合はCanvas/WebGLで処理
+                            let imageUrl = sourceMedia.url;
+
+                            if (sourceMedia.url.startsWith('file://')) {
+                                const result = await window.nodevision.loadImageAsDataURL({ filePath: sourceMedia.url });
+                                if (result.ok && result.dataURL) {
+                                    imageUrl = result.dataURL;
+                                }
+                            }
+
+                            const lastSource = lastSourceByNode.get(node.id);
+                            const shouldReload = !processor.hasImage() || lastSource !== imageUrl;
+
+                            if (shouldReload) {
+                                await processor.loadImage(imageUrl);
+                                lastSourceByNode.set(node.id, imageUrl);
+                            }
+
+                            const settings = node.settings as ColorCorrectionNodeSettings;
+                            processor.applyCorrection({
+                                exposure: settings.exposure ?? 0,
+                                brightness: settings.brightness ?? 0,
+                                contrast: settings.contrast ?? 1,
+                                saturation: settings.saturation ?? 1,
+                                gamma: settings.gamma ?? 1,
+                                shadows: settings.shadows ?? 0,
+                                highlights: settings.highlights ?? 0,
+                                temperature: settings.temperature ?? 0,
+                                tint: settings.tint ?? 0
+                            });
+
+                            propagateToMediaPreview(node, processor);
                         }
-                        const lastSource = lastSourceByNode.get(node.id);
-                        const shouldReload = !processor.hasImage() || lastSource !== imageUrl;
-
-                        if (shouldReload) {
-                            await processor.loadImage(imageUrl);
-                            lastSourceByNode.set(node.id, imageUrl);
-                        }
-
-                        const settings = node.settings as ColorCorrectionNodeSettings;
-                        processor.applyCorrection({
-                            exposure: settings.exposure ?? 0,
-                            brightness: settings.brightness ?? 0,
-                            contrast: settings.contrast ?? 1,
-                            saturation: settings.saturation ?? 1,
-                            gamma: settings.gamma ?? 1,
-                            shadows: settings.shadows ?? 0,
-                            highlights: settings.highlights ?? 0,
-                            temperature: settings.temperature ?? 0,
-                            tint: settings.tint ?? 0
-                        });
-
-                        propagateToMediaPreview(node, processor);
                     } catch (error) {
                         console.error('[ColorCorrection] Offscreen preview setup failed', error);
                     }
+                } else {
+                    // ソースが無い場合は既存プレビューをクリア
+                    lastSourceByNode.delete(node.id);
+                    propagateToMediaPreview(node, undefined);
                 }
 
                 // スライダー入力で設定更新＆プレビュー伝搬
@@ -198,20 +395,36 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                             node.settings = targetNode.settings;
                         }
 
-                        if (processor && processor.hasImage()) {
-                            const settings = node.settings as ColorCorrectionNodeSettings;
-                            processor.applyCorrection({
-                                exposure: settings.exposure ?? 0,
-                                brightness: settings.brightness ?? 0,
-                                contrast: settings.contrast ?? 1,
-                                saturation: settings.saturation ?? 1,
-                                gamma: settings.gamma ?? 1,
-                                shadows: settings.shadows ?? 0,
-                                highlights: settings.highlights ?? 0,
-                                temperature: settings.temperature ?? 0,
-                                tint: settings.tint ?? 0
-                            });
-                            propagateToMediaPreview(node, processor);
+                        // プレビュー更新
+                        const sourceMedia = getSourceMedia(node);
+                        if (sourceMedia?.isVideo) {
+                            // 動画の場合：デバウンスしてFFmpegで再生成
+                            // （ドラッグ中は頻繁に生成しないように）
+                            if (pendingFFmpegNode !== node) {
+                                pendingFFmpegNode = node;
+                                setTimeout(() => {
+                                    if (pendingFFmpegNode === node) {
+                                        generateFFmpegVideoPreview(node);
+                                    }
+                                }, 500);
+                            }
+                        } else {
+                            // 静止画の場合：即座にCanvas/WebGL更新
+                            if (processor && processor.hasImage()) {
+                                const settings = node.settings as ColorCorrectionNodeSettings;
+                                processor.applyCorrection({
+                                    exposure: settings.exposure ?? 0,
+                                    brightness: settings.brightness ?? 0,
+                                    contrast: settings.contrast ?? 1,
+                                    saturation: settings.saturation ?? 1,
+                                    gamma: settings.gamma ?? 1,
+                                    shadows: settings.shadows ?? 0,
+                                    highlights: settings.highlights ?? 0,
+                                    temperature: settings.temperature ?? 0,
+                                    tint: settings.tint ?? 0
+                                });
+                                propagateToMediaPreview(node, processor);
+                            }
                         }
                     });
                 });

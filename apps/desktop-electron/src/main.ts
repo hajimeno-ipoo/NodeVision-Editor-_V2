@@ -894,20 +894,26 @@ ipcMain.handle('nodevision:preview:generate', async (_event, payload) => {
       preview: { width: 1280, height: 720 }
     });
 
-    const outputPath = path.join(previewDir, `preview-${Date.now()}.png`);
+    // Determine output format based on input type
+    const isVideo = nodes.some(n => n.typeId === 'loadVideo');
+    const ext = isVideo ? 'mp4' : 'png';
+    const outputPath = path.join(previewDir, `preview-${Date.now()}.${ext}`);
     const args = planToArgs(plan, outputPath);
 
-    // Force single frame output for preview
-    // Find where output path is and insert -frames:v 1 before it
-    // planToArgs pushes '-y', outputPath at the end
-    const outputIndex = args.indexOf(outputPath);
-    if (outputIndex !== -1) {
-      // Insert before -y if possible, or just before output path
-      // args is [...others, '-y', outputPath]
-      // We want [...others, '-frames:v', '1', '-y', outputPath]
-      // or [...others, '-y', '-frames:v', '1', outputPath]
-      // FFmpeg order for output options matters, usually before output file.
-      args.splice(outputIndex - 1, 0, '-frames:v', '1');
+    if (!isVideo) {
+      // For images, force single frame output
+      // Find where output path is and insert -frames:v 1 before it
+      const outputIndex = args.indexOf(outputPath);
+      if (outputIndex !== -1) {
+        args.splice(outputIndex - 1, 0, '-frames:v', '1');
+      }
+    } else {
+      // For videos, add video encoding parameters
+      const outputIndex = args.indexOf(outputPath);
+      if (outputIndex !== -1) {
+        // Insert video codec and quality settings before output path
+        args.splice(outputIndex, 0, '-c:v', 'libx264', '-preset', 'fast', '-crf', '23');
+      }
     }
 
     console.log('[FFmpeg] preview generate args:', args);
