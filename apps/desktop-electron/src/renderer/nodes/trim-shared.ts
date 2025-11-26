@@ -50,7 +50,7 @@ export const ensureTrimSettings = (node: RendererNode, slot?: number): TrimNodeS
     }
     current = data.batchSettings[slot];
   } else {
-    current = node.settings;
+    current = node.settings as TrimNodeSettings | undefined;
   }
 
   if (current && current.kind === 'trim') {

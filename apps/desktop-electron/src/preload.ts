@@ -29,6 +29,7 @@ interface NodeVisionBridge {
     aspectMode?: string;
     durationMs?: number | null;
   }): Promise<unknown>;
+  generatePreview(payload: { nodes: any[] }): Promise<{ ok: boolean; url?: string; path?: string; message?: string }>;
   showSaveDialog(payload: {
     title?: string;
     defaultPath?: string;
@@ -43,6 +44,7 @@ interface NodeVisionBridge {
     slot?: number;
   }): Promise<{ ok: boolean; message?: string }>;
   enqueueZipJob(payload: { files: string[]; outputPath: string; password?: string; cleanupPaths?: string[] }): Promise<{ ok: boolean; message?: string }>;
+  loadImageAsDataURL(payload: { filePath: string }): Promise<{ ok: boolean; dataURL?: string; message?: string }>;
 }
 
 const api: NodeVisionBridge = {
@@ -59,7 +61,9 @@ const api: NodeVisionBridge = {
   storeMediaFile: payload => ipcRenderer.invoke('nodevision:media:store', payload),
   getSiblingMediaFile: payload => ipcRenderer.invoke('nodevision:media:getSiblingFile', payload),
   loadFileByPath: payload => ipcRenderer.invoke('nodevision:media:loadFileByPath', payload),
-  generateCroppedPreview: payload => ipcRenderer.invoke('nodevision:preview:crop', payload)
+  generateCroppedPreview: payload => ipcRenderer.invoke('nodevision:preview:crop', payload),
+  generatePreview: payload => ipcRenderer.invoke('nodevision:preview:generate', payload),
+  loadImageAsDataURL: payload => ipcRenderer.invoke('nodevision:image:loadAsDataURL', payload)
 };
 
 contextBridge.exposeInMainWorld('nodevision', api);

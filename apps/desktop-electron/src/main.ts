@@ -346,6 +346,9 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
             if (k === 'fontSize') return `fontsize=${v}`;
             if (k === 'color') return `fontcolor=${v}`;
           }
+          if (stage.typeId === 'eq' as any || stage.typeId === 'curves' as any || stage.typeId === 'colorchannelmixer' as any) {
+            // These are FFmpeg filter names, use params as-is
+          }
 
           return `${k}=${v}`;
         })
@@ -366,6 +369,15 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
         const text = stage.params.escapedText || stage.params.text;
         // Basic drawtext construction - might need fontfile path in real app
         filterChain.push(`[${lastLabel}]drawtext=text='${text}':${params}[${nextLabel}]`);
+      } else if (stage.typeId === 'eq' as any) {
+        // eq filter for basic color correction
+        filterChain.push(`[${lastLabel}]eq=${params}[${nextLabel}]`);
+      } else if (stage.typeId === 'curves' as any) {
+        // curves filter for shadows/highlights
+        filterChain.push(`[${lastLabel}]curves=${params}[${nextLabel}]`);
+      } else if (stage.typeId === 'colorchannelmixer' as any) {
+        // colorchannelmixer for temperature/tint
+        filterChain.push(`[${lastLabel}]colorchannelmixer=${params}[${nextLabel}]`);
       } else {
         filterChain.push(`[${lastLabel}]${stage.typeId}=${params}[${nextLabel}]`);
       }
@@ -849,6 +861,99 @@ ipcMain.handle('nodevision:preview:crop', async (_event, payload) => {
     };
   } catch (error) {
     console.error('[NodeVision] preview crop failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('nodevision:preview:generate', async (_event, payload) => {
+  try {
+    if (!cachedSettings) throw new Error('Settings not initialized');
+    const ffmpegPath = cachedSettings.ffmpegPath;
+    if (!ffmpegPath) throw new Error('FFmpeg path missing');
+
+    const nodes = payload?.nodes;
+    if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
+      throw new Error('Nodes are required');
+    }
+
+    const previewDir = path.join(cachedSettings.tempRoot, 'generated-previews');
+    await fs.mkdir(previewDir, { recursive: true });
+
+    // Ensure chain ends with an export node for the plan builder
+    const chainNodes = [...nodes];
+    if (chainNodes[chainNodes.length - 1].typeId !== 'export') {
+      chainNodes.push({
+        id: 'preview-export',
+        typeId: 'export',
+        nodeVersion: '1.0.0',
+        pixelFormat: 'rgba'
+      });
+    }
+
+    const plan = buildFFmpegPlan({ nodes: chainNodes } as any, {
+      preview: { width: 1280, height: 720 }
+    });
+
+    const outputPath = path.join(previewDir, `preview-${Date.now()}.png`);
+    const args = planToArgs(plan, outputPath);
+
+    // Force single frame output for preview
+    // Find where output path is and insert -frames:v 1 before it
+    // planToArgs pushes '-y', outputPath at the end
+    const outputIndex = args.indexOf(outputPath);
+    if (outputIndex !== -1) {
+      // Insert before -y if possible, or just before output path
+      // args is [...others, '-y', outputPath]
+      // We want [...others, '-frames:v', '1', '-y', outputPath]
+      // or [...others, '-y', '-frames:v', '1', outputPath]
+      // FFmpeg order for output options matters, usually before output file.
+      args.splice(outputIndex - 1, 0, '-frames:v', '1');
+    }
+
+    console.log('[FFmpeg] preview generate args:', args);
+    await runFfmpeg(ffmpegPath, args);
+
+    return {
+      ok: true,
+      url: pathToFileURL(outputPath).toString(),
+      path: outputPath
+    };
+  } catch (error) {
+    console.error('[NodeVision] preview generate failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// Load image file as data URL for Canvas preview
+ipcMain.handle('nodevision:image:loadAsDataURL', async (_event, payload) => {
+  try {
+    const { filePath } = payload;
+    if (!filePath) {
+      return { ok: false, message: 'File path is required' };
+    }
+
+    // Read file as buffer
+    const buffer = await fs.readFile(filePath);
+
+    // Detect MIME type based on file extension
+    const ext = path.extname(filePath).toLowerCase();
+    let mimeType = 'image/png';
+    if (ext === '.jpg' || ext === '.jpeg') {
+      mimeType = 'image/jpeg';
+    } else if (ext === '.png') {
+      mimeType = 'image/png';
+    } else if (ext === '.gif') {
+      mimeType = 'image/gif';
+    } else if (ext === '.webp') {
+      mimeType = 'image/webp';
+    }
+
+    // Convert to base64 data URL
+    const dataURL = `data:${mimeType};base64,${buffer.toString('base64')}`;
+
+    return { ok: true, dataURL };
+  } catch (error) {
+    console.error('[NodeVision] loadImageAsDataURL failed', error);
     return { ok: false, message: error instanceof Error ? error.message : String(error) };
   }
 });

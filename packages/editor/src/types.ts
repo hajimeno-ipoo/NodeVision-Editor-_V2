@@ -47,7 +47,20 @@ export interface TrimNodeSettings {
   aspectMode: TrimAspectMode;
 }
 
-export type NodeSettings = TrimNodeSettings;
+export interface ColorCorrectionNodeSettings {
+  kind: 'colorCorrection';
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  gamma: number;
+  exposure: number;
+  shadows: number;
+  highlights: number;
+  temperature: number;
+  tint: number;
+}
+
+export type NodeSettings = TrimNodeSettings | ColorCorrectionNodeSettings;
 
 export interface EditorNode {
   id: string;

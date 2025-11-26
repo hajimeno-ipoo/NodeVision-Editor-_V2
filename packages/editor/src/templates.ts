@@ -172,6 +172,34 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     ]
   },
   {
+    typeId: 'colorCorrection',
+    nodeVersion: '1.0.0',
+    title: 'Color Correction',
+    category: 'Color',
+    description: 'Adjust brightness, contrast, saturation, and gamma',
+    keywords: ['color', 'correction', 'grade', 'brightness', 'contrast'],
+    width: 280,
+    height: 320,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'result', label: 'Result', direction: 'output', dataType: 'video', required: true }
+    ],
+    defaultSettings: {
+      kind: 'colorCorrection',
+      brightness: 0,
+      contrast: 1,
+      saturation: 1,
+      gamma: 1,
+      exposure: 0,
+      shadows: 0,
+      highlights: 0,
+      temperature: 0,
+      tint: 0
+    }
+  },
+  {
     typeId: 'export',
     nodeVersion: '1.0.0',
     title: 'Export Media',

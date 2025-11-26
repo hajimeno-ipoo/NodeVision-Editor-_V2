@@ -8,6 +8,7 @@ import { createTextNodeRenderer } from './text';
 import { createSpeedNodeRenderer } from './speed';
 import { createChangeFpsNodeRenderer } from './change-fps';
 import { createExportNodeRenderer } from './export-node';
+import { createColorCorrectionNodeRenderer } from './color-correction';
 import { createMediaPreviewNodeRenderer } from './media-preview';
 
 export const createNodeRenderers = (context: NodeRendererContext): NodeRendererModule[] => [
@@ -19,6 +20,7 @@ export const createNodeRenderers = (context: NodeRendererContext): NodeRendererM
   createTextNodeRenderer(context),
   createSpeedNodeRenderer(context),
   createChangeFpsNodeRenderer(context),
+  createColorCorrectionNodeRenderer(context),
   createExportNodeRenderer(context),
   createMediaPreviewNodeRenderer(context)
 ];

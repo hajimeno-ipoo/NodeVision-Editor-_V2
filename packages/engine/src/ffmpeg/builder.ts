@@ -12,6 +12,7 @@ export type MediaNodeType =
   | 'crop'
   | 'speed'
   | 'changeFps'
+  | 'colorCorrection'
   | 'export';
 
 interface BaseMediaNode {
@@ -80,6 +81,19 @@ export interface ChangeFpsNode extends BaseMediaNode {
   vsync?: 'cfr' | 'vfr';
 }
 
+export interface ColorCorrectionNode extends BaseMediaNode {
+  typeId: 'colorCorrection';
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  gamma?: number;
+  exposure?: number;
+  shadows?: number;
+  highlights?: number;
+  temperature?: number;
+  tint?: number;
+}
+
 export interface ExportNode extends BaseMediaNode {
   typeId: 'export';
   container?: 'mp4' | 'mov' | 'mkv';
@@ -97,6 +111,7 @@ export type MediaNode =
   | CropNode
   | SpeedNode
   | ChangeFpsNode
+  | ColorCorrectionNode
   | ExportNode;
 
 export interface MediaChain {
@@ -114,7 +129,7 @@ export interface BuildFFmpegPlanOptions {
 
 interface BaseStage {
   stage: 'input' | 'filter' | 'output';
-  typeId: MediaNodeType | 'setsar';
+  typeId: MediaNodeType | 'setsar' | 'eq' | 'curves' | 'colorchannelmixer';
   nodeVersion: string;
 }
 
@@ -239,6 +254,10 @@ const pickChangeFps = (nodes: MediaNode[]): ChangeFpsNode | null => {
   return pickLast(nodes, node => node.typeId === 'changeFps') as ChangeFpsNode | null;
 };
 
+const collectColorCorrections = (nodes: MediaNode[]): ColorCorrectionNode[] => {
+  return nodes.filter(node => node.typeId === 'colorCorrection') as ColorCorrectionNode[];
+};
+
 const computeDuration = (load: LoadMediaNode, speedRatio: number): number | null => {
   if (typeof load.durationMs !== 'number') {
     return null;
@@ -269,6 +288,7 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
   const crop = calculateCrop(chain.nodes) ?? trimCrop;
   const overlays = collectOverlays(chain.nodes);
   const texts = collectTexts(chain.nodes);
+  const colorCorrections = collectColorCorrections(chain.nodes);
   const speedRatio = calculateSpeed(chain.nodes);
   const fpsNode = pickChangeFps(chain.nodes);
 
@@ -344,6 +364,78 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
       }
     });
   });
+
+  // Color Correction: Multi-stage processing
+  colorCorrections.forEach(cc => {
+    // Stage 1: eq filter (brightness, contrast, saturation, gamma, exposure)
+    const hasBasicAdjustments =
+      (cc.brightness ?? 0) !== 0 ||
+      (cc.contrast ?? 1) !== 1 ||
+      (cc.saturation ?? 1) !== 1 ||
+      (cc.gamma ?? 1) !== 1 ||
+      (cc.exposure ?? 0) !== 0;
+
+    if (hasBasicAdjustments) {
+      // Combine exposure with brightness
+      const effectiveBrightness = (cc.brightness ?? 0) + (cc.exposure ?? 0) * 0.5;
+
+      stages.push({
+        stage: 'filter',
+        typeId: 'eq',
+        nodeVersion: cc.nodeVersion,
+        params: {
+          brightness: effectiveBrightness,
+          contrast: cc.contrast ?? 1,
+          saturation: cc.saturation ?? 1,
+          gamma: cc.gamma ?? 1
+        }
+      });
+    }
+
+    // Stage 2: curves filter (shadows, highlights)
+    const hasToneCurve = (cc.shadows ?? 0) !== 0 || (cc.highlights ?? 0) !== 0;
+    if (hasToneCurve) {
+      const shadowLift = (cc.shadows ?? 0) / 100 * 0.2;
+      const highlightCompress = (cc.highlights ?? 0) / 100 * -0.2;
+
+      // Generate tone curve: format is "x1/y1 x2/y2 x3/y3 ..."
+      const curve = [
+        `0/${Math.max(0, Math.min(1, 0 + shadowLift))}`,
+        `0.25/${Math.max(0, Math.min(1, 0.25 + shadowLift * 0.5))}`,
+        `0.5/0.5`,
+        `0.75/${Math.max(0, Math.min(1, 0.75 - highlightCompress * 0.5))}`,
+        `1/${Math.max(0, Math.min(1, 1 + highlightCompress))}`
+      ].join(' ');
+
+      stages.push({
+        stage: 'filter',
+        typeId: 'curves',
+        nodeVersion: cc.nodeVersion,
+        params: {
+          all: curve
+        }
+      });
+    }
+
+    // Stage 3: colorchannelmixer (temperature, tint)
+    const hasColorShift = (cc.temperature ?? 0) !== 0 || (cc.tint ?? 0) !== 0;
+    if (hasColorShift) {
+      const tempFactor = (cc.temperature ?? 0) / 100;
+      const tintFactor = (cc.tint ?? 0) / 100;
+
+      stages.push({
+        stage: 'filter',
+        typeId: 'colorchannelmixer',
+        nodeVersion: cc.nodeVersion,
+        params: {
+          rr: Math.max(0, Math.min(3, 1.0 + tempFactor * 0.3)),
+          gg: Math.max(0, Math.min(3, 1.0 + tintFactor * 0.2)),
+          bb: Math.max(0, Math.min(3, 1.0 - tempFactor * 0.3))
+        }
+      });
+    }
+  });
+
 
   if (speedRatio !== 1) {
     stages.push({

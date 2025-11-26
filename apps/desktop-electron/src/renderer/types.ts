@@ -255,6 +255,7 @@ export interface NodevisionApi {
     }
     | { ok: false; message?: string }
   >;
+  generatePreview?: (payload: { nodes: any[] }) => Promise<{ ok: boolean; url?: string; path?: string; message?: string }>;
 }
 
 export type {
