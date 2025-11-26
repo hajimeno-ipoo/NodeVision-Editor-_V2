@@ -111,6 +111,7 @@ export interface RendererState {
   highlightedConnections: Set<string>;
   pressedNodeId: string | null;
   mediaPreviews: Map<string, NodeMediaPreview>;
+  canvasPreviews: Map<string, HTMLCanvasElement>;
   nodeSizes: Map<string, NodeSize>;
   nodeChrome: Map<string, number>;
   resizing: NodeResizeSession | null;

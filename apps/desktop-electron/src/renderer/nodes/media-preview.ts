@@ -112,8 +112,11 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     const nodeWidth = nodeSize.width || node.width || 0;
     const nodeHeight = nodeSize.height || node.height || 0;
     const reservedHeight = getMediaPreviewReservedHeight(Boolean(preview));
+    // canvas プレビューがある場合（WebGL動画など）
+    const canvasPreview = sourceNodeId ? state.canvasPreviews.get(sourceNodeId) : undefined;
     const widthLimit = getPreviewWidthForNodeWidth(Math.max(nodeWidth, 0));
     const ratio = getPreviewAspectRatio(sourceNodeId ?? node.id);
+
     const previewBox = calculatePreviewSize({
       nodeWidth,
       nodeHeight,
@@ -123,10 +126,11 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       minHeight: minPreviewHeight,
       minWidth: minPreviewWidth,
       aspectRatio: ratio,
-      originalWidth: preview?.width ?? null,
-      originalHeight: preview?.height ?? null,
+      originalWidth: preview?.width ?? canvasPreview?.width ?? null,
+      originalHeight: preview?.height ?? canvasPreview?.height ?? null,
       minimumNodePortion: 0.95
     });
+
     const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
     const sourceTitle = resolveNodeTitle(sourceNode, context);
     const fileLabel = escapeHtml(preview?.name ?? sourceTitle);
@@ -147,12 +151,12 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       <p class="node-media-aspect">${escapeHtml(t('nodes.mediaPreview.sourceLabel', { title: sourceTitle }))}</p>
       ${trimHintHtml}
     `;
-    const aspectText = preview?.width && preview?.height
+    const aspectText = (preview?.width && preview?.height)
       ? `${preview.width} × ${preview.height}`
-      : t('nodes.mediaPreview.metaUnknown');
+      : (canvasPreview ? `${canvasPreview.width} × ${canvasPreview.height}` : t('nodes.mediaPreview.metaUnknown'));
     const aspectHtml = `<p class="node-media-aspect">${escapeHtml(aspectText)}</p>`;
 
-    if (!preview) {
+    if (!preview && !canvasPreview) {
       const messageKey = sourceNodeId ? 'nodes.mediaPreview.waiting' : 'nodes.mediaPreview.noInput';
       return `<div class="node-media" data-node-id="${escapeHtml(node.id)}"${inlineStyle}>
         ${toolbar}
@@ -161,11 +165,26 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       </div>`;
     }
 
-    const kind = preview.kind === 'video' ? 'video' : 'image';
+    if (canvasPreview) {
+      const crop = buildCropTransform(preview);
+      // canvasの場合はコンテナいっぱいに広げる（CSSのobject-fitで調整するため）
+      // absolute positioningを使用して確実に配置
+      return `<div class="node-media" data-node-id="${escapeHtml(node.id)}"${inlineStyle}>
+        ${toolbar}
+        <div class="node-media-frame${crop.hasCrop ? ' is-cropped' : ''}">
+          <div class="node-media-preview" data-kind="video" data-canvas-source="${escapeHtml(sourceNodeId)}" data-canvas-style="${escapeHtml(crop.style)}" style="width: 100% !important; height: 100% !important; position: relative !important;">
+            <!-- canvas will be injected in afterRender -->
+          </div>
+        </div>
+        ${aspectHtml}
+      </div>`;
+    }
+
+    const kind = preview!.kind === 'video' ? 'video' : 'image';
     const mediaTag =
       kind === 'video'
-        ? `<video src="${preview.url}" controls playsinline preload="metadata" muted style="${crop.style}"></video>`
-        : `<img src="${preview.url}" alt="${escapeHtml(preview.name)}" style="${crop.style}" />`;
+        ? `<video src="${preview!.url}" controls playsinline preload="metadata" muted style="${crop.style}"></video>`
+        : `<img src="${preview!.url}" alt="${escapeHtml(preview!.name)}" style="${crop.style}" />`;
 
     return `<div class="node-media" data-node-id="${escapeHtml(node.id)}"${inlineStyle}>
       ${toolbar}
@@ -179,7 +198,29 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
   };
 
   const render = (node: RendererNode): NodeRendererView => ({
-    afterPortsHtml: buildPreviewSection(node)
+    afterPortsHtml: buildPreviewSection(node),
+    afterRender: async (element: HTMLElement) => {
+      // canvas プレビューの挿入
+      const canvasPlaceholder = element.querySelector('[data-canvas-source]');
+
+      if (canvasPlaceholder) {
+        const sourceNodeId = canvasPlaceholder.getAttribute('data-canvas-source');
+        const canvasStyle = canvasPlaceholder.getAttribute('data-canvas-style');
+
+        if (sourceNodeId) {
+          const canvas = state.canvasPreviews.get(sourceNodeId);
+
+          if (canvas && !canvasPlaceholder.contains(canvas)) {
+            // object-fit: contain を使用して、コンテナ内でアスペクト比を維持して表示
+            // absolute positioningで強制的に広げる
+            const baseStyle = 'position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; display: block !important;';
+            const combinedStyle = canvasStyle ? `${baseStyle} ${canvasStyle}` : baseStyle;
+            canvas.setAttribute('style', combinedStyle);
+            canvasPlaceholder.appendChild(canvas);
+          }
+        }
+      }
+    }
   });
 
   return {

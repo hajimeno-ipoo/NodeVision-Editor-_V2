@@ -89,6 +89,7 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
     highlightedConnections: new Set<string>(),
     pressedNodeId: null,
     mediaPreviews: new Map<string, NodeMediaPreview>(),
+    canvasPreviews: new Map<string, HTMLCanvasElement>(),
     nodeSizes,
     nodeChrome: new Map<string, number>(),
     resizing: null,

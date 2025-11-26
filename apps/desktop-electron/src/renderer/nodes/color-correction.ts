@@ -3,6 +3,7 @@ import type { NodeRendererContext, NodeRendererModule } from './types';
 import type { ColorCorrectionNodeSettings } from '@nodevision/editor';
 import { CanvasColorProcessor } from './canvas-color-processor';
 import { WebGLColorProcessor } from './webgl-color-processor';
+import { WebGLVideoProcessor } from './webgl-video-processor';
 
 export const createColorCorrectionNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml, t } = context;
@@ -11,7 +12,12 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
     type Processor = CanvasColorProcessor | WebGLColorProcessor;
     const processors = new Map<string, Processor>();
     const lastSourceByNode = new Map<string, string>();
-    const hasGeneratedVideoPreview = new Map<string, boolean>(); // 動画プレビューを既に生成したかを追跡
+
+
+    // 動画専用プロセッサーとvideoタグの管理
+    const videoProcessors = new Map<string, WebGLVideoProcessor>();
+    const videoElements = new Map<string, HTMLVideoElement>();
+    const isVideoSource = new Map<string, boolean>(); // ノードが動画ソースかどうかを追跡
 
     const createProcessor = (): Processor => {
         try {
@@ -174,6 +180,44 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
     };
 
     /**
+     * WebGL動画canvasをstateに保存（DOM操作はmedia-preview.tsが担当）
+     */
+    const hasTriggeredRenderForCanvas = new Map<string, boolean>(); // renderNodesを一度だけ呼ぶためのフラグ
+
+    const saveCanvasPreview = (node: RendererNode, videoProcessor: WebGLVideoProcessor) => {
+        const canvas = videoProcessor.getCanvas();
+        const size = videoProcessor.getSize();
+
+        console.log('[ColorCorrection] Saving canvas preview for node', node.id);
+        console.log('[ColorCorrection] Canvas actual size:', canvas.width, 'x', canvas.height);
+        console.log('[ColorCorrection] Size from getSize():', size);
+
+        // canvas要素への参照をstateに保存
+        state.canvasPreviews.set(node.id, canvas);
+
+        // メタデータをmediaPreviewsに保存
+        const previewData = {
+            url: '', // canvas の場合、URLは不要
+            name: 'Preview (WebGL Video)',
+            kind: 'video' as const,
+            width: size.width,
+            height: size.height,
+            size: 0,
+            type: 'video/mp4',
+            ownedUrl: true
+        };
+        state.mediaPreviews.set(node.id, previewData);
+        console.log('[ColorCorrection] Saved to mediaPreviews:', previewData);
+
+        // media-preview nodeを再レンダリング（一度だけ）
+        if (!hasTriggeredRenderForCanvas.get(node.id)) {
+            hasTriggeredRenderForCanvas.set(node.id, true);
+            console.log('[ColorCorrection] Triggering renderNodes for canvas preview');
+            context.renderNodes();
+        }
+    };
+
+    /**
      * メディアプレビューノードへ補正後の dataURL を反映
      */
     const propagateToMediaPreview = (node: RendererNode, processor?: Processor) => {
@@ -309,26 +353,92 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                 if (sourceMedia) {
                     try {
                         if (sourceMedia.isVideo) {
-                            // 動画の場合はFFmpegで処理（初回のみ）
-                            const needsGeneration = !hasGeneratedVideoPreview.get(node.id);
-                            if (needsGeneration) {
-                                console.log('[ColorCorrection]動画ソースを検出、初回FFmpegプレビューを生成中...');
-                                hasGeneratedVideoPreview.set(node.id, true);
-                                await generateFFmpegVideoPreview(node);
+                            // 動画の場合：WebGLリアルタイムプレビュー + FFmpeg最終版
+                            isVideoSource.set(node.id, true);
 
-                                // レンダラーバッジを更新
-                                if (rendererBadge) {
-                                    rendererBadge.dataset.renderer = 'ffmpeg';
-                                    rendererBadge.textContent = 'レンダラー: FFmpeg (動画)';
-                                }
-                            } else {
-                                console.log('[ColorCorrection]動画プレビューは既に生成済み、スキップ');
-                                // レンダラーバッジを更新
-                                if (rendererBadge) {
-                                    rendererBadge.dataset.renderer = 'ffmpeg';
-                                    rendererBadge.textContent = 'レンダラー: FFmpeg (動画)';
-                                }
+                            console.log('[ColorCorrection] 動画ソースを検出、WebGLリアルタイムプレビューを準備中...');
+
+                            // 隠しvideoタグの作成または取得
+                            let videoElement = videoElements.get(node.id);
+                            if (!videoElement) {
+                                videoElement = document.createElement('video');
+                                videoElement.src = sourceMedia.url;
+                                videoElement.muted = true;
+                                videoElement.loop = true;
+                                videoElement.playsInline = true;
+                                videoElement.crossOrigin = 'anonymous';
+                                videoElement.style.display = 'none'; // 非表示
+                                document.body.appendChild(videoElement);
+                                videoElements.set(node.id, videoElement);
+
+                                console.log('[ColorCorrection] 隠しvideoタグを作成:', sourceMedia.url);
                             }
+
+                            // WebGLVideoProcessorの作成または取得
+                            let videoProcessor = videoProcessors.get(node.id);
+                            if (!videoProcessor) {
+                                const canvas = document.createElement('canvas');
+                                videoProcessor = new WebGLVideoProcessor(canvas);
+                                videoProcessors.set(node.id, videoProcessor);
+
+                                console.log('[ColorCorrection] WebGLVideoProcessorを作成');
+                            }
+
+                            // videoが読み込まれたらプロセッサーに渡す
+                            const initVideoProcessor = () => {
+                                if (videoElement && videoProcessor && videoElement.readyState >= videoElement.HAVE_METADATA) {
+                                    videoProcessor.loadVideo(videoElement);
+
+                                    // カラーコレクション設定を適用
+                                    const settings = node.settings as ColorCorrectionNodeSettings;
+                                    videoProcessor.applyCorrection(settings);
+
+                                    // レンダリング開始
+                                    videoProcessor.startRendering();
+
+                                    // 動画再生開始
+                                    videoElement.play().catch(err => {
+                                        console.warn('[ColorCorrection] Video autoplay prevented:', err);
+                                    });
+
+                                    // プレビューcanvasを State に保存
+                                    saveCanvasPreview(node, videoProcessor);
+
+                                    console.log('[ColorCorrection] WebGLリアルタイムプレビュー開始');
+                                } else {
+                                    // まだ準備できていない場合は少し待つ
+                                    setTimeout(initVideoProcessor, 100);
+                                }
+                            };
+
+                            // 動画のメタデータロード完了を待つ
+                            if (videoElement.readyState >= videoElement.HAVE_METADATA) {
+                                initVideoProcessor();
+                            } else {
+                                videoElement.addEventListener('loadedmetadata', initVideoProcessor, { once: true });
+                                videoElement.load();
+                            }
+
+                            // レンダラーバッジを更新
+                            if (rendererBadge) {
+                                rendererBadge.dataset.renderer = 'webgl-video';
+                                rendererBadge.textContent = 'レンダラー: WebGL (リアルタイム動画)';
+                            }
+
+                            // 動画の場合はFFmpeg生成をスキップ（WebGLリアルタイムプレビューで十分）
+                            // FFmpegで生成すると、そのプレビュー情報がcanvasのサイズ情報を上書きしてしまう
+                            console.log('[ColorCorrection] Skipping FFmpeg generation for video (using WebGL real-time preview)');
+
+                            // 以下のコードをコメントアウト
+                            // const needsFFmpegGeneration = !hasGeneratedVideoPreview.get(node.id);
+                            // if (needsFFmpegGeneration) {
+                            //     hasGeneratedVideoPreview.set(node.id, true);
+                            //     // 非同期でFFmpeg生成（UIをブロックしない）
+                            //     setTimeout(() => {
+                            //         console.log('[ColorCorrection] バックグラウンドでFFmpeg最終版を生成中...');
+                            //         generateFFmpegVideoPreview(node);
+                            //     }, 1000);
+                            // }
                         } else {
                             // 静止画の場合はCanvas/WebGLで処理
                             let imageUrl = sourceMedia.url;
@@ -367,9 +477,20 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                         console.error('[ColorCorrection] Offscreen preview setup failed', error);
                     }
                 } else {
-                    // ソースが無い場合は既存プレビューをクリア
-                    lastSourceByNode.delete(node.id);
-                    propagateToMediaPreview(node, undefined);
+                    // ソースが無い場合
+                    const wasVideo = isVideoSource.get(node.id);
+
+                    if (wasVideo) {
+                        // 動画ソースの場合は、canvas previewをクリア
+                        state.canvasPreviews.delete(node.id);
+                        state.mediaPreviews.delete(node.id);
+                        isVideoSource.delete(node.id);
+                        console.log('[ColorCorrection] Cleared video canvas preview for node', node.id);
+                    } else {
+                        // 静止画ソースの場合は、既存プレビューをクリア
+                        lastSourceByNode.delete(node.id);
+                        propagateToMediaPreview(node, undefined);
+                    }
                 }
 
                 // スライダー入力で設定更新＆プレビュー伝搬
@@ -397,7 +518,30 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
 
                         // プレビュー更新
                         const sourceMedia = getSourceMedia(node);
-                        if (sourceMedia?.isVideo) {
+                        const isVideo = isVideoSource.get(node.id) || false;
+
+                        if (isVideo) {
+                            // 動画の場合：WebGLプロセッサーで即座に更新
+                            const videoProcessor = videoProcessors.get(node.id);
+                            if (videoProcessor) {
+                                const settings = node.settings as ColorCorrectionNodeSettings;
+                                videoProcessor.applyCorrection(settings);
+                                // WebGLは自動的に次のフレームで反映される
+                                console.log('[ColorCorrection] WebGL video correction updated in real-time');
+                            }
+
+                            // デバウンスしてFFmpegで最終版を再生成
+                            if (pendingFFmpegNode !== node) {
+                                pendingFFmpegNode = node;
+                                setTimeout(() => {
+                                    if (pendingFFmpegNode === node) {
+                                        console.log('[ColorCorrection] Generating final FFmpeg version after slider changes');
+                                        generateFFmpegVideoPreview(node);
+                                        pendingFFmpegNode = null;
+                                    }
+                                }, 2000); // 2秒待機（スライダー操作が終わるまで）
+                            }
+                        } else if (sourceMedia?.isVideo) {
                             // 動画の場合：デバウンスしてFFmpegで再生成
                             // （ドラッグ中は頻繁に生成しないように）
                             if (pendingFFmpegNode !== node) {
