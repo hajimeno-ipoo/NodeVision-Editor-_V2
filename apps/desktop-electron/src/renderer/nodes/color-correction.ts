@@ -2,12 +2,23 @@ import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import type { ColorCorrectionNodeSettings } from '@nodevision/editor';
 import { CanvasColorProcessor } from './canvas-color-processor';
+import { WebGLColorProcessor } from './webgl-color-processor';
 
 export const createColorCorrectionNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml, t } = context;
 
-    // ノードごとにオフスクリーンの Canvas 処理を保持
-    const canvasProcessors = new Map<string, CanvasColorProcessor>();
+    // ノードごとにオフスクリーン処理器を保持（WebGL優先）
+    type Processor = CanvasColorProcessor | WebGLColorProcessor;
+    const processors = new Map<string, Processor>();
+    const lastSourceByNode = new Map<string, string>();
+
+    const createProcessor = (): Processor => {
+        try {
+            return new WebGLColorProcessor(document.createElement('canvas'));
+        } catch {
+            return new CanvasColorProcessor(document.createElement('canvas'));
+        }
+    };
 
     /**
      * 上流ノードから元画像の URL を取得
@@ -36,7 +47,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
     /**
      * メディアプレビューノードへ補正後の dataURL を反映
      */
-    const propagateToMediaPreview = (node: RendererNode, processor: CanvasColorProcessor) => {
+    const propagateToMediaPreview = (node: RendererNode, processor: Processor) => {
         const dataUrl = processor.toDataURL();
         const size = processor.getSize();
         const connectedPreviewNodes = state.connections
@@ -119,15 +130,11 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         render: node => ({
             afterPortsHtml: buildControls(node),
             afterRender: async element => {
-                // オフスクリーン Canvas を準備（UIへは表示しない）
-                const canvas = document.createElement('canvas');
-                let processor = canvasProcessors.get(node.id);
-
+                // オフスクリーン処理器（WebGL優先）を準備（UIへは表示しない）
+                let processor = processors.get(node.id);
                 if (!processor) {
-                    processor = new CanvasColorProcessor(canvas);
-                    canvasProcessors.set(node.id, processor);
-                } else {
-                    processor.attachCanvas(canvas);
+                    processor = createProcessor();
+                    processors.set(node.id, processor);
                 }
 
                 // 画像をロードして初期補正を適用
@@ -141,8 +148,12 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                                 imageUrl = result.dataURL;
                             }
                         }
-                        if (!processor.hasImage()) {
+                        const lastSource = lastSourceByNode.get(node.id);
+                        const shouldReload = !processor.hasImage() || lastSource !== imageUrl;
+
+                        if (shouldReload) {
                             await processor.loadImage(imageUrl);
+                            lastSourceByNode.set(node.id, imageUrl);
                         }
 
                         const settings = node.settings as ColorCorrectionNodeSettings;
