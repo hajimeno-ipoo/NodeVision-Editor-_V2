@@ -212,6 +212,15 @@ export class CanvasColorProcessor {
     }
 
     /**
+     * Get current canvas size
+     */
+    getSize(): { width: number; height: number } | null {
+        return this.canvas?.width && this.canvas?.height
+            ? { width: this.canvas.width, height: this.canvas.height }
+            : null;
+    }
+
+    /**
      * Get current canvas as data URL
      */
     toDataURL(type = 'image/png', quality = 0.95): string {
