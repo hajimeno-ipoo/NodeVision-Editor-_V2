@@ -376,15 +376,15 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
       (cc.exposure ?? 0) !== 0;
 
     if (hasBasicAdjustments) {
-      // Combine exposure with brightness
-      const effectiveBrightness = (cc.brightness ?? 0) + (cc.exposure ?? 0) * 0.5;
+      // Exposure is handled in colorchannelmixer as a gain
+      // const effectiveBrightness = (cc.brightness ?? 0) + (cc.exposure ?? 0) * 0.5;
 
       stages.push({
         stage: 'filter',
         typeId: 'eq',
         nodeVersion: cc.nodeVersion,
         params: {
-          brightness: effectiveBrightness,
+          brightness: cc.brightness ?? 0,
           contrast: cc.contrast ?? 1,
           saturation: cc.saturation ?? 1,
           gamma: cc.gamma ?? 1
@@ -417,20 +417,24 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
       });
     }
 
-    // Stage 3: colorchannelmixer (temperature, tint)
-    const hasColorShift = (cc.temperature ?? 0) !== 0 || (cc.tint ?? 0) !== 0;
+    // Stage 3: colorchannelmixer (temperature, tint, exposure)
+    const hasColorShift = (cc.temperature ?? 0) !== 0 || (cc.tint ?? 0) !== 0 || (cc.exposure ?? 0) !== 0;
     if (hasColorShift) {
       const tempFactor = (cc.temperature ?? 0) / 100;
       const tintFactor = (cc.tint ?? 0) / 100;
+      const exposureGain = Math.pow(2, cc.exposure ?? 0);
+
+      // FFmpeg's colorchannelmixer has a range limit of [-2, 2]
+      const clamp = (val: number) => Math.max(-2, Math.min(2, val));
 
       stages.push({
         stage: 'filter',
         typeId: 'colorchannelmixer',
         nodeVersion: cc.nodeVersion,
         params: {
-          rr: Math.max(0, Math.min(3, 1.0 + tempFactor * 0.3)),
-          gg: Math.max(0, Math.min(3, 1.0 + tintFactor * 0.2)),
-          bb: Math.max(0, Math.min(3, 1.0 - tempFactor * 0.3))
+          rr: clamp((1.0 + tempFactor * 0.3) * exposureGain),
+          gg: clamp((1.0 + tintFactor * 0.2) * exposureGain),
+          bb: clamp((1.0 - tempFactor * 0.3) * exposureGain)
         }
       });
     }

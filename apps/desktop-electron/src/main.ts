@@ -350,7 +350,17 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
             // These are FFmpeg filter names, use params as-is
           }
 
-          return `${k}=${v}`;
+          let valStr = String(v);
+          // Always quote color correction filter parameters to ensure correct parsing
+          if (
+            stage.typeId === 'eq' as any ||
+            stage.typeId === 'curves' as any ||
+            stage.typeId === 'colorchannelmixer' as any ||
+            valStr.includes(' ')
+          ) {
+            valStr = `'${valStr}'`;
+          }
+          return `${k}=${valStr}`;
         })
         .filter((v): v is string => v !== null);
 
@@ -371,7 +381,10 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
         filterChain.push(`[${lastLabel}]drawtext=text='${text}':${params}[${nextLabel}]`);
       } else if (stage.typeId === 'eq' as any) {
         // eq filter for basic color correction
-        filterChain.push(`[${lastLabel}]eq=${params}[${nextLabel}]`);
+        // Convert to RGB color space for consistent processing with WebGL
+        const rgbLabel = `rgb${filterChain.length}`;
+        filterChain.push(`[${lastLabel}]format=gbrp[${rgbLabel}]`);
+        filterChain.push(`[${rgbLabel}]eq=${params}[${nextLabel}]`);
       } else if (stage.typeId === 'curves' as any) {
         // curves filter for shadows/highlights
         filterChain.push(`[${lastLabel}]curves=${params}[${nextLabel}]`);

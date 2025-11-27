@@ -188,35 +188,32 @@ export class WebGLVideoProcessor {
                 // 1. Exposure (multiply by 2^exposure)
                 rgb *= pow(2.0, u_exposure);
                 
-                // 2. Brightness & Contrast
-                rgb = (rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+                // 2. Brightness
+                rgb += u_brightness;
+                
+                // 3. Contrast
+                rgb = (rgb - 0.5) * u_contrast + 0.5;
                 
                 // 3. Saturation
                 float luminance = dot(rgb, vec3(0.299, 0.587, 0.114));
                 rgb = mix(vec3(luminance), rgb, u_saturation);
                 
-                // 4. Shadows & Highlights
-                // Apply shadows (darken dark areas)
-                float shadowMask = 1.0 - smoothstep(0.0, 0.5, luminance);
-                rgb += shadowMask * u_shadows / 100.0;
+                // 4. Gamma correction
+                rgb = pow(max(rgb, vec3(0.0)), vec3(1.0 / max(0.001, u_gamma)));
                 
-                // Apply highlights (brighten bright areas)
-                float highlightMask = smoothstep(0.5, 1.0, luminance);
-                rgb += highlightMask * u_highlights / 100.0;
+                // 5. Shadows & Highlights (tone curve)
+                float lum = dot(rgb, vec3(0.333, 0.333, 0.333));
+                float shadowLift = u_shadows / 100.0 * 0.2;
+                float highlightCompress = -u_highlights / 100.0 * 0.2;
+                float tone = lum < 0.5
+                  ? 1.0 + shadowLift * (1.0 - lum * 2.0)
+                  : 1.0 + highlightCompress * (lum * 2.0 - 1.0);
+                rgb *= tone;
                 
-                // 5. Temperature & Tint
-                if (u_temperature != 0.0) {
-                    // Warm (positive) or cool (negative)
-                    rgb.r += u_temperature / 100.0;
-                    rgb.b -= u_temperature / 100.0;
-                }
-                if (u_tint != 0.0) {
-                    // Green (positive) or magenta (negative)
-                    rgb.g += u_tint / 100.0;
-                }
-                
-                // 6. Gamma correction
-                rgb = pow(rgb, vec3(1.0 / u_gamma));
+                // 6. Temperature & Tint (color channel mixing)
+                rgb.r *= (1.0 + u_temperature / 100.0 * 0.3);
+                rgb.b *= (1.0 - u_temperature / 100.0 * 0.3);
+                rgb.g *= (1.0 + u_tint / 100.0 * 0.2);
                 
                 // Clamp to valid range
                 rgb = clamp(rgb, 0.0, 1.0);

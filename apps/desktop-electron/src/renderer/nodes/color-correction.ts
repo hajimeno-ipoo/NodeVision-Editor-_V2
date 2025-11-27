@@ -188,9 +188,9 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         const canvas = videoProcessor.getCanvas();
         const size = videoProcessor.getSize();
 
-        console.log('[ColorCorrection] Saving canvas preview for node', node.id);
-        console.log('[ColorCorrection] Canvas actual size:', canvas.width, 'x', canvas.height);
-        console.log('[ColorCorrection] Size from getSize():', size);
+        // console.log('[ColorCorrection] Saving canvas preview for node', node.id);
+        // console.log('[ColorCorrection] Canvas actual size:', canvas.width, 'x', canvas.height);
+        // console.log('[ColorCorrection] Size from getSize():', size);
 
         // canvas要素への参照をstateに保存
         state.canvasPreviews.set(node.id, canvas);
@@ -207,12 +207,12 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
             ownedUrl: true
         };
         state.mediaPreviews.set(node.id, previewData);
-        console.log('[ColorCorrection] Saved to mediaPreviews:', previewData);
+        // console.log('[ColorCorrection] Saved to mediaPreviews:', previewData);
 
         // media-preview nodeを再レンダリング（一度だけ）
         if (!hasTriggeredRenderForCanvas.get(node.id)) {
             hasTriggeredRenderForCanvas.set(node.id, true);
-            console.log('[ColorCorrection] Triggering renderNodes for canvas preview');
+            // console.log('[ColorCorrection] Triggering renderNodes for canvas preview');
             context.renderNodes();
         }
     };
@@ -224,7 +224,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         const dataUrl = processor ? processor.toDataURL() : null;
         const size = processor?.getSize();
 
-        console.log('[ColorCorrection] Propagating preview for node', node.id, 'hasDataUrl:', !!dataUrl, 'size:', size);
+        // console.log('[ColorCorrection] Propagating preview for node', node.id, 'hasDataUrl:', !!dataUrl, 'size:', size);
 
         // upstream ノード（このカラーコレクションノード）のプレビューを state に保持 or クリア
         if (dataUrl) {
@@ -238,17 +238,17 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                 type: 'image/png',
                 ownedUrl: true
             });
-            console.log('[ColorCorrection] Updated state.mediaPreviews for node', node.id);
+            // console.log('[ColorCorrection] Updated state.mediaPreviews for node', node.id);
         } else {
             state.mediaPreviews.delete(node.id);
-            console.log('[ColorCorrection] Removed state.mediaPreviews for node', node.id);
+            // console.log('[ColorCorrection] Removed state.mediaPreviews for node', node.id);
         }
 
         const connectedPreviewNodes = state.connections
             .filter(c => c.fromNodeId === node.id)
             .map(c => c.toNodeId);
 
-        console.log('[ColorCorrection] Connected preview nodes:', connectedPreviewNodes);
+        // console.log('[ColorCorrection] Connected preview nodes:', connectedPreviewNodes);
 
         // Check if we have connected preview nodes - if so, we need to trigger a re-render
         // so that the media preview nodes can display the updated preview
@@ -260,14 +260,14 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                     if (previewNode && previewNode.typeId === 'mediaPreview') {
                         // Try direct DOM manipulation first (fast path)
                         const img = document.querySelector(`.node-media[data-node-id="${previewNodeId}"] img`);
-                        console.log('[ColorCorrection] Found preview img element:', !!img, 'for node', previewNodeId);
+                        // console.log('[ColorCorrection] Found preview img element:', !!img, 'for node', previewNodeId);
 
                         if (img && dataUrl) {
                             (img as HTMLImageElement).src = dataUrl;
-                            console.log('[ColorCorrection] Updated preview img src via direct DOM');
+                            // console.log('[ColorCorrection] Updated preview img src via direct DOM');
                         } else if (img && !dataUrl) {
                             (img as HTMLImageElement).src = '';
-                            console.log('[ColorCorrection] Cleared preview img src via direct DOM');
+                            // console.log('[ColorCorrection] Cleared preview img src via direct DOM');
                         } else if (!img && dataUrl) {
                             // If img doesn't exist yet, trigger a full re-render
                             context.renderNodes();
@@ -579,7 +579,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                         if (videoProcessor) {
                             const settings = node.settings as ColorCorrectionNodeSettings;
                             videoProcessor.applyCorrection(settings);
-                            console.log('[ColorCorrection] WebGL video correction updated in real-time');
+                            // console.log('[ColorCorrection] WebGL video correction updated in real-time');
                         }
                     } else if (sourceMedia?.isVideo) {
                         // 動画の場合（予備）

@@ -86,7 +86,8 @@ const buildExportLauncher = (
 
 const bindExportEvents = (
   node: RendererNode,
-  context: NodeRendererContext
+  context: NodeRendererContext,
+  container: HTMLElement
 ): void => {
   const { state } = context;
 
@@ -106,7 +107,7 @@ const bindExportEvents = (
   };
 
   // Format selector
-  const formatSelect = document.querySelector<HTMLSelectElement>(
+  const formatSelect = container.querySelector<HTMLSelectElement>(
     `[data-export-format][data-node-id="${node.id}"]`
   );
   if (formatSelect) {
@@ -123,7 +124,7 @@ const bindExportEvents = (
   }
 
   // Quality selector
-  const qualitySelect = document.querySelector<HTMLSelectElement>(
+  const qualitySelect = container.querySelector<HTMLSelectElement>(
     `[data-export-quality][data-node-id="${node.id}"]`
   );
   if (qualitySelect) {
@@ -140,7 +141,7 @@ const bindExportEvents = (
   }
 
   // Arrow buttons for cycling format/quality
-  const navButtons = document.querySelectorAll<HTMLButtonElement>(
+  const navButtons = container.querySelectorAll<HTMLButtonElement>(
     `[data-export-nav][data-node-id="${node.id}"]`
   );
   navButtons.forEach(btn => {
@@ -156,8 +157,8 @@ const bindExportEvents = (
     });
   });
 
-  const zipRow = document.querySelector<HTMLElement>(`[data-export-zip-row]`);
-  const zipCheckbox = document.querySelector<HTMLInputElement>(`[data-export-zip][data-node-id="${node.id}"]`);
+  const zipRow = container.querySelector<HTMLElement>(`[data-export-zip-row]`);
+  const zipCheckbox = container.querySelector<HTMLInputElement>(`[data-export-zip][data-node-id="${node.id}"]`);
 
   const findProgramConnection = () =>
     context.state.connections.find(c => c.toNodeId === node.id && c.toPortId === 'program');
@@ -231,13 +232,17 @@ const bindExportEvents = (
     return nodes;
   };
 
-  const exportBtn = document.querySelector<HTMLButtonElement>(
+  const exportBtn = container.querySelector<HTMLButtonElement>(
     `[data-export-btn][data-node-id="${node.id}"]`
   );
   if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
+      console.log('[Export] Export button clicked');
       const targetNode = state.nodes.find(n => n.id === node.id);
-      if (!targetNode) return;
+      if (!targetNode) {
+        console.error('[Export] Target node not found');
+        return;
+      }
 
       const { t } = context;
       const settings: ExportSettings = (targetNode.settings as ExportSettings) || {};
@@ -247,9 +252,11 @@ const bindExportEvents = (
 
       const programConnection = findProgramConnection();
       if (!programConnection) {
+        console.error('[Export] No input connected');
         alert('No input connected');
         return;
       }
+      console.log('[Export] Input connected, proceeding to dialog');
 
       const sourceNode = state.nodes.find(n => n.id === programConnection.fromNodeId);
       const isBatch = sourceNode?.typeId === 'batchcrop';
@@ -263,6 +270,7 @@ const bindExportEvents = (
       const dialogName = wantsZip && isBatch ? 'ZIP' : format.toUpperCase();
 
       try {
+        console.log('[Export] Opening save dialog...');
         const result = await window.nodevision.showSaveDialog({
           title: t('nodes.export.save'),
           filters: [{ name: dialogName, extensions: dialogExtensions }]
@@ -425,8 +433,8 @@ export const createExportNodeRenderer = (context: NodeRendererContext): NodeRend
   typeIds: ['export'],
   render: (node: RendererNode): NodeRendererView => ({
     afterPortsHtml: buildExportLauncher(node, context),
-    afterRender: () => {
-      bindExportEvents(node, context);
+    afterRender: (el: HTMLElement) => {
+      bindExportEvents(node, context, el);
     }
   })
 });
