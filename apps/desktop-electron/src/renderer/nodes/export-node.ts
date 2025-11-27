@@ -23,7 +23,7 @@ const buildExportLauncher = (
   const quality: ExportSettings['quality'] = settings.quality ?? undefined;
 
   return `
-    <div class="node-launcher" style="min-height: 660px; padding-bottom: 32px;">
+    <div class="node-launcher" style="min-height: 760px; padding-bottom: 32px;">
       <div class="node-controls" style="display: flex; flex-direction: column; gap: 12px;">
         <label class="control-label" style="margin: 0; padding-left: 8px;">
           <span class="control-label-text" style="display: block; margin-bottom: 6px;">${escapeHtml(t('nodes.export.format'))}</span>

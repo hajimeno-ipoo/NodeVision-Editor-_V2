@@ -178,8 +178,8 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     category: 'Color',
     description: 'Adjust brightness, contrast, saturation, and gamma',
     keywords: ['color', 'correction', 'grade', 'brightness', 'contrast'],
-    width: 280,
-    height: 320,
+    width: 389,
+    height: 737,
     inputs: [
       { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
     ],
@@ -206,8 +206,8 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     category: 'Output',
     description: 'Finalize and export the edited result',
     keywords: ['export', 'save', 'output'],
-    width: 320,
-    height: 280,
+    width: 360,
+    height: 520,
     inputs: [
       { id: 'program', label: 'Export', direction: 'input', dataType: 'video', required: true }
     ]
