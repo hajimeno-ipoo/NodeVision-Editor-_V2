@@ -4627,7 +4627,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
     }
   };
 
-  elements.canvas.addEventListener('pointerdown', event => {
+  const canvasPointerTarget = elements.canvas.parentElement ?? elements.canvas;
+  canvasPointerTarget.addEventListener('pointerdown', event => {
     if (maybeStartMarquee(event)) {
       return;
     }
