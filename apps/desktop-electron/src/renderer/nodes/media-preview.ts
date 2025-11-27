@@ -115,21 +115,36 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     // canvas プレビューがある場合（WebGL動画など）
     const canvasPreview = sourceNodeId ? state.canvasPreviews.get(sourceNodeId) : undefined;
     const widthLimit = getPreviewWidthForNodeWidth(Math.max(nodeWidth, 0));
+
+    // Canvas preview の場合、最低600pxを確保しつつ、ノードサイズとcanvasサイズに応じて調整
+    const effectiveWidthLimit = canvasPreview
+      ? Math.min(canvasPreview.width, Math.max(600, nodeWidth - 80))
+      : widthLimit;
+
     const ratio = getPreviewAspectRatio(sourceNodeId ?? node.id);
+
+    // Canvas preview の場合、chrome paddingを最小限にしてプレビューを大きく表示
+    const effectiveChrome = canvasPreview ? 40 : chrome; // canvas の場合は40pxの余白のみ
 
     const previewBox = calculatePreviewSize({
       nodeWidth,
       nodeHeight,
-      chromePadding: chrome,
+      chromePadding: effectiveChrome,
       reservedHeight,
-      widthLimit,
+      widthLimit: effectiveWidthLimit,
       minHeight: minPreviewHeight,
       minWidth: minPreviewWidth,
       aspectRatio: ratio,
-      originalWidth: preview?.width ?? canvasPreview?.width ?? null,
-      originalHeight: preview?.height ?? canvasPreview?.height ?? null,
+      // canvasPreviewがある場合は、そのサイズを優先（古いメタデータの影響を避けるため）
+      originalWidth: canvasPreview?.width ?? preview?.width ?? null,
+      originalHeight: canvasPreview?.height ?? preview?.height ?? null,
       minimumNodePortion: 0.95
     });
+
+    console.log('[MediaPreview] Node size:', nodeWidth, 'x', nodeHeight);
+    console.log('[MediaPreview] widthLimit:', widthLimit, '=>', effectiveWidthLimit, 'chromePadding:', chrome, '=>', effectiveChrome, 'reservedHeight:', reservedHeight);
+    console.log('[MediaPreview] Canvas dimensions:', canvasPreview?.width, 'x', canvasPreview?.height);
+    console.log('[MediaPreview] Calculated previewBox:', previewBox);
 
     const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
     const sourceTitle = resolveNodeTitle(sourceNode, context);
@@ -166,13 +181,25 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     }
 
     if (canvasPreview) {
-      const crop = buildCropTransform(preview);
-      // canvasの場合はコンテナいっぱいに広げる（CSSのobject-fitで調整するため）
-      // absolute positioningを使用して確実に配置
-      return `<div class="node-media" data-node-id="${escapeHtml(node.id)}"${inlineStyle}>
+      // Canvas preview の場合は、固定サイズ計算（calculatePreviewSize）を使用せず、
+      // 親コンテナ（.node-media-frame）に合わせて100%のサイズで表示する。
+      // これにより、ノードのリサイズに合わせてプレビューも自動的に拡大縮小される。
+      // アスペクト比は canvas の object-fit: contain で維持される。
+
+      // コンテナ自体にも width: 100%; height: 100% を適用して、frameいっぱいに広げる
+      // CSS変数を100%に上書きして、親コンテナのサイズに追従させる
+      // さらに、display: flex; flex-direction: column; を指定して、
+      // 内部の .node-media-frame (flex: 1) が縦方向に広がるようにする
+      const fluidInlineStyle = ` style="--preview-width: 100%; --preview-height: 100%; width: 100%; height: 100%; display: flex; flex-direction: column; flex: 1;"`;
+
+      // コンテナ自体にも width: 100%; height: 100% を適用して、frameいっぱいに広げる
+      // position: relative を追加して、内部の canvas を absolute で配置できるようにする
+      const fluidStyle = 'width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;';
+
+      return `<div class="node-media" data-node-id="${escapeHtml(node.id)}"${fluidInlineStyle}>
         ${toolbar}
-        <div class="node-media-frame${crop.hasCrop ? ' is-cropped' : ''}">
-          <div class="node-media-preview" data-kind="video" data-canvas-source="${escapeHtml(sourceNodeId)}" data-canvas-style="${escapeHtml(crop.style)}" style="width: 100% !important; height: 100% !important; position: relative !important;">
+        <div class="node-media-frame" style="flex: 1; min-height: 0; display: flex;">
+          <div class="node-media-preview" data-kind="video" data-canvas-source="${escapeHtml(sourceNodeId)}" style="${fluidStyle}">
             <!-- canvas will be injected in afterRender -->
           </div>
         </div>
@@ -205,20 +232,40 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
 
       if (canvasPlaceholder) {
         const sourceNodeId = canvasPlaceholder.getAttribute('data-canvas-source');
-        const canvasStyle = canvasPlaceholder.getAttribute('data-canvas-style');
+        // const canvasStyle = canvasPlaceholder.getAttribute('data-canvas-style'); // Unused
+
+        console.log('[MediaPreview] Found placeholder for source:', sourceNodeId);
 
         if (sourceNodeId) {
           const canvas = state.canvasPreviews.get(sourceNodeId);
+          console.log('[MediaPreview] Canvas found in state:', !!canvas);
 
-          if (canvas && !canvasPlaceholder.contains(canvas)) {
-            // object-fit: contain を使用して、コンテナ内でアスペクト比を維持して表示
-            // absolute positioningで強制的に広げる
-            const baseStyle = 'position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; display: block !important;';
-            const combinedStyle = canvasStyle ? `${baseStyle} ${canvasStyle}` : baseStyle;
-            canvas.setAttribute('style', combinedStyle);
-            canvasPlaceholder.appendChild(canvas);
+          if (canvas) {
+            console.log('[MediaPreview] Canvas dims:', canvas.width, 'x', canvas.height);
+            console.log('[MediaPreview] Canvas style before:', canvas.getAttribute('style'));
+
+            // Canvasが見つかった場合、スタイルを常に適用する（DOMに既に存在する場合も含む）
+            // position: absolute で強制的に広げる
+            canvas.style.setProperty('position', 'absolute', 'important');
+            canvas.style.setProperty('top', '0', 'important');
+            canvas.style.setProperty('left', '0', 'important');
+            canvas.style.setProperty('width', '100%', 'important');
+            canvas.style.setProperty('height', '100%', 'important');
+            canvas.style.setProperty('object-fit', 'contain', 'important');
+            canvas.style.setProperty('display', 'block', 'important');
+
+            if (!canvasPlaceholder.contains(canvas)) {
+              // 既存のコンテンツをクリア
+              canvasPlaceholder.innerHTML = '';
+              canvasPlaceholder.appendChild(canvas);
+              console.log('[MediaPreview] Canvas inserted. Dimensions:', canvas.width, 'x', canvas.height);
+            } else {
+              console.log('[MediaPreview] Canvas already in placeholder, styles updated.');
+            }
           }
         }
+      } else {
+        // console.log('[MediaPreview] No canvas placeholder found');
       }
     }
   });

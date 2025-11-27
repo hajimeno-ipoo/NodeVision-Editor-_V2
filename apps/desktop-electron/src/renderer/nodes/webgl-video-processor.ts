@@ -274,6 +274,14 @@ export class WebGLVideoProcessor {
         if (this.video.videoWidth && this.video.videoHeight) {
             this.canvas.width = this.video.videoWidth;
             this.canvas.height = this.video.videoHeight;
+
+            // Force display size to fill container
+            this.canvas.style.width = '100%';
+            this.canvas.style.height = '100%';
+            this.canvas.style.objectFit = 'contain';
+            this.canvas.style.position = 'absolute';
+            this.canvas.style.top = '0';
+            this.canvas.style.left = '0';
         }
 
         console.log('[WebGLVideoProcessor] Video loaded, dimensions:', this.canvas.width, 'x', this.canvas.height);
@@ -335,9 +343,17 @@ export class WebGLVideoProcessor {
                 this.video
             );
 
-            // Set uniforms
+            // Clear
+            this.gl.clearColor(0, 0, 0, 0);
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+            // Update viewport to match current canvas dimensions
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+
+            // Use shader program
             this.gl.useProgram(this.program);
 
+            // Set uniforms
             this.gl.uniform1i(this.uniformLocations.texture!, 0);
             this.gl.uniform1f(this.uniformLocations.exposure!, this.settings.exposure ?? 0);
             this.gl.uniform1f(this.uniformLocations.brightness!, this.settings.brightness ?? 0);
