@@ -206,8 +206,8 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     category: 'Output',
     description: 'Finalize and export the edited result',
     keywords: ['export', 'save', 'output'],
-    width: 360,
-    height: 520,
+    width: 400,
+    height: 620,
     inputs: [
       { id: 'program', label: 'Export', direction: 'input', dataType: 'video', required: true }
     ]
