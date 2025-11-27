@@ -11,6 +11,7 @@ export interface RendererBootstrapWindow extends Window {
     zoomIn: string;
     flipHorizontal: string;
     flipVertical: string;
+    reset: string;
   };
 }
 

@@ -146,11 +146,17 @@ const FLIP_HORIZONTAL_ICON_SYMBOL = iconSymbolFromAsset(FLIP_HORIZONTAL_ICON_DAT
 const FLIP_VERTICAL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '上下反転.svg'], 'image/svg+xml');
 const FLIP_VERTICAL_ICON_SYMBOL = iconSymbolFromAsset(FLIP_VERTICAL_ICON_DATA_URI, '⇅');
 
+const RESET_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'リセット.png'], 'image/png');
+const RESET_ICON_SYMBOL = RESET_ICON_DATA_URI
+  ? `<img src="${RESET_ICON_DATA_URI}" alt="" decoding="async" draggable="false" loading="lazy" style="width:14px;height:14px;object-fit:contain;" />`
+  : '↺';
+
 const ICONS_EMBED = JSON.stringify({
   zoomOut: ZOOM_OUT_ICON_SYMBOL,
   zoomIn: ZOOM_IN_ICON_SYMBOL,
   flipHorizontal: FLIP_HORIZONTAL_ICON_SYMBOL,
-  flipVertical: FLIP_VERTICAL_ICON_SYMBOL
+  flipVertical: FLIP_VERTICAL_ICON_SYMBOL,
+  reset: RESET_ICON_SYMBOL
 });
 
 const loadTypescriptModule = (): TypescriptModule => {

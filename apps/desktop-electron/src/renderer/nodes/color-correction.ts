@@ -1,4 +1,4 @@
-import type { RendererNode } from '../types';
+import type { RendererBootstrapWindow, RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import type { ColorCorrectionNodeSettings } from '@nodevision/editor';
 import { CanvasColorProcessor } from './canvas-color-processor';
@@ -305,6 +305,9 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
             tint: 0
         };
 
+        const resetIconSymbol =
+            (window as RendererBootstrapWindow | undefined)?.__NODEVISION_ICONS__?.reset ?? '↺';
+
         const renderSlider = (labelKey: string, key: keyof ColorCorrectionNodeSettings, min: number, max: number, step: number, value: number) => {
             const defaultValue = defaults[key] ?? 0;
             return `
@@ -313,7 +316,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
           <span class="control-label-text" data-i18n-key="${labelKey}">${escapeHtml(t(labelKey))}</span>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="control-value" data-cc-value="${key}">${value.toFixed(2)}</span>
-            <button class="reset-btn" data-target-key="${key}" data-default-value="${defaultValue}" title="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0 8px; font-size: 14px; height: 24px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">↺</button>
+            <button class="reset-btn" data-target-key="${key}" data-default-value="${defaultValue}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0 8px; font-size: 14px; height: 24px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">${resetIconSymbol}</button>
           </div>
         </div>
         <input 
