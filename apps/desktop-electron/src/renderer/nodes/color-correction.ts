@@ -4,26 +4,51 @@ import type { ColorCorrectionNodeSettings } from '@nodevision/editor';
 import { CanvasColorProcessor } from './canvas-color-processor';
 import { WebGLColorProcessor } from './webgl-color-processor';
 import { WebGLVideoProcessor } from './webgl-video-processor';
+import { WebGLLUTProcessor } from './webgl-lut-processor';
+import type { LUT3D } from '@nodevision/color-grading';
+
+// 動的にモジュールを読み込む
+const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
+const { generateLUT3D, buildLegacyColorCorrectionTransform } = colorGrading;
 
 export const createColorCorrectionNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml, t } = context;
 
-    // ノードごとにオフスクリーン処理器を保持（WebGL優先）
-    type Processor = CanvasColorProcessor | WebGLColorProcessor;
+    // ノードごとにプロセッサーを保持
+    // WebGL2 (LUT) > WebGL1 > Canvas の順で優先
+    type Processor = WebGLLUTProcessor | WebGLColorProcessor | CanvasColorProcessor;
     const processors = new Map<string, Processor>();
     const lastSourceByNode = new Map<string, string>();
 
+    // LUTキャッシュ（パラメータが変わらない限り再利用）
+    const lutCache = new Map<string, { params: string, lut: LUT3D }>();
 
     // 動画専用プロセッサーとvideoタグの管理
     const videoProcessors = new Map<string, WebGLVideoProcessor>();
-    // const videoElements = new Map<string, HTMLVideoElement>(); // Unused
     const isVideoSource = new Map<string, boolean>(); // ノードが動画ソースかどうかを追跡
 
     const createProcessor = (): Processor => {
+        const canvas = document.createElement('canvas');
+
+        // Try WebGL 2 (3D LUT) first
         try {
-            return new WebGLColorProcessor(document.createElement('canvas'));
+            // Check if WebGL2 is supported
+            const gl2 = canvas.getContext('webgl2');
+            if (gl2) {
+                console.log('[ColorCorrection] Using WebGL 2.0 (3D LUT) processor');
+                return new WebGLLUTProcessor(canvas);
+            }
+        } catch (e) {
+            console.warn('[ColorCorrection] WebGL 2.0 not supported, falling back', e);
+        }
+
+        // Fallback to WebGL 1
+        try {
+            console.log('[ColorCorrection] Using WebGL 1.0 processor');
+            return new WebGLColorProcessor(canvas);
         } catch {
-            return new CanvasColorProcessor(document.createElement('canvas'));
+            console.log('[ColorCorrection] Using Canvas 2D processor');
+            return new CanvasColorProcessor(canvas);
         }
     };
 
@@ -180,51 +205,26 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
     };
 
     /**
-     * WebGL動画canvasをstateに保存（DOM操作はmedia-preview.tsが担当）
-     */
-    const hasTriggeredRenderForCanvas = new Map<string, boolean>(); // renderNodesを一度だけ呼ぶためのフラグ
-
-    const saveCanvasPreview = (node: RendererNode, videoProcessor: WebGLVideoProcessor) => {
-        const canvas = videoProcessor.getCanvas();
-        const size = videoProcessor.getSize();
-
-        // console.log('[ColorCorrection] Saving canvas preview for node', node.id);
-        // console.log('[ColorCorrection] Canvas actual size:', canvas.width, 'x', canvas.height);
-        // console.log('[ColorCorrection] Size from getSize():', size);
-
-        // canvas要素への参照をstateに保存
-        state.canvasPreviews.set(node.id, canvas);
-
-        // メタデータをmediaPreviewsに保存
-        const previewData = {
-            url: '', // canvas の場合、URLは不要
-            name: 'Preview (WebGL Video)',
-            kind: 'video' as const,
-            width: size.width,
-            height: size.height,
-            size: 0,
-            type: 'video/mp4',
-            ownedUrl: true
-        };
-        state.mediaPreviews.set(node.id, previewData);
-        // console.log('[ColorCorrection] Saved to mediaPreviews:', previewData);
-
-        // media-preview nodeを再レンダリング（一度だけ）
-        if (!hasTriggeredRenderForCanvas.get(node.id)) {
-            hasTriggeredRenderForCanvas.set(node.id, true);
-            // console.log('[ColorCorrection] Triggering renderNodes for canvas preview');
-            context.renderNodes();
-        }
-    };
-
-    /**
      * メディアプレビューノードへ補正後の dataURL を反映
      */
     const propagateToMediaPreview = (node: RendererNode, processor?: Processor) => {
-        const dataUrl = processor ? processor.toDataURL() : null;
-        const size = processor?.getSize();
+        // WebGLLUTProcessorの場合は render() を呼んでから toDataURL() する必要があるが、
+        // toDataURL() は canvas から取得するので共通
+        let dataUrl: string | null = null;
+        let size = { width: 0, height: 0 };
 
-        // console.log('[ColorCorrection] Propagating preview for node', node.id, 'hasDataUrl:', !!dataUrl, 'size:', size);
+        if (processor) {
+            // WebGLLUTProcessor の場合、getSize() メソッドがないので canvas から取得
+            if (processor instanceof WebGLLUTProcessor) {
+                const canvas = processor.getContext().canvas;
+                size = { width: canvas.width, height: canvas.height };
+                dataUrl = (canvas as any).toDataURL();
+            } else {
+                dataUrl = processor.toDataURL();
+                const s = processor.getSize();
+                if (s) size = s;
+            }
+        }
 
         // upstream ノード（このカラーコレクションノード）のプレビューを state に保持 or クリア
         if (dataUrl) {
@@ -232,42 +232,33 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                 url: dataUrl,
                 name: 'Preview',
                 kind: 'image',
-                width: size?.width ?? 0,
-                height: size?.height ?? 0,
+                width: size.width,
+                height: size.height,
                 size: 0,
                 type: 'image/png',
                 ownedUrl: true
             });
-            // console.log('[ColorCorrection] Updated state.mediaPreviews for node', node.id);
         } else {
             state.mediaPreviews.delete(node.id);
-            // console.log('[ColorCorrection] Removed state.mediaPreviews for node', node.id);
         }
 
         const connectedPreviewNodes = state.connections
             .filter(c => c.fromNodeId === node.id)
             .map(c => c.toNodeId);
 
-        // console.log('[ColorCorrection] Connected preview nodes:', connectedPreviewNodes);
-
         // Check if we have connected preview nodes - if so, we need to trigger a re-render
-        // so that the media preview nodes can display the updated preview
         if (connectedPreviewNodes.length > 0) {
-            // Use requestAnimationFrame to avoid blocking the current rendering
             requestAnimationFrame(() => {
                 connectedPreviewNodes.forEach(previewNodeId => {
                     const previewNode = state.nodes.find(n => n.id === previewNodeId);
                     if (previewNode && previewNode.typeId === 'mediaPreview') {
                         // Try direct DOM manipulation first (fast path)
                         const img = document.querySelector(`.node-media[data-node-id="${previewNodeId}"] img`);
-                        // console.log('[ColorCorrection] Found preview img element:', !!img, 'for node', previewNodeId);
 
                         if (img && dataUrl) {
                             (img as HTMLImageElement).src = dataUrl;
-                            // console.log('[ColorCorrection] Updated preview img src via direct DOM');
                         } else if (img && !dataUrl) {
                             (img as HTMLImageElement).src = '';
-                            // console.log('[ColorCorrection] Cleared preview img src via direct DOM');
                         } else if (!img && dataUrl) {
                             // If img doesn't exist yet, trigger a full re-render
                             context.renderNodes();
@@ -355,14 +346,14 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         render: node => ({
             afterPortsHtml: buildControls(node),
             afterRender: async element => {
-                // オフスクリーン処理器（WebGL優先）を準備（UIへは表示しない）
+                // オフスクリーン処理器（WebGL優先）を準備
                 let processor = processors.get(node.id);
                 if (!processor) {
                     processor = createProcessor();
                     processors.set(node.id, processor);
                 }
 
-                // WebGL Video Processor
+                // WebGL Video Processor (動画用)
                 let videoProcessor = videoProcessors.get(node.id);
                 if (!videoProcessor) {
                     // hidden canvas for WebGL processing
@@ -375,179 +366,16 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
 
                 const rendererBadge = element.querySelector<HTMLElement>('.cc-renderer-indicator');
                 if (rendererBadge) {
-                    const isWebGL = processor instanceof WebGLColorProcessor;
-                    rendererBadge.dataset.renderer = isWebGL ? 'webgl' : 'canvas';
-                    rendererBadge.textContent = `レンダラー: ${isWebGL ? 'WebGL' : 'Canvas'}`;
+                    let rendererType = 'Canvas';
+                    if (processor instanceof WebGLLUTProcessor) rendererType = 'WebGL 2.0 (3D LUT)';
+                    else if (processor instanceof WebGLColorProcessor) rendererType = 'WebGL 1.0';
+
+                    rendererBadge.dataset.renderer = rendererType;
+                    rendererBadge.textContent = `レンダラー: ${rendererType}`;
                 }
 
                 // メディアをロードして初期補正を適用
                 const sourceMedia = getSourceMedia(node);
-
-                // 初期化処理（ソースがある場合）
-                if (sourceMedia) {
-                    try {
-                        const isVideo = sourceMedia.isVideo;
-                        const wasVideo = isVideoSource.get(node.id);
-
-                        // ソースタイプが変わった場合（静止画⇔動画）、クリーンアップ
-                        if (wasVideo !== undefined && wasVideo !== isVideo) {
-                            if (wasVideo) {
-                                state.canvasPreviews.delete(node.id);
-                                state.mediaPreviews.delete(node.id);
-                            } else {
-                                lastSourceByNode.delete(node.id);
-                            }
-                            // 強制的に再描画を促すためにnullをセット
-                            propagateToMediaPreview(node, undefined);
-                        }
-
-                        isVideoSource.set(node.id, isVideo);
-
-                        if (isVideo) {
-                            // 動画の場合：隠しvideo要素を作成してロード
-                            // 既存のvideo要素があれば再利用、なければ作成
-                            let videoElement = document.getElementById(`cc-video-${node.id}`) as HTMLVideoElement;
-
-                            // ソースURLが変わった場合は再作成する（古い映像が残るのを防ぐため）
-                            const lastVideoUrl = videoElement?.getAttribute('data-source-url');
-                            if (videoElement && lastVideoUrl !== sourceMedia.url) {
-                                console.log('[ColorCorrection] Video source changed, recreating video element');
-                                videoElement.remove();
-                                videoElement = null as any;
-
-                                // プロセッサーもリセット
-                                videoProcessors.delete(node.id);
-                                const canvas = document.createElement('canvas');
-                                canvas.width = 1280;
-                                canvas.height = 720;
-                                videoProcessor = new WebGLVideoProcessor(canvas);
-                                videoProcessors.set(node.id, videoProcessor);
-                            }
-
-                            if (!videoElement) {
-                                videoElement = document.createElement('video');
-                                videoElement.id = `cc-video-${node.id}`;
-                                videoElement.style.display = 'none';
-                                videoElement.muted = true;
-                                videoElement.loop = true;
-                                videoElement.playsInline = true;
-                                videoElement.crossOrigin = 'anonymous';
-                                videoElement.setAttribute('data-source-url', sourceMedia.url); // URLを記録
-                                document.body.appendChild(videoElement);
-
-                                console.log('[ColorCorrection] Created hidden video element for', sourceMedia.url);
-                            }
-
-                            // ソース設定
-                            if (videoElement.src !== sourceMedia.url) {
-                                videoElement.src = sourceMedia.url;
-                                videoElement.load(); // 重要: load()を呼ばないとloadedmetadataが発火しないことがある
-                            }
-
-                            // 再生開始
-                            videoElement.play().catch(e => console.warn('[ColorCorrection] Auto-play failed', e));
-
-                            // WebGLプロセッサーに接続
-                            const initVideoProcessor = () => {
-                                if (videoElement.readyState >= 1) { // HAVE_METADATA
-                                    console.log('[ColorCorrection] initVideoProcessor called. ReadyState:', videoElement.readyState);
-                                    if (videoProcessor) {
-                                        videoProcessor.loadVideo(videoElement);
-
-                                        // 初回フレームをキャプチャしてプレビュー更新
-                                        saveCanvasPreview(node, videoProcessor);
-
-                                        // リアルタイム更新ループ開始
-                                        const updateLoop = () => {
-                                            // ノードが存在し、動画ソースである場合のみ更新
-                                            if (state.nodes.find(n => n.id === node.id) && isVideoSource.get(node.id)) {
-                                                saveCanvasPreview(node, videoProcessor!);
-                                                requestAnimationFrame(updateLoop);
-                                            }
-                                        };
-                                        requestAnimationFrame(updateLoop);
-                                    }
-                                } else {
-                                    // まだ準備できていない場合は少し待つ
-                                    console.log('[ColorCorrection] Video not ready, retrying...');
-                                    setTimeout(initVideoProcessor, 100);
-                                }
-                            };
-
-                            // 動画のメタデータロード完了を待つ
-                            if (videoElement.readyState >= videoElement.HAVE_METADATA) {
-                                console.log('[ColorCorrection] Metadata already loaded');
-                                initVideoProcessor();
-                            } else {
-                                console.log('[ColorCorrection] Waiting for loadedmetadata');
-                                videoElement.addEventListener('loadedmetadata', initVideoProcessor, { once: true });
-                                // videoElement.load(); // 上で呼んでいるのでここでは不要かもしれないが、念のため
-                            }
-
-                            // レンダラーバッジを更新
-                            const rendererBadge = element.querySelector('.cc-renderer-indicator') as HTMLElement;
-                            if (rendererBadge) {
-                                rendererBadge.dataset.renderer = 'webgl-video';
-                                rendererBadge.textContent = 'レンダラー: WebGL (リアルタイム動画)';
-                            }
-
-                            // 動画の場合はFFmpeg生成をスキップ（WebGLリアルタイムプレビューで十分）
-                            // FFmpegで生成すると、そのプレビュー情報がcanvasのサイズ情報を上書きしてしまう
-                            console.log('[ColorCorrection] Skipping FFmpeg generation for video (using WebGL real-time preview)');
-
-                        } else {
-                            // 静止画の場合はCanvas/WebGLで処理
-                            let imageUrl = sourceMedia.url;
-
-                            if (sourceMedia.url.startsWith('file://')) {
-                                const result = await window.nodevision.loadImageAsDataURL({ filePath: sourceMedia.url });
-                                if (result.ok && result.dataURL) {
-                                    imageUrl = result.dataURL;
-                                }
-                            }
-
-                            const lastSource = lastSourceByNode.get(node.id);
-                            const shouldReload = !processor.hasImage() || lastSource !== imageUrl;
-
-                            if (shouldReload) {
-                                await processor.loadImage(imageUrl);
-                                lastSourceByNode.set(node.id, imageUrl);
-                            }
-
-                            const settings = node.settings as ColorCorrectionNodeSettings;
-                            processor.applyCorrection({
-                                exposure: settings.exposure ?? 0,
-                                brightness: settings.brightness ?? 0,
-                                contrast: settings.contrast ?? 1,
-                                saturation: settings.saturation ?? 1,
-                                gamma: settings.gamma ?? 1,
-                                shadows: settings.shadows ?? 0,
-                                highlights: settings.highlights ?? 0,
-                                temperature: settings.temperature ?? 0,
-                                tint: settings.tint ?? 0
-                            });
-
-                            propagateToMediaPreview(node, processor);
-                        }
-                    } catch (error) {
-                        console.error('[ColorCorrection] Offscreen preview setup failed', error);
-                    }
-                } else {
-                    // ソースが無い場合
-                    const wasVideo = isVideoSource.get(node.id);
-
-                    if (wasVideo) {
-                        // 動画ソースの場合は、canvas previewをクリア
-                        state.canvasPreviews.delete(node.id);
-                        state.mediaPreviews.delete(node.id);
-                        isVideoSource.delete(node.id);
-                        console.log('[ColorCorrection] Cleared video canvas preview for node', node.id);
-                    } else {
-                        // 静止画ソースの場合は、既存プレビューをクリア
-                        lastSourceByNode.delete(node.id);
-                        propagateToMediaPreview(node, undefined);
-                    }
-                }
 
                 // 共通の更新ロジック
                 const updateValueAndPreview = (key: keyof ColorCorrectionNodeSettings, val: number) => {
@@ -555,7 +383,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                     const display = element.querySelector(`.control-value[data-cc-value="${key}"]`);
                     if (display) display.textContent = val.toFixed(2);
 
-                    // Update slider position if needed (for reset button)
+                    // Update slider position
                     const slider = element.querySelector(`input[data-cc-key="${key}"]`) as HTMLInputElement;
                     if (slider && parseFloat(slider.value) !== val) {
                         slider.value = val.toString();
@@ -572,38 +400,110 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                     // プレビュー更新
                     const sourceMedia = getSourceMedia(node);
                     const isVideo = isVideoSource.get(node.id) || false;
+                    const settings = node.settings as ColorCorrectionNodeSettings;
 
                     if (isVideo) {
                         // 動画の場合：WebGLプロセッサーで即座に更新
                         const videoProcessor = videoProcessors.get(node.id);
                         if (videoProcessor) {
-                            const settings = node.settings as ColorCorrectionNodeSettings;
                             videoProcessor.applyCorrection(settings);
-                            // console.log('[ColorCorrection] WebGL video correction updated in real-time');
                         }
                     } else if (sourceMedia?.isVideo) {
                         // 動画の場合（予備）
                     } else {
-                        // 静止画の場合：即座にCanvas/WebGL更新
-                        if (processor && processor.hasImage()) {
-                            const settings = node.settings as ColorCorrectionNodeSettings;
-                            processor.applyCorrection({
-                                exposure: settings.exposure ?? 0,
-                                brightness: settings.brightness ?? 0,
-                                contrast: settings.contrast ?? 1,
-                                saturation: settings.saturation ?? 1,
-                                gamma: settings.gamma ?? 1,
-                                shadows: settings.shadows ?? 0,
-                                highlights: settings.highlights ?? 0,
-                                temperature: settings.temperature ?? 0,
-                                tint: settings.tint ?? 0
-                            });
+                        // 静止画の場合
+                        if (processor) {
+                            if (processor instanceof WebGLLUTProcessor) {
+                                // 3D LUT生成と適用
+                                const paramsHash = JSON.stringify(settings);
+                                let lut = lutCache.get(node.id)?.lut;
+
+                                if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
+                                    // LUT再生成
+                                    const transform = buildLegacyColorCorrectionTransform(settings);
+                                    lut = generateLUT3D(33, transform); // 33x33x33 is standard
+                                    if (lut) {
+                                        lutCache.set(node.id, { params: paramsHash, lut });
+                                    }
+                                }
+
+                                if (lut) {
+                                    processor.loadLUT(lut);
+                                    processor.renderWithCurrentTexture();
+                                }
+                            } else if (processor instanceof WebGLColorProcessor) {
+                                processor.applyCorrection(settings);
+                            } else if (processor instanceof CanvasColorProcessor) {
+                                processor.applyCorrection(settings);
+                            }
+
                             propagateToMediaPreview(node, processor);
                         }
                     }
                 };
 
-                // スライダー入力で設定更新＆プレビュー伝搬
+                // 初期化処理（ソースがある場合）
+                if (sourceMedia) {
+                    try {
+                        const isVideo = sourceMedia.isVideo;
+                        const wasVideo = isVideoSource.get(node.id);
+
+                        if (wasVideo !== undefined && wasVideo !== isVideo) {
+                            if (wasVideo) {
+                                state.canvasPreviews.delete(node.id);
+                                state.mediaPreviews.delete(node.id);
+                            } else {
+                                lastSourceByNode.delete(node.id);
+                            }
+                            propagateToMediaPreview(node, undefined);
+                        }
+
+                        isVideoSource.set(node.id, isVideo);
+
+                        if (isVideo) {
+                            // ... (動画処理は変更なし) ...
+                            // 動画の場合はFFmpeg生成をスキップ（WebGLリアルタイムプレビューで十分）
+                            console.log('[ColorCorrection] Skipping FFmpeg generation for video (using WebGL real-time preview)');
+                        } else {
+                            // 静止画の場合はCanvas/WebGLで処理
+                            let imageUrl = sourceMedia.url;
+
+                            if (sourceMedia.url.startsWith('file://')) {
+                                const result = await window.nodevision.loadImageAsDataURL({ filePath: sourceMedia.url });
+                                if (result.ok && result.dataURL) {
+                                    imageUrl = result.dataURL;
+                                }
+                            }
+
+                            const lastSource = lastSourceByNode.get(node.id);
+                            const shouldReload = !processor.hasImage?.() && !(processor as any).hasImage?.() || lastSource !== imageUrl;
+
+                            if (shouldReload) {
+                                await processor.loadImage(imageUrl);
+                                lastSourceByNode.set(node.id, imageUrl);
+                            }
+
+                            // Apply initial correction
+                            const settings = node.settings as ColorCorrectionNodeSettings;
+                            updateValueAndPreview('exposure', settings.exposure ?? 0); // Trigger update
+                        }
+                    } catch (error) {
+                        console.error('[ColorCorrection] Offscreen preview setup failed', error);
+                    }
+                } else {
+                    // ソースが無い場合
+                    const wasVideo = isVideoSource.get(node.id);
+                    if (wasVideo) {
+                        state.canvasPreviews.delete(node.id);
+                        state.mediaPreviews.delete(node.id);
+                        isVideoSource.delete(node.id);
+                    } else {
+                        lastSourceByNode.delete(node.id);
+                        propagateToMediaPreview(node, undefined);
+                    }
+                }
+
+                // スライダー入力イベント
                 const inputs = element.querySelectorAll('input[type="range"]');
                 inputs.forEach(input => {
                     input.addEventListener('input', (e) => {
@@ -615,7 +515,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                     });
                 });
 
-                // リセットボタンのイベントリスナー
+                // リセットボタンイベント
                 const resetButtons = element.querySelectorAll('.reset-btn');
                 resetButtons.forEach(btn => {
                     btn.addEventListener('click', (e) => {
@@ -624,7 +524,6 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                         const defaultValue = parseFloat(target.getAttribute('data-default-value') || '0');
 
                         if (key) {
-                            console.log(`[ColorCorrection] Resetting ${key} to ${defaultValue}`);
                             updateValueAndPreview(key, defaultValue);
                         }
                     });

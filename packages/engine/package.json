@@ -4,7 +4,9 @@
   "description": "Job execution engine primitives for NodeVision Editor",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
@@ -12,9 +14,10 @@
     "@types/archiver": "^7.0.0"
   },
   "dependencies": {
+    "@nodevision/color-grading": "workspace:^",
+    "@nodevision/system-check": "workspace:*",
     "archiver": "^6.0.1",
     "archiver-zip-encrypted": "^2.0.0",
-    "@nodevision/system-check": "workspace:*",
     "execa": "^9.3.0"
   },
   "peerDependencies": {

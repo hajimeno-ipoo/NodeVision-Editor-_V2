@@ -8,6 +8,7 @@
     "dev": "node scripts/run-electron-dev.js"
   },
   "dependencies": {
+    "@nodevision/color-grading": "workspace:^",
     "@nodevision/editor": "workspace:*",
     "@nodevision/engine": "workspace:*",
     "@nodevision/settings": "workspace:*",

@@ -45,6 +45,13 @@ interface NodeVisionBridge {
   }): Promise<{ ok: boolean; message?: string }>;
   enqueueZipJob(payload: { files: string[]; outputPath: string; password?: string; cleanupPaths?: string[] }): Promise<{ ok: boolean; message?: string }>;
   loadImageAsDataURL(payload: { filePath: string }): Promise<{ ok: boolean; dataURL?: string; message?: string }>;
+  openFileDialog(payload: {
+    title?: string;
+    defaultPath?: string;
+    filters?: { name: string; extensions: string[] }[];
+    properties?: string[];
+  }): Promise<{ ok: boolean; filePaths?: string[]; canceled: boolean }>;
+  readTextFile(payload: { filePath: string }): Promise<{ ok: boolean; content?: string; message?: string }>;
 }
 
 const api: NodeVisionBridge = {
@@ -63,11 +70,25 @@ const api: NodeVisionBridge = {
   loadFileByPath: payload => ipcRenderer.invoke('nodevision:media:loadFileByPath', payload),
   generateCroppedPreview: payload => ipcRenderer.invoke('nodevision:preview:crop', payload),
   generatePreview: payload => ipcRenderer.invoke('nodevision:preview:generate', payload),
-  loadImageAsDataURL: payload => ipcRenderer.invoke('nodevision:image:loadAsDataURL', payload)
+  loadImageAsDataURL: payload => ipcRenderer.invoke('nodevision:image:loadAsDataURL', payload),
+  openFileDialog: payload => ipcRenderer.invoke('nodevision:dialog:openFile', payload),
+  readTextFile: payload => ipcRenderer.invoke('nodevision:file:readText', payload)
 };
 
-contextBridge.exposeInMainWorld('nodevision', api);
-contextBridge.exposeInMainWorld('nodeRequire', require);
+// contextIsolationの状態に応じて処理を切り替え
+if (process.contextIsolated) {
+  // contextIsolation: true の場合
+  contextBridge.exposeInMainWorld('nodevision', api);
+  contextBridge.exposeInMainWorld('nodeRequire', require);
+} else {
+  // contextIsolation: false の場合
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - windowオブジェクトに直接設定
+  window.nodevision = api;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - windowオブジェクトに直接設定
+  window.nodeRequire = require;
+}
 
 declare global {
   interface Window {

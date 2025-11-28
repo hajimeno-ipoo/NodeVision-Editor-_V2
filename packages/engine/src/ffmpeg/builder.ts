@@ -1,5 +1,6 @@
 /* c8 ignore start */
 import path from 'node:path';
+import { buildLegacyColorCorrectionPipeline, type ColorGradingPipeline } from '@nodevision/color-grading';
 
 export type MediaNodeType =
   | 'loadMedia'
@@ -129,7 +130,7 @@ export interface BuildFFmpegPlanOptions {
 
 interface BaseStage {
   stage: 'input' | 'filter' | 'output';
-  typeId: MediaNodeType | 'setsar' | 'eq' | 'curves' | 'colorchannelmixer';
+  typeId: MediaNodeType | 'setsar' | 'eq' | 'curves' | 'colorchannelmixer' | 'lut3d_generator';
   nodeVersion: string;
 }
 
@@ -153,7 +154,16 @@ export interface OutputStage extends BaseStage {
   interpolation: 'bicubic';
 }
 
-export type BuilderStage = InputStage | FilterStage | OutputStage;
+export interface LUT3DGeneratorStage extends BaseStage {
+  stage: 'filter';
+  typeId: 'lut3d_generator';
+  params: {
+    pipeline: ColorGradingPipeline;
+    nodeId: string;
+  };
+}
+
+export type BuilderStage = InputStage | FilterStage | OutputStage | LUT3DGeneratorStage;
 
 export interface PreviewFilter {
   type: 'colorspace' | 'scale' | 'setsar';
@@ -365,81 +375,45 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
     });
   });
 
-  // Color Correction: Multi-stage processing
+  // Color Correction: Use 3D LUT
   colorCorrections.forEach(cc => {
-    // Stage 1: eq filter (brightness, contrast, saturation, gamma, exposure)
-    const hasBasicAdjustments =
+    // Check if there are any adjustments
+    const hasAdjustments =
       (cc.brightness ?? 0) !== 0 ||
       (cc.contrast ?? 1) !== 1 ||
       (cc.saturation ?? 1) !== 1 ||
       (cc.gamma ?? 1) !== 1 ||
-      (cc.exposure ?? 0) !== 0;
+      (cc.exposure ?? 0) !== 0 ||
+      (cc.shadows ?? 0) !== 0 ||
+      (cc.highlights ?? 0) !== 0 ||
+      (cc.temperature ?? 0) !== 0 ||
+      (cc.tint ?? 0) !== 0;
 
-    if (hasBasicAdjustments) {
-      // Exposure is handled in colorchannelmixer as a gain
-      // const effectiveBrightness = (cc.brightness ?? 0) + (cc.exposure ?? 0) * 0.5;
-
-      stages.push({
-        stage: 'filter',
-        typeId: 'eq',
-        nodeVersion: cc.nodeVersion,
-        params: {
-          brightness: cc.brightness ?? 0,
-          contrast: cc.contrast ?? 1,
-          saturation: cc.saturation ?? 1,
-          gamma: cc.gamma ?? 1
-        }
+    if (hasAdjustments) {
+      // Build pipeline configuration from legacy settings
+      const pipeline = buildLegacyColorCorrectionPipeline({
+        exposure: cc.exposure,
+        brightness: cc.brightness,
+        contrast: cc.contrast,
+        saturation: cc.saturation,
+        gamma: cc.gamma,
+        shadows: cc.shadows,
+        highlights: cc.highlights,
+        temperature: cc.temperature,
+        tint: cc.tint
       });
-    }
-
-    // Stage 2: curves filter (shadows, highlights)
-    const hasToneCurve = (cc.shadows ?? 0) !== 0 || (cc.highlights ?? 0) !== 0;
-    if (hasToneCurve) {
-      const shadowLift = (cc.shadows ?? 0) / 100 * 0.2;
-      const highlightCompress = (cc.highlights ?? 0) / 100 * -0.2;
-
-      // Generate tone curve: format is "x1/y1 x2/y2 x3/y3 ..."
-      const curve = [
-        `0/${Math.max(0, Math.min(1, 0 + shadowLift))}`,
-        `0.25/${Math.max(0, Math.min(1, 0.25 + shadowLift * 0.5))}`,
-        `0.5/0.5`,
-        `0.75/${Math.max(0, Math.min(1, 0.75 - highlightCompress * 0.5))}`,
-        `1/${Math.max(0, Math.min(1, 1 + highlightCompress))}`
-      ].join(' ');
 
       stages.push({
         stage: 'filter',
-        typeId: 'curves',
+        typeId: 'lut3d_generator',
         nodeVersion: cc.nodeVersion,
         params: {
-          all: curve
-        }
-      });
-    }
-
-    // Stage 3: colorchannelmixer (temperature, tint, exposure)
-    const hasColorShift = (cc.temperature ?? 0) !== 0 || (cc.tint ?? 0) !== 0 || (cc.exposure ?? 0) !== 0;
-    if (hasColorShift) {
-      const tempFactor = (cc.temperature ?? 0) / 100;
-      const tintFactor = (cc.tint ?? 0) / 100;
-      const exposureGain = Math.pow(2, cc.exposure ?? 0);
-
-      // FFmpeg's colorchannelmixer has a range limit of [-2, 2]
-      const clamp = (val: number) => Math.max(-2, Math.min(2, val));
-
-      stages.push({
-        stage: 'filter',
-        typeId: 'colorchannelmixer',
-        nodeVersion: cc.nodeVersion,
-        params: {
-          rr: clamp((1.0 + tempFactor * 0.3) * exposureGain),
-          gg: clamp((1.0 + tintFactor * 0.2) * exposureGain),
-          bb: clamp((1.0 - tempFactor * 0.3) * exposureGain)
+          pipeline,
+          nodeId: cc.id
         }
       });
     }
   });
-
 
   if (speedRatio !== 1) {
     stages.push({

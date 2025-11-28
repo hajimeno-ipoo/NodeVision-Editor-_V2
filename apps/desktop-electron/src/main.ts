@@ -1,4 +1,5 @@
 import { promises as fs, createWriteStream } from 'node:fs';
+import fsSync from 'node:fs';
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import crypto from 'node:crypto';
@@ -6,6 +7,8 @@ import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
 import archiver from 'archiver';
 import zipEncrypted from 'archiver-zip-encrypted';
+import os from 'node:os';
+import { generateLUT3D, exportCubeLUT, buildColorTransform } from '@nodevision/color-grading';
 
 import { DEFAULT_NODE_TEMPLATES, seedDemoNodes } from '@nodevision/editor';
 import {
@@ -22,6 +25,10 @@ import {
   buildFFmpegPlan,
   FFmpegPlan
 } from '@nodevision/engine';
+
+// ... (imports)
+
+
 import { getSettingsFilePath, loadSettings, NodeVisionSettings, updateSettings } from '@nodevision/settings';
 import {
   BinaryNotFoundError,
@@ -33,13 +40,16 @@ import {
   type BinaryLicense
 } from '@nodevision/system-check';
 import { createTokenManager, TokenRecord } from '@nodevision/tokens';
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
-
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import type { BootStatus, FFmpegDistributionMetadata, QueueSnapshot, WorkflowRecord, QueueWarning } from './types';
 import { buildRendererHtml } from './ui-template';
-import { buildQueueWarnings } from './queue-warnings';
-import type { BootStatus, FFmpegDistributionMetadata, QueueSnapshot, WorkflowRecord } from './types';
 
 const preloadPath = path.join(__dirname, 'preload.js');
+// ... (rest of imports and constants)
+
+// ...
+
+
 const FFMPEG_SOURCE_URL = 'https://ffmpeg.org/download.html#sources';
 const FFMPEG_LICENSE_URLS: Record<BinaryLicense, string> = {
   lgpl: 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html',
@@ -160,6 +170,24 @@ const describeFfmpegDistribution = (ffmpeg: FFmpegDetectionResult['ffmpeg']): FF
     licenseUrl: FFMPEG_LICENSE_URLS[ffmpeg.license] ?? FFMPEG_LICENSE_URLS.unknown,
     sourceUrl: FFMPEG_SOURCE_URL
   } satisfies FFmpegDistributionMetadata;
+};
+
+const buildQueueWarnings = (
+  _history: any[],
+  _limits: any,
+  _queuedCount: number,
+  queueFullEvent: any
+): QueueWarning[] => {
+  const warnings: QueueWarning[] = [];
+  if (queueFullEvent && Date.now() - queueFullEvent.timestamp < 5000) {
+    warnings.push({
+      type: 'QUEUE_FULL',
+      level: 'warn',
+      message: 'Queue is currently full',
+      occurredAt: new Date().toISOString()
+    });
+  }
+  return warnings;
 };
 
 const getQueueSnapshot = (): QueueSnapshot => {
@@ -304,11 +332,40 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
   const filterChain: string[] = [];
   let lastLabel = '0:v'; // Assuming single video input for now
 
+  // Create a temp directory for LUTs if needed
+  const tempDir = path.join(os.tmpdir(), 'nodevision-luts');
+  if (!fsSync.existsSync(tempDir)) {
+    fsSync.mkdirSync(tempDir, { recursive: true });
+  }
+
   for (const stage of plan.stages) {
     if (stage.stage === 'input') {
       args.push(...stage.args);
       args.push('-i', stage.path);
     } else if (stage.stage === 'filter') {
+      // Handle LUT generation stage
+      if (stage.typeId === 'lut3d_generator') {
+        const { pipeline, nodeId } = stage.params as any;
+
+        // Generate LUT
+        // Use 33x33x33 resolution for high quality export
+        const lut = generateLUT3D(33, buildColorTransform(pipeline));
+
+        // Export to .cube file
+        const cubeContent = exportCubeLUT(lut, { title: `NodeVision LUT ${nodeId}` });
+        const lutPath = path.join(tempDir, `lut-${nodeId}-${Date.now()}.cube`);
+
+        fsSync.writeFileSync(lutPath, cubeContent, 'utf-8');
+
+        // Add lut3d filter
+        const nextLabel = `tmp${filterChain.length}`;
+        // Escape path for FFmpeg
+        const escapedPath = lutPath.replace(/\\/g, '/').replace(/:/g, '\\:');
+        filterChain.push(`[${lastLabel}]lut3d=file='${escapedPath}'[${nextLabel}]`);
+        lastLabel = nextLabel;
+        continue;
+      }
+
       // Construct filter parameters
       const paramsList = Object.entries(stage.params)
         .map(([k, v]) => {
@@ -977,6 +1034,38 @@ ipcMain.handle('nodevision:image:loadAsDataURL', async (_event, payload) => {
   }
 });
 
+// Open file dialog for LUT files
+ipcMain.handle('nodevision:dialog:openFile', async (_event, payload) => {
+  try {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      title: payload?.title || 'Select file',
+      defaultPath: payload?.defaultPath,
+      filters: payload?.filters || [{ name: 'All Files', extensions: ['*'] }],
+      properties: (payload?.properties as any[]) || ['openFile']
+    });
+    return { ok: true, filePaths, canceled };
+  } catch (error) {
+    console.error('[NodeVision] openFileDialog failed', error);
+    return { ok: false, filePaths: [], canceled: true };
+  }
+});
+
+// Read text file content
+ipcMain.handle('nodevision:file:readText', async (_event, payload) => {
+  try {
+    const { filePath } = payload;
+    if (!filePath) {
+      return { ok: false, message: 'File path is required' };
+    }
+
+    const content = await fs.readFile(filePath, 'utf-8');
+    return { ok: true, content };
+  } catch (error) {
+    console.error('[NodeVision] readTextFile failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
 async function promptForFFmpegSetup(reason: string): Promise<void> {
   const settingsPath = getSettingsFilePath();
   const result = await dialog.showMessageBox({
@@ -1105,11 +1194,16 @@ function createWindow(status: BootStatus): void {
     width: 1280,
     height: 840,
     webPreferences: {
-      contextIsolation: true,
-      sandbox: false,
+      nodeIntegration: true,
+      contextIsolation: false,
       preload: preloadPath
     }
   });
+
+  // 開発時は開発者ツールを開く
+  if (process.env.NODE_ENV !== 'production') {
+    win.webContents.openDevTools();
+  }
 
   const baseForData = `file://${status.settings.tempRoot}/`;
   win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`, {

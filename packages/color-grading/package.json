@@ -1,0 +1,21 @@
+{
+    "name": "@nodevision/color-grading",
+    "version": "0.1.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "test": "vitest"
+    },
+    "keywords": [
+        "color-grading",
+        "lut",
+        "color-correction"
+    ],
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "^5.6.3",
+        "vitest": "^2.1.8"
+    }
+}

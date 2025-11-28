@@ -200,6 +200,110 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     }
   },
   {
+    typeId: 'primaryGrading',
+    nodeVersion: '1.0.0',
+    title: 'Primary Grading',
+    category: 'Color',
+    description: 'Professional primary color correction with wheels and curves',
+    keywords: ['color', 'grade', 'primary', 'wheels', 'lift', 'gamma', 'gain'],
+    width: 400,
+    height: 600,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'result', label: 'Result', direction: 'output', dataType: 'video', required: true }
+    ],
+    defaultSettings: {
+      kind: 'primaryGrading',
+      exposure: 0,
+      contrast: 1,
+      saturation: 1,
+      temperature: 0,
+      tint: 0,
+      lift: { hue: 0, saturation: 0, luminance: 0 },
+      gamma: { hue: 0, saturation: 0, luminance: 0 },
+      gain: { hue: 0, saturation: 0, luminance: 0 }
+    }
+  },
+  {
+    typeId: 'curves',
+    nodeVersion: '1.0.0',
+    title: 'Curves',
+    category: 'Color',
+    description: 'Adjust tonal range and color balance using curves',
+    keywords: ['color', 'curves', 'rgb', 'luma'],
+    width: 400,
+    height: 500,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'result', label: 'Result', direction: 'output', dataType: 'video', required: true }
+    ],
+    defaultSettings: {
+      kind: 'curves',
+      master: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      red: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      green: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      blue: [{ x: 0, y: 0 }, { x: 1, y: 1 }]
+    }
+  },
+  {
+    typeId: 'lutLoader',
+    nodeVersion: '1.0.0',
+    title: 'LUT Loader',
+    category: 'Color',
+    description: 'Apply 3D LUTs (.cube) to the footage',
+    keywords: ['color', 'lut', 'cube', 'look'],
+    width: 300,
+    height: 200,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'result', label: 'Result', direction: 'output', dataType: 'video', required: true }
+    ],
+    defaultSettings: {
+      kind: 'lutLoader',
+      intensity: 1.0
+    }
+  },
+  {
+    typeId: 'secondaryGrading',
+    nodeVersion: '1.0.0',
+    title: 'Secondary Grading',
+    category: 'Color',
+    description: 'Isolate and adjust specific colors (HSL Qualifier)',
+    keywords: ['color', 'secondary', 'qualifier', 'hsl', 'mask'],
+    width: 400,
+    height: 550,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    outputs: [
+      { id: 'result', label: 'Result', direction: 'output', dataType: 'video', required: true },
+      { id: 'mask', label: 'Alpha Mask', direction: 'output', dataType: 'video', required: false }
+    ],
+    defaultSettings: {
+      kind: 'secondaryGrading',
+      hueCenter: 0,
+      hueWidth: 20,
+      hueSoftness: 10,
+      satCenter: 0.5,
+      satWidth: 0.5,
+      satSoftness: 0.1,
+      lumCenter: 0.5,
+      lumWidth: 0.5,
+      lumSoftness: 0.1,
+      invert: false,
+      saturation: 1.0,
+      hueShift: 0,
+      brightness: 0,
+      showMask: false
+    }
+  },
+  {
     typeId: 'export',
     nodeVersion: '1.0.0',
     title: 'Export Media',

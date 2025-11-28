@@ -60,7 +60,84 @@ export interface ColorCorrectionNodeSettings {
   tint: number;
 }
 
-export type NodeSettings = TrimNodeSettings | ColorCorrectionNodeSettings;
+/**
+ * Color wheel control for Lift/Gamma/Gain
+ */
+export interface ColorWheelControl {
+  hue: number;        // 0-360 degrees
+  saturation: number; // 0-1
+  luminance: number;  // -1 to 1
+}
+
+/**
+ * Primary Grading node settings
+ * Professional color grading with wheels (Lift/Gamma/Gain)
+ */
+export interface PrimaryGradingNodeSettings {
+  kind: 'primaryGrading';
+  // Basic corrections
+  exposure: number;      // -5 to 5
+  contrast: number;      // 0 to 2
+  saturation: number;    // 0 to 2
+  temperature: number;   // -100 to 100
+  tint: number;          // -100 to 100
+
+  // Color wheels
+  lift: ColorWheelControl;
+  gamma: ColorWheelControl;
+  gain: ColorWheelControl;
+}
+
+/**
+ * LUT Loader node settings
+ * Load and apply external 3D LUTs (.cube files)
+ */
+export interface LUTLoaderNodeSettings {
+  kind: 'lutLoader';
+  /** Path to the .cube LUT file */
+  lutFilePath?: string;
+  /** LUT intensity (0-1, default 1.0 = 100%) */
+  intensity: number;
+}
+
+export interface CurvePoint {
+  x: number;
+  y: number;
+}
+
+export interface CurvesNodeSettings {
+  kind: 'curves';
+  master: CurvePoint[];
+  red: CurvePoint[];
+  green: CurvePoint[];
+  blue: CurvePoint[];
+}
+
+export interface SecondaryGradingNodeSettings {
+  kind: 'secondaryGrading';
+  // Keyer parameters
+  hueCenter: number;
+  hueWidth: number;
+  hueSoftness: number;
+  satCenter: number;
+  satWidth: number;
+  satSoftness: number;
+  lumCenter: number;
+  lumWidth: number;
+  lumSoftness: number;
+  invert: boolean;
+
+  // Correction parameters
+  saturation: number;
+  hueShift: number;
+  brightness: number;
+
+  // View options
+  showMask: boolean;
+}
+
+export type NodeSettings = TrimNodeSettings | ColorCorrectionNodeSettings | PrimaryGradingNodeSettings | LUTLoaderNodeSettings | CurvesNodeSettings | SecondaryGradingNodeSettings;
+
 
 export interface EditorNode {
   id: string;

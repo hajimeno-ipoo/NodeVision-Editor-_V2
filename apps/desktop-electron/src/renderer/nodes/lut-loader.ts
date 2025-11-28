@@ -1,0 +1,313 @@
+import type { LUT3D } from '@nodevision/color-grading';
+import type { LUTLoaderNodeSettings } from '@nodevision/editor';
+
+import type { RendererNode } from '../types';
+import type { NodeRendererContext, NodeRendererModule } from './types';
+import { WebGLLUTProcessor } from './webgl-lut-processor';
+
+// 動的にモジュールを読み込む
+const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
+const { parseCubeLUT, validateImportedLUT } = colorGrading;
+
+export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
+    const { state, escapeHtml } = context;
+
+    const processors = new Map<string, WebGLLUTProcessor>();
+    const lastSourceByNode = new Map<string, string>();
+    const loadedLUTs = new Map<string, LUT3D>();
+
+    const createProcessor = (): WebGLLUTProcessor => {
+        const canvas = document.createElement('canvas');
+        return new WebGLLUTProcessor(canvas);
+    };
+
+    /**
+     * メディアプレビューノードへ補正後の dataURL を反映
+     */
+    const propagateToMediaPreview = (node: RendererNode, processor?: WebGLLUTProcessor) => {
+        let dataUrl: string | null = null;
+        let size = { width: 0, height: 0 };
+
+        if (processor) {
+            const canvas = processor.getContext().canvas;
+            size = { width: canvas.width, height: canvas.height };
+            dataUrl = (canvas as HTMLCanvasElement).toDataURL();
+        }
+
+        if (dataUrl) {
+            state.mediaPreviews.set(node.id, {
+                url: dataUrl,
+                name: 'Preview',
+                kind: 'image',
+                width: size.width,
+                height: size.height,
+                size: 0,
+                type: 'image/png',
+                ownedUrl: true,
+            });
+        } else {
+            state.mediaPreviews.delete(node.id);
+        }
+
+        const connectedPreviewNodes = state.connections
+            .filter((c) => c.fromNodeId === node.id)
+            .map((c) => c.toNodeId);
+
+        if (connectedPreviewNodes.length > 0) {
+            requestAnimationFrame(() => {
+                connectedPreviewNodes.forEach((previewNodeId) => {
+                    const previewNode = state.nodes.find((n) => n.id === previewNodeId);
+                    if (previewNode && previewNode.typeId === 'mediaPreview') {
+                        const img = document.querySelector(
+                            `.node-media[data-node-id="${previewNodeId}"] img`
+                        );
+
+                        if (img && dataUrl) {
+                            (img as HTMLImageElement).src = dataUrl;
+                        } else if (!img && dataUrl) {
+                            context.renderNodes();
+                        }
+                    }
+                });
+            });
+        }
+    };
+
+    /**
+     * 上流ノードから元メディアの URL を取得
+     */
+    const getSourceMedia = (node: RendererNode): string | null => {
+        const inputPorts = ['source'];
+        const conn = state.connections.find(
+            (c) => c.toNodeId === node.id && inputPorts.includes(c.toPortId)
+        );
+        if (!conn) return null;
+
+        const sourceNode = state.nodes.find((n) => n.id === conn.fromNodeId);
+        if (!sourceNode) return null;
+
+        const preview = state.mediaPreviews.get(sourceNode.id);
+        if (preview?.url) return preview.url;
+
+        if (sourceNode.typeId === 'loadVideo' || sourceNode.typeId === 'loadImage') {
+            const settings = sourceNode.settings as { filePath?: string } | undefined;
+            if (settings?.filePath) {
+                return settings.filePath;
+            }
+        }
+
+        return null;
+    };
+
+    const buildControls = (node: RendererNode): string => {
+        const settings = (node.settings as LUTLoaderNodeSettings) || {
+            kind: 'lutLoader',
+            intensity: 1.0,
+        };
+
+        const hasLUT = !!settings.lutFilePath;
+        const lutName = settings.lutFilePath
+            ? settings.lutFilePath.split('/').pop() || 'LUT file'
+            : 'No LUT loaded';
+
+        return `
+      <div class="node-controls" style="padding: 12px;">
+        <div class="lut-loader-indicator" style="font-size: 11px; color: #9aa0a6; margin-bottom: 8px;">
+          レンダラー: WebGL 2.0 (3D LUT)
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <button class="load-lut-btn" style="width: 100%; padding: 8px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+            ${hasLUT ? '別のLUTを読み込む' : 'LUTファイルを読み込む'}
+          </button>
+          <div class="lut-file-name" style="margin-top: 8px; font-size: 11px; color: ${hasLUT ? '#e8eaed' : '#9aa0a6'
+            }; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHtml(lutName)}
+          </div>
+        </div>
+        
+        ${hasLUT
+                ? `
+        <label class="control-label" style="display: block; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
+            <span class="control-label-text">Intensity</span>
+            <span class="control-value" data-lut-value="intensity">${(settings.intensity * 100).toFixed(0)}%</span>
+          </div>
+          <input 
+            type="range" 
+            class="node-slider lut-intensity-slider" 
+            data-node-id="${escapeHtml(node.id)}"
+            min="0" max="1" step="0.01" value="${settings.intensity}"
+            style="width: 100%;"
+          />
+        </label>
+        `
+                : ''
+            }
+      </div>
+    `;
+    };
+
+    return {
+        id: 'lut-loader',
+        typeIds: ['lutLoader'],
+        render: (node) => ({
+            afterPortsHtml: buildControls(node),
+            afterRender: async (element) => {
+                let processor = processors.get(node.id);
+                if (!processor) {
+                    processor = createProcessor();
+                    processors.set(node.id, processor);
+                }
+
+                const settings = node.settings as LUTLoaderNodeSettings;
+                const sourceMediaUrl = getSourceMedia(node);
+
+                // LUT読み込みボタン
+                const loadBtn = element.querySelector('.load-lut-btn');
+                if (loadBtn) {
+                    loadBtn.addEventListener('click', async () => {
+                        // ファイル選択ダイアログを開く
+                        const result = await window.nodevision.openFileDialog({
+                            filters: [
+                                { name: 'LUT Files', extensions: ['cube'] },
+                                { name: 'All Files', extensions: ['*'] },
+                            ],
+                        });
+
+                        if (result.ok && result.filePaths && result.filePaths.length > 0) {
+                            const lutPath = result.filePaths[0];
+
+                            try {
+                                // ファイルを読み込む
+                                const fileContent = await window.nodevision.readTextFile({
+                                    filePath: lutPath,
+                                });
+
+                                if (fileContent.ok && fileContent.content) {
+                                    // パースしてLUTを生成
+                                    const lut = parseCubeLUT(fileContent.content);
+
+                                    if (validateImportedLUT(lut)) {
+                                        // 設定を更新
+                                        const targetNode = state.nodes.find((n) => n.id === node.id);
+                                        if (targetNode) {
+                                            const newSettings: LUTLoaderNodeSettings = {
+                                                kind: 'lutLoader',
+                                                lutFilePath: lutPath,
+                                                intensity: settings?.intensity ?? 1.0,
+                                            };
+                                            targetNode.settings = newSettings;
+                                            node.settings = newSettings;
+
+                                            // LUTをキャッシュ
+                                            loadedLUTs.set(node.id, lut);
+
+                                            // UIを更新
+                                            context.renderNodes();
+                                        }
+                                    } else {
+                                        alert('Invalid LUT file');
+                                    }
+                                } else {
+                                    alert('Failed to read LUT file');
+                                }
+                            } catch (error) {
+                                console.error('[LUTLoader] Failed to load LUT:', error);
+                                alert(`Failed to load LUT: ${error}`);
+                            }
+                        }
+                    });
+                }
+
+                // Intensityスライダー
+                const intensitySlider = element.querySelector('.lut-intensity-slider');
+                if (intensitySlider) {
+                    intensitySlider.addEventListener('input', (e) => {
+                        const target = e.target as HTMLInputElement;
+                        const val = parseFloat(target.value);
+
+                        // 表示を更新
+                        const display = element.querySelector('.control-value[data-lut-value="intensity"]');
+                        if (display) {
+                            display.textContent = `${(val * 100).toFixed(0)}%`;
+                        }
+
+                        // 設定を更新
+                        const targetNode = state.nodes.find((n) => n.id === node.id);
+                        if (targetNode) {
+                            const currentSettings = targetNode.settings as LUTLoaderNodeSettings;
+                            const newSettings: LUTLoaderNodeSettings = {
+                                ...currentSettings,
+                                intensity: val,
+                            };
+                            targetNode.settings = newSettings;
+                            node.settings = newSettings;
+
+                            // プレビュー更新
+                            const lut = loadedLUTs.get(node.id);
+                            if (lut && processor && sourceMediaUrl) {
+                                processor.setIntensity(val);
+                                processor.loadLUT(lut);
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
+                            }
+                        }
+                    });
+                }
+
+                // 初期化処理
+                if (settings?.lutFilePath && sourceMediaUrl) {
+                    try {
+                        // LUTがキャッシュにない場合は読み込む
+                        let lut = loadedLUTs.get(node.id);
+                        if (!lut) {
+                            const fileContent = await window.nodevision.readTextFile({
+                                filePath: settings.lutFilePath,
+                            });
+
+                            if (fileContent.ok && fileContent.content) {
+                                lut = parseCubeLUT(fileContent.content);
+                                if (lut && validateImportedLUT(lut)) {
+                                    loadedLUTs.set(node.id, lut);
+                                }
+                            }
+                        }
+
+                        if (lut) {
+                            // ソース画像を読み込む
+                            let imageUrl = sourceMediaUrl;
+
+                            if (sourceMediaUrl.startsWith('file://')) {
+                                const result = await window.nodevision.loadImageAsDataURL({
+                                    filePath: sourceMediaUrl,
+                                });
+                                if (result.ok && result.dataURL) {
+                                    imageUrl = result.dataURL;
+                                }
+                            }
+
+                            const lastSource = lastSourceByNode.get(node.id);
+                            const shouldReload = !processor.hasImage?.() || lastSource !== imageUrl;
+
+                            if (shouldReload) {
+                                await processor.loadImage(imageUrl);
+                                lastSourceByNode.set(node.id, imageUrl);
+                            }
+
+                            // LUTを適用
+                            processor.loadLUT(lut);
+                            processor.renderWithCurrentTexture();
+                            propagateToMediaPreview(node, processor);
+                        }
+                    } catch (error) {
+                        console.error('[LUTLoader] Preview setup failed', error);
+                    }
+                } else {
+                    lastSourceByNode.delete(node.id);
+                    propagateToMediaPreview(node, undefined);
+                }
+            },
+        }),
+    };
+};

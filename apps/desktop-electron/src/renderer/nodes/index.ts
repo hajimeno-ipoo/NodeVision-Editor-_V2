@@ -1,26 +1,35 @@
-import type { NodeRendererContext, NodeRendererModule } from './types';
+
 import { createBatchCropNodeRenderer } from './batch-crop';
-import { createLoadNodeRenderer } from './load';
-import { createTrimNodeRenderer } from './trim';
-import { createResizeNodeRenderer } from './resize';
-import { createOverlayNodeRenderer } from './overlay';
-import { createTextNodeRenderer } from './text';
-import { createSpeedNodeRenderer } from './speed';
 import { createChangeFpsNodeRenderer } from './change-fps';
-import { createExportNodeRenderer } from './export-node';
 import { createColorCorrectionNodeRenderer } from './color-correction';
+import { createCurveEditorNodeRenderer } from './curve-editor';
+import { createExportNodeRenderer } from './export-node';
+import { createLoadNodeRenderer } from './load';
+import { createLUTLoaderNodeRenderer } from './lut-loader';
 import { createMediaPreviewNodeRenderer } from './media-preview';
+import { createOverlayNodeRenderer } from './overlay';
+import { createPrimaryGradingNodeRenderer } from './primary-grading';
+import { createResizeNodeRenderer } from './resize';
+import { createSecondaryGradingNodeRenderer } from './secondary-grading';
+import { createSpeedNodeRenderer } from './speed';
+import { createTextNodeRenderer } from './text';
+import { createTrimNodeRenderer } from './trim';
+import type { NodeRendererContext, NodeRendererModule } from './types';
 
 export const createNodeRenderers = (context: NodeRendererContext): NodeRendererModule[] => [
   createBatchCropNodeRenderer(context),
-  createLoadNodeRenderer(context),
-  createTrimNodeRenderer(context),
-  createResizeNodeRenderer(context),
-  createOverlayNodeRenderer(context),
-  createTextNodeRenderer(context),
-  createSpeedNodeRenderer(context),
   createChangeFpsNodeRenderer(context),
   createColorCorrectionNodeRenderer(context),
+  createCurveEditorNodeRenderer(context),
   createExportNodeRenderer(context),
-  createMediaPreviewNodeRenderer(context)
+  createLoadNodeRenderer(context),
+  createLUTLoaderNodeRenderer(context),
+  createMediaPreviewNodeRenderer(context),
+  createOverlayNodeRenderer(context),
+  createPrimaryGradingNodeRenderer(context),
+  createResizeNodeRenderer(context),
+  createSecondaryGradingNodeRenderer(context),
+  createSpeedNodeRenderer(context),
+  createTextNodeRenderer(context),
+  createTrimNodeRenderer(context)
 ];
