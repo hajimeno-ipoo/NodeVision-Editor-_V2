@@ -91,3 +91,36 @@ if (lut) {
 ### 結果
 - カーブエディタノードで、RGBカーブに加えてHueベースのカーブ調整が可能になりました。
 - 特定の色相に対して、色相シフト、彩度調整、輝度調整を行う高度なグレーディングが可能になりました。
+
+## Scope Viewerノードの実装
+
+### 概要
+ヒストグラム表示をカーブエディタ内に埋め込むのではなく、独立したスコープノードとして実装しました。これにより、プロフェッショナルなカラーグレーディングツールのように、スコープを自由に配置できるようになりました。
+
+### 実施した変更
+
+#### 1. ノードテンプレートの追加
+- **`packages/editor/src/templates.ts`**:
+  - `scopeViewer` ノードテンプレートを追加。
+  - Viewerカテゴリに配置。
+
+#### 2. 型定義の追加
+- **`packages/editor/src/types.ts`**:
+  - `ScopeViewerNodeSettings` インターフェースを追加。
+  - `scopeType`: 'histogram' | 'waveform' | 'vectorscope' （現在はhistogramのみ実装）。
+
+#### 3. レンダラーの実装
+- **`apps/desktop-electron/src/renderer/nodes/scope-viewer.ts`**:
+  - RGBヒストグラム表示機能を実装。
+  - 画像からR/G/B/Lumaの256ビンヒストグラムを計算。
+  - Canvasに色別のヒストグラムとグレーの輝度ヒストグラムを重ねて表示。
+  - 半透明の加算ブレンドでRGBが重なる部分を可視化。
+
+#### 4. 登録
+- **`apps/desktop-electron/src/renderer/nodes/index.ts`**:
+  - `createScopeViewerNodeRenderer` をインポートし、レンダラーリストに追加。
+
+### 結果
+- 独立したスコープノードでRGBヒストグラムを表示できるようになりました。
+- 画像の色分布を可視化し、カラーグレーディングの精度を向上させるツールが揃いました。
+- 将来的にWaveform、Vectorscopeなどのスコープも追加できる基盤が整いました。

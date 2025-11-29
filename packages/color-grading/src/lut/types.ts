@@ -8,7 +8,7 @@
  * - 33: Standard, balanced (33³ = 35,937 entries)
  * - 65: High quality (65³ = 274,625 entries)
  */
-export type LUTResolution = 17 | 33 | 65;
+export type LUTResolution = number;
 
 /**
  * 3D LUT data structure

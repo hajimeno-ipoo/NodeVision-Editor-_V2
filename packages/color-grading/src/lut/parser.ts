@@ -1,4 +1,4 @@
-import type { LUT3D, LUTResolution } from './types';
+import type { LUT3D, LUTResolution, LUTFile } from './types';
 
 /**
  * Parse error for .cube files
@@ -22,11 +22,12 @@ export class CubeParseError extends Error {
  * - Data lines: r g b (one color per line, in order)
  * 
  * @param content - .cube file content as string
- * @returns Parsed LUT3D
+ * @returns Parsed LUTFile
  */
-export function parseCubeLUT(content: string): LUT3D {
+export function parseCubeLUT(content: string): LUTFile {
     const lines = content.split('\n').map(line => line.trim());
 
+    let title = 'Untitled';
     let size: number | undefined;
     let domainMin = [0, 0, 0];
     let domainMax = [1, 1, 1];
@@ -42,8 +43,12 @@ export function parseCubeLUT(content: string): LUT3D {
         // Skip comments
         if (line.startsWith('#')) continue;
 
-        // Parse TITLE (ignored for now)
+        // Parse TITLE
         if (line.startsWith('TITLE')) {
+            const match = line.match(/TITLE\s+"?([^"]+)"?/);
+            if (match) {
+                title = match[1];
+            }
             continue;
         }
 
@@ -137,22 +142,12 @@ export function parseCubeLUT(content: string): LUT3D {
         data[dataIndex++] = b;
     }
 
-    // size を LUTResolution に変換（17, 33, 65のいずれか）
-    let resolution: LUTResolution;
-    if (size === 17 || size === 33 || size === 65) {
-        resolution = size as LUTResolution;
-    } else {
-        // サポートされていないサイズの場合は最も近いものを選択
-        if (size < 25) resolution = 17;
-        else if (size < 49) resolution = 33;
-        else resolution = 65;
-
-        console.warn(`LUT size ${size} is not standard, using ${resolution} instead`);
-    }
-
     return {
-        resolution,
+        resolution: size as LUTResolution,
         data,
+        title,
+        domain: [domainMin[0], domainMax[0]],
+        format: 'cube'
     };
 }
 
@@ -160,7 +155,7 @@ export function parseCubeLUT(content: string): LUT3D {
  * Validate a LUT3D object
  */
 export function validateImportedLUT(lut: LUT3D): boolean {
-    if (!lut.resolution || (lut.resolution !== 17 && lut.resolution !== 33 && lut.resolution !== 65)) {
+    if (!lut.resolution || lut.resolution < 2) {
         return false;
     }
 

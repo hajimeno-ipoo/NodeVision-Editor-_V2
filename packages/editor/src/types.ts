@@ -139,7 +139,12 @@ export interface SecondaryGradingNodeSettings {
   showMask: boolean;
 }
 
-export type NodeSettings = TrimNodeSettings | ColorCorrectionNodeSettings | PrimaryGradingNodeSettings | LUTLoaderNodeSettings | CurvesNodeSettings | SecondaryGradingNodeSettings;
+export interface ScopeViewerNodeSettings {
+  kind: 'scopeViewer';
+  scopeType: 'histogram' | 'waveform' | 'vectorscope';
+}
+
+export type NodeSettings = TrimNodeSettings | ColorCorrectionNodeSettings | PrimaryGradingNodeSettings | LUTLoaderNodeSettings | CurvesNodeSettings | SecondaryGradingNodeSettings | ScopeViewerNodeSettings;
 
 
 export interface EditorNode {

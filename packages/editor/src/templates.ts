@@ -304,6 +304,23 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     }
   },
   {
+    typeId: 'scopeViewer',
+    nodeVersion: '1.0.0',
+    title: 'Scope Viewer',
+    category: 'Viewer',
+    description: 'View RGB Histogram, Waveform, and Vectorscope',
+    keywords: ['scope', 'histogram', 'waveform', 'vectorscope', 'analysis'],
+    width: 350,
+    height: 350,
+    inputs: [
+      { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
+    ],
+    defaultSettings: {
+      kind: 'scopeViewer',
+      scopeType: 'histogram' // 'histogram' | 'waveform' | 'vectorscope'
+    }
+  },
+  {
     typeId: 'export',
     nodeVersion: '1.0.0',
     title: 'Export Media',

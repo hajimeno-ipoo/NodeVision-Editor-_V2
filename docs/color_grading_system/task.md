@@ -15,6 +15,28 @@
 
 ---
 
+## 📊 実装進捗サマリー
+
+### ✅ 完了した機能
+- **Phase 1**: LUT基盤（生成、パーサー、エクスポーター）
+- **Phase 2**: プライマリーカラーコレクション（Basic, Temperature, Tonal, Color Wheels）
+- **Phase 3**: カーブエディタ（RGB Curves, Hue Curves）
+- **Phase 4**: セカンダリーグレーディング（HSL Keyer, Luma Keyer）
+- **Phase 5-7**: パイプライン統合、WebGL、FFmpeg統合
+- **Phase 8**: 全UIノード実装（Color Correction, Primary Grading, Curves, LUT Loader, Secondary Grading, Scope Viewer）
+
+### 🎯 追加実装
+- **Scope Viewerノード**: 独立したRGBヒストグラム表示ノード
+- **Hue Curves**: 色相ベースのカーブ調整（Hue vs Hue/Sat/Luma）
+
+### ⏳ 残タスク
+- **Phase 9**: テストと最適化
+  - ユニットテストカバレッジ向上
+  - パフォーマンス最適化
+  - ドキュメント作成
+
+---
+
 ## Phase 1: 基盤構築 (Completed)
 
 ### Task 1.1: 新規パッケージ作成
@@ -41,10 +63,10 @@
 - [x] テストLUTで生成確認
 
 ### Task 1.5: CUBE形式パーサー
-- [ ] `src/lut/parser.ts` 作成
-- [ ] `parseCubeLUT()` 関数実装
-- [ ] 複数の実LUTファイルでテスト
-- [ ] ユニットテスト作成
+- [x] `src/lut/parser.ts` 作成
+- [x] `parseCubeLUT()` 関数実装
+- [x] 複数の実LUTファイルでテスト
+- [x] ユニットテスト作成
 
 ### Task 1.6: WebGL & FFmpeg統合 (先行実装)
 - [x] `WebGLLUTProcessor` 実装 (WebGL 2.0 3D Texture)
@@ -131,9 +153,9 @@
 - [x] テストケース作成
 
 ### Task 4.3: ルミナンスキー実装
-- [ ] `src/secondary/luma-key.ts` 作成
-- [ ] `generateLumaKey()` 関数実装
-- [ ] テストケース作成
+- [x] `src/secondary/luma-key.ts` 作成
+- [x] `calculateLumaKey()` 関数実装
+- [x] テストケース作成
 
 ### Task 4.4: マスキングシステム
 - [x] `src/secondary/masking.ts` 作成
@@ -177,7 +199,7 @@
 ### Task 3.1: カーブエディタUI
 - [x] `packages/editor/src/components/CurveEditor/` 作成
 - [x] ベジェ曲線操作ロジック実装
-- [ ] ヒストグラム表示（オプション）
+- [x] ヒストグラム表示（Scope Viewerノードとして実装）
 - [x] ノードUIへの統合`curves` ノード追加
 - [x] `secondaryGrading` ノード追加
 - [x] `lutLoader` ノード追加
@@ -201,6 +223,14 @@
 - [x] LUTプレビュー表示
 - [x] LUTライブラリ管理
 - [x] ノード実装
+
+### Task 8.5: Scope Viewerノード（新規追加）
+- [x] `apps/desktop-electron/src/renderer/nodes/scope-viewer.ts` 作成
+- [x] RGBヒストグラム計算実装
+- [x] Canvas描画実装（RGB + Luminance）
+- [x] ノードテンプレート追加（`scopeViewer`）
+- [x] Waveform/Vectorscope用の拡張ポイント準備
+- [x] ノードに統合
 
 ---
 

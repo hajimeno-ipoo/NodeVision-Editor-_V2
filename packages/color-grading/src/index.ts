@@ -45,3 +45,4 @@ export type { ColorGradingPipeline } from './processors/types.js';
 export { buildColorTransform, buildLegacyColorCorrectionTransform, buildLegacyColorCorrectionPipeline } from './processors/pipeline.js';
 export * from './processors/color-math.js';
 export * from './secondary/hsl-keyer.js';
+export * from './secondary/luma-key.js';

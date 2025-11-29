@@ -10,6 +10,7 @@ import { createMediaPreviewNodeRenderer } from './media-preview';
 import { createOverlayNodeRenderer } from './overlay';
 import { createPrimaryGradingNodeRenderer } from './primary-grading';
 import { createResizeNodeRenderer } from './resize';
+import { createScopeViewerNodeRenderer } from './scope-viewer';
 import { createSecondaryGradingNodeRenderer } from './secondary-grading';
 import { createSpeedNodeRenderer } from './speed';
 import { createTextNodeRenderer } from './text';
@@ -28,6 +29,7 @@ export const createNodeRenderers = (context: NodeRendererContext): NodeRendererM
   createOverlayNodeRenderer(context),
   createPrimaryGradingNodeRenderer(context),
   createResizeNodeRenderer(context),
+  createScopeViewerNodeRenderer(context),
   createSecondaryGradingNodeRenderer(context),
   createSpeedNodeRenderer(context),
   createTextNodeRenderer(context),
