@@ -207,11 +207,46 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
     /**
      * メディアプレビューノードへ補正後の dataURL を反映
      */
-    const propagateToMediaPreview = (node: RendererNode, processor?: Processor) => {
-        // WebGLLUTProcessorの場合は render() を呼んでから toDataURL() する必要があるが、
-        // toDataURL() は canvas から取得するので共通
-        let dataUrl: string | null = null;
-        let size = { width: 0, height: 0 };
+    const propagateToMediaPreview = (node: RendererNode, processor: Processor | WebGLVideoProcessor | undefined) => {
+        if (!processor) {
+            state.mediaPreviews.delete(node.id);
+            state.canvasPreviews.delete(node.id);
+            return;
+        }
+
+        let dataUrl: string | undefined;
+        let size: { width: number; height: number } | undefined;
+
+        if (processor instanceof WebGLVideoProcessor) {
+            const canvas = processor.getCanvas();
+            size = { width: canvas.width, height: canvas.height };
+            // 動画の場合はCanvasPreviewとして登録
+            state.canvasPreviews.set(node.id, canvas);
+            // MediaPreviewにはダミーURLとメタデータを渡す
+            state.mediaPreviews.set(node.id, {
+                url: '', // CanvasPreviewが優先されるため空でOK
+                width: size.width,
+                height: size.height,
+                kind: 'video',
+                name: 'Color Corrected Video',
+                size: 0,
+                type: 'video/mp4',
+                ownedUrl: false
+            });
+            // 接続されたプレビューノードの更新をトリガー
+            const connectedPreviewNodes = state.connections
+                .filter(c => c.fromNodeId === node.id)
+                .map(c => c.toNodeId)
+                .filter((id, index, self) => self.indexOf(id) === index);
+
+            connectedPreviewNodes.forEach(previewNodeId => {
+                const previewNode = state.nodes.find(n => n.id === previewNodeId);
+                if (previewNode && previewNode.typeId === 'mediaPreview') {
+                    // Force update logic if needed, usually state change is enough
+                }
+            });
+            return;
+        }
 
         if (processor) {
             // WebGLLUTProcessor の場合、getSize() メソッドがないので canvas から取得
@@ -230,42 +265,16 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         if (dataUrl) {
             state.mediaPreviews.set(node.id, {
                 url: dataUrl,
-                name: 'Preview',
+                width: size?.width ?? 0,
+                height: size?.height ?? 0,
                 kind: 'image',
-                width: size.width,
-                height: size.height,
+                name: 'Color Corrected Image',
                 size: 0,
                 type: 'image/png',
                 ownedUrl: true
             });
         } else {
             state.mediaPreviews.delete(node.id);
-        }
-
-        const connectedPreviewNodes = state.connections
-            .filter(c => c.fromNodeId === node.id)
-            .map(c => c.toNodeId);
-
-        // Check if we have connected preview nodes - if so, we need to trigger a re-render
-        if (connectedPreviewNodes.length > 0) {
-            requestAnimationFrame(() => {
-                connectedPreviewNodes.forEach(previewNodeId => {
-                    const previewNode = state.nodes.find(n => n.id === previewNodeId);
-                    if (previewNode && previewNode.typeId === 'mediaPreview') {
-                        // Try direct DOM manipulation first (fast path)
-                        const img = document.querySelector(`.node-media[data-node-id="${previewNodeId}"] img`);
-
-                        if (img && dataUrl) {
-                            (img as HTMLImageElement).src = dataUrl;
-                        } else if (img && !dataUrl) {
-                            (img as HTMLImageElement).src = '';
-                        } else if (!img && dataUrl) {
-                            // If img doesn't exist yet, trigger a full re-render
-                            context.renderNodes();
-                        }
-                    }
-                });
-            });
         }
     };
 
@@ -307,7 +316,9 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
           <span class="control-label-text" data-i18n-key="${labelKey}">${escapeHtml(t(labelKey))}</span>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="control-value" data-cc-value="${key}">${value.toFixed(2)}</span>
-            <button class="reset-btn" data-target-key="${key}" data-default-value="${defaultValue}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0 8px; font-size: 14px; height: 24px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">${resetIconSymbol}</button>
+            <button class="reset-btn" data-target-key="${key}" data-default-value="${defaultValue}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.2s;">
+                <span style="pointer-events: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">${resetIconSymbol}</span>
+            </button>
           </div>
         </div>
         <input 
@@ -461,9 +472,44 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                         isVideoSource.set(node.id, isVideo);
 
                         if (isVideo) {
-                            // ... (動画処理は変更なし) ...
-                            // 動画の場合はFFmpeg生成をスキップ（WebGLリアルタイムプレビューで十分）
-                            console.log('[ColorCorrection] Skipping FFmpeg generation for video (using WebGL real-time preview)');
+                            // 動画の場合：WebGLプロセッサーで即座に更新
+                            console.log('[ColorCorrection] Using WebGL real-time preview for video');
+
+                            let videoUrl = sourceMedia.url;
+                            // VideoProcessorの取得または作成
+                            let videoProcessor = videoProcessors.get(node.id);
+                            if (!videoProcessor) {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = 1280;
+                                canvas.height = 720;
+                                videoProcessor = new WebGLVideoProcessor(canvas);
+                                videoProcessors.set(node.id, videoProcessor);
+                            }
+
+                            // 隠しvideo要素の管理
+                            let video = (videoProcessor as any)._videoElement as HTMLVideoElement;
+                            if (!video) {
+                                video = document.createElement('video');
+                                video.crossOrigin = 'anonymous';
+                                video.loop = true;
+                                video.muted = true;
+                                video.playsInline = true;
+                                (videoProcessor as any)._videoElement = video;
+                            }
+
+                            if (video.src !== videoUrl) {
+                                video.src = videoUrl;
+                                // 非同期で再生開始（エラーはログ出力のみで処理を止めない）
+                                video.play().catch(e => console.error('[ColorCorrection] Video auto-play failed:', e));
+                                videoProcessor.loadVideo(video);
+                            }
+
+                            // 初期設定の適用
+                            const settings = node.settings as ColorCorrectionNodeSettings;
+                            videoProcessor.applyCorrection(settings);
+
+                            // プレビュー伝播（再生開始を待たずに即座に登録）
+                            propagateToMediaPreview(node, videoProcessor);
                         } else {
                             // 静止画の場合はCanvas/WebGLで処理
                             let imageUrl = sourceMedia.url;
@@ -476,7 +522,8 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                             }
 
                             const lastSource = lastSourceByNode.get(node.id);
-                            const shouldReload = !processor.hasImage?.() && !(processor as any).hasImage?.() || lastSource !== imageUrl;
+                            const hasImage = processor.hasImage ? processor.hasImage() : false;
+                            const shouldReload = !hasImage || lastSource !== imageUrl;
 
                             if (shouldReload) {
                                 await processor.loadImage(imageUrl);
@@ -518,7 +565,13 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                 // リセットボタンイベント
                 const resetButtons = element.querySelectorAll('.reset-btn');
                 resetButtons.forEach(btn => {
+                    // ノードのドラッグ/選択を防ぐためにイベント伝播を止める
+                    btn.addEventListener('mousedown', (e) => {
+                        e.stopPropagation();
+                    });
+
                     btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         const target = e.currentTarget as HTMLButtonElement;
                         const key = target.getAttribute('data-target-key') as keyof ColorCorrectionNodeSettings;
                         const defaultValue = parseFloat(target.getAttribute('data-default-value') || '0');

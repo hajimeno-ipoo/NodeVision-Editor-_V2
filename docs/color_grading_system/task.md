@@ -96,6 +96,16 @@
 - [x] `src/primary/tonal.ts` 作成
 - [x] Shadows/Midtones/Highlights分離アルゴリズム実装
 - [x] `applyTonalCorrection()` 関数実装
+- [x] Debug Color Correction Node
+  - [x] Fix black preview issue (WebGL OES_texture_float_linear extension)
+  - [x] Verify slider interactions
+  - [x] Ensure correct image propagation to Media Preview
+  - [x] Fix video preview loading issue
+  - [x] Fix reset button styling
+
+### Summary
+Color Correction node debugging and styling is complete.
+The next step is to proceed with testing other color grading nodes as per the testing guide.
 
 ### Task 2.5: カラーホイール - 型定義
 - [x] `src/primary/types.ts` に追加: `ColorWheelControl`, `ColorWheels`

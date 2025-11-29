@@ -7,16 +7,16 @@ import type { LUT3D } from '@nodevision/color-grading';
 
 export class WebGLLUTProcessor {
     private gl: WebGL2RenderingContext;
-    private program: WebGLProgram;
+    private program!: WebGLProgram;
     private lut3DTexture: WebGLTexture | null = null;
     private inputTexture: WebGLTexture | null = null;
+    private intensity: number = 1.0;
     private currentLUTSize: number = 0;
     private imageSize: { width: number; height: number } | null = null;
-    private intensity: number = 1.0;
 
     // Quad buffers
-    private positionBuffer: WebGLBuffer;
-    private texcoordBuffer: WebGLBuffer;
+    private positionBuffer!: WebGLBuffer;
+    private texcoordBuffer!: WebGLBuffer;
 
     constructor(canvas: HTMLCanvasElement) {
         // Require WebGL 2 for 3D textures
@@ -26,6 +26,18 @@ export class WebGLLUTProcessor {
         }
         this.gl = gl;
 
+        // Enable float texture linear filtering
+        if (!gl.getExtension('OES_texture_float_linear')) {
+            console.warn('[WebGLLUT] OES_texture_float_linear not supported, LUT quality may be degraded');
+        }
+        if (!gl.getExtension('EXT_color_buffer_float')) {
+            console.warn('[WebGLLUT] EXT_color_buffer_float not supported');
+        }
+
+        this.initGL();
+    }
+
+    private initGL() {
         this.program = this.createProgram();
         this.positionBuffer = this.createQuadBuffer();
         this.texcoordBuffer = this.createTexcoordBuffer();
@@ -55,30 +67,46 @@ export class WebGLLUTProcessor {
 
     private createInputTexture(img: HTMLImageElement, width: number, height: number) {
         const gl = this.gl;
+        console.log('[WebGLLUT] Creating input texture:', width, 'x', height);
 
         if (!this.inputTexture) {
             this.inputTexture = gl.createTexture();
         }
 
         gl.bindTexture(gl.TEXTURE_2D, this.inputTexture);
+
+        // Ensure pixel store is correct for 2D image
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
         // Draw to a temp canvas to resize if needed
-        if (width !== img.width || height !== img.height) {
-            const tmp = document.createElement('canvas');
-            tmp.width = width;
-            tmp.height = height;
-            const ctx = tmp.getContext('2d');
-            if (ctx) {
-                ctx.drawImage(img, 0, 0, width, height);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tmp);
+        try {
+            if (width !== img.width || height !== img.height) {
+                const tmp = document.createElement('canvas');
+                tmp.width = width;
+                tmp.height = height;
+                const ctx = tmp.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tmp);
+                }
+            } else {
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
             }
-        } else {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+
+            const error = gl.getError();
+            if (error !== gl.NO_ERROR) {
+                console.error('[WebGLLUT] Error uploading input texture:', error);
+            } else {
+                console.log('[WebGLLUT] Input texture uploaded successfully');
+            }
+        } catch (e) {
+            console.error('[WebGLLUT] Exception uploading input texture:', e);
         }
     }
 
@@ -87,12 +115,19 @@ export class WebGLLUTProcessor {
      */
     loadLUT(lut: LUT3D): void {
         const { gl } = this;
+        // console.log('[WebGLLUT] Loading LUT, size:', lut.resolution);
 
         if (!this.lut3DTexture) {
             this.lut3DTexture = gl.createTexture();
         }
 
         gl.bindTexture(gl.TEXTURE_3D, this.lut3DTexture);
+
+        // IMPORTANT: 3D textures don't support FLIP_Y or PREMULTIPLY_ALPHA
+        // Reset pixel store parameters to default before uploading
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+        gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
 
         // Set texture parameters for trilinear filtering
         gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -105,16 +140,25 @@ export class WebGLLUTProcessor {
         this.currentLUTSize = size;
 
         // Upload data
-        gl.texImage3D(
-            gl.TEXTURE_3D,
-            0,                  // level
-            gl.RGB32F,          // internal format (High precision float)
-            size, size, size,   // width, height, depth
-            0,                  // border
-            gl.RGB,             // format
-            gl.FLOAT,           // type
-            lut.data            // pixels
-        );
+        try {
+            gl.texImage3D(
+                gl.TEXTURE_3D,
+                0,                  // level
+                gl.RGB32F,          // internal format (High precision float)
+                size, size, size,   // width, height, depth
+                0,                  // border
+                gl.RGB,             // format
+                gl.FLOAT,           // type
+                lut.data            // pixels
+            );
+
+            const error = gl.getError();
+            if (error !== gl.NO_ERROR) {
+                console.error('[WebGLLUT] Error uploading 3D LUT:', error);
+            }
+        } catch (e) {
+            console.error('[WebGLLUT] Exception uploading 3D LUT:', e);
+        }
     }
 
     /**
@@ -130,6 +174,8 @@ export class WebGLLUTProcessor {
     renderWithCurrentTexture(): void {
         if (this.inputTexture && this.imageSize) {
             this.render(this.inputTexture, this.imageSize.width, this.imageSize.height);
+        } else {
+            console.warn('[WebGLLUT] Cannot render: missing input texture or image size');
         }
     }
 
@@ -139,7 +185,10 @@ export class WebGLLUTProcessor {
     render(inputTexture: WebGLTexture, width: number, height: number): void {
         const { gl } = this;
 
-        if (!this.lut3DTexture) return;
+        if (!this.lut3DTexture) {
+            console.warn('[WebGLLUT] Cannot render: missing 3D LUT texture');
+            return;
+        }
 
         gl.viewport(0, 0, width, height);
         gl.useProgram(this.program);
@@ -165,6 +214,13 @@ export class WebGLLUTProcessor {
 
         // Draw
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+        const error = gl.getError();
+        if (error !== gl.NO_ERROR) {
+            console.error('[WebGLLUT] WebGL Error during render:', error);
+        } else {
+            // console.log('[WebGLLUT] Render successful');
+        }
     }
 
     hasImage(): boolean {

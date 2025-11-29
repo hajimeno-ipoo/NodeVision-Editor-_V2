@@ -3,11 +3,12 @@ import type { CurvesNodeSettings, CurvePoint } from '@nodevision/editor';
 
 import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule } from './types';
+import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 // 動的にモジュールを読み込む
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
 const { evaluateCurve, buildColorTransform, generateLUT3D } = colorGrading;
-import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 // チャンネル定義
 type ChannelType = 'master' | 'red' | 'green' | 'blue' | 'hueVsHue' | 'hueVsSat' | 'hueVsLuma';
@@ -300,6 +301,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     canvas.height = rect.height;
 
                     const points = settings[activeChannel];
+                    if (!points) return;
                     drawCurveEditor(canvas, points, activeChannel);
 
                     // マウス操作
@@ -317,6 +319,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     canvas.addEventListener('mousedown', (e) => {
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
+                        if (!points) return;
 
                         // 既存のポイントをクリックしたか判定 (距離判定)
                         const threshold = 0.05;
@@ -349,6 +352,8 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
+                        if (!points) return;
+
                         const point = points[dragIndex];
 
                         // 両端のポイントはX座標を固定
@@ -384,6 +389,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     canvas.addEventListener('dblclick', (e) => {
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
+                        if (!points) return;
 
                         const threshold = 0.05;
                         const foundIndex = points.findIndex(p =>
@@ -451,7 +457,10 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         if (!skipRenderNodes) {
                             // Canvas再描画のためにrenderNodesを呼ぶとちらつく可能性があるので
                             // 基本的にはCanvasは自前で更新し、設定だけ保存する
-                            drawCurveEditor(canvas, settings[activeChannel], activeChannel);
+                            const channelPoints = settings[activeChannel];
+                            if (channelPoints) {
+                                drawCurveEditor(canvas, channelPoints, activeChannel);
+                            }
                         }
 
                         updatePreview();
