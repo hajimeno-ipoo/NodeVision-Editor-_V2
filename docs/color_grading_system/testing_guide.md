@@ -75,12 +75,14 @@ pnpm dev
    - `Load Image` → `Primary Grading` → `Media Preview`
 
 ### 確認項目
-- [ ] Lift/Gamma/Gainタブが表示される
-- [ ] 各タブでカラーホイールが表示される
-- [ ] カラーホイール上でドラッグすると色相と彩度が調整できる
-- [ ] 中央のドットで輝度（Luminance）が調整できる
-- [ ] Exposure, Contrast, Saturation, Temperature, Tintスライダーが動作する
-- [ ] プレビューがリアルタイムで更新される
+- [x] Lift/Gamma/Gainタブが表示される
+- [x] 各タブでカラーホイールが表示される
+- [x] カラーホイール上でドラッグすると色相と彩度が調整できる
+- [x] 右側のスライダーで輝度（Luminance）が調整できる
+- [x] Exposure, Contrast, Saturation, Temperature, Tintスライダーが動作する
+- [x] プレビューがリアルタイムで更新される
+- [x] 動画プレビュー時もスライダーがスムーズに動作する
+- [x] カラーホイール操作時にノードが誤って選択されない
 
 ### 期待される結果
 - DaVinci Resolveスタイルのカラーホイールで直感的に調整できる

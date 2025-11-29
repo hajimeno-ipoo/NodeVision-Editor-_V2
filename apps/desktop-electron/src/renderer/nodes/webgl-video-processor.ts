@@ -1,4 +1,50 @@
-import type { ColorCorrectionNodeSettings } from '@nodevision/editor';
+import type { ColorCorrectionNodeSettings, PrimaryGradingNodeSettings } from '@nodevision/editor';
+
+// Helper functions for color conversion
+function hslToRGB(h: number, s: number, l: number): [number, number, number] {
+    h = h / 360; // Normalize to 0-1
+
+    if (s === 0) {
+        return [l, l, l]; // Grayscale
+    }
+
+    const hue2rgb = (p: number, q: number, t: number): number => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+    };
+
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+
+    const r = hue2rgb(p, q, h + 1 / 3);
+    const g = hue2rgb(p, q, h);
+    const b = hue2rgb(p, q, h - 1 / 3);
+
+    return [r, g, b];
+}
+
+function colorWheelToRGB(wheel: { hue: number, saturation: number, luminance: number }): [number, number, number] {
+    // Convert to RGB with base luminance 0.5
+    const [r, g, b] = hslToRGB(wheel.hue, wheel.saturation, 0.5);
+
+    // Subtract 0.5 to center the color adjustment around 0
+    const rOffset = r - 0.5;
+    const gOffset = g - 0.5;
+    const bOffset = b - 0.5;
+
+    // Apply luminance adjustment
+    const lumFactor = wheel.luminance;
+
+    return [
+        rOffset + lumFactor,
+        gOffset + lumFactor,
+        bOffset + lumFactor
+    ];
+}
 
 /**
  * WebGL-based video processor for real-time color correction
@@ -25,10 +71,14 @@ export class WebGLVideoProcessor {
         highlights?: WebGLUniformLocation | null;
         temperature?: WebGLUniformLocation | null;
         tint?: WebGLUniformLocation | null;
+        // Primary Grading uniforms
+        lift?: WebGLUniformLocation | null;
+        gammaColor?: WebGLUniformLocation | null;
+        gain?: WebGLUniformLocation | null;
     } = {};
 
     // Current correction settings
-    private settings: ColorCorrectionNodeSettings = {
+    private settings: ColorCorrectionNodeSettings | PrimaryGradingNodeSettings = {
         kind: 'colorCorrection',
         exposure: 0,
         brightness: 0,
@@ -48,24 +98,22 @@ export class WebGLVideoProcessor {
 
     private initWebGL(): void {
         // Get WebGL context (try WebGL2 first, fallback to WebGL1)
-        this.gl = this.canvas.getContext('webgl2') as WebGLRenderingContext | null;
-        if (!this.gl) {
-            this.gl = this.canvas.getContext('webgl') as WebGLRenderingContext | null;
-        }
+        this.gl = this.canvas.getContext('webgl2') as WebGLRenderingContext ||
+            this.canvas.getContext('webgl') as WebGLRenderingContext ||
+            this.canvas.getContext('experimental-webgl') as WebGLRenderingContext;
 
         if (!this.gl) {
             console.error('[WebGLVideoProcessor] WebGL not supported');
             return;
         }
 
-        console.log('[WebGLVideoProcessor] WebGL context created:', this.gl instanceof WebGL2RenderingContext ? 'WebGL2' : 'WebGL1');
+
 
         // Create shader program
         this.program = this.createShaderProgram();
-        if (!this.program) {
-            console.error('[WebGLVideoProcessor] Failed to create shader program');
-            return;
-        }
+        if (!this.program) return;
+
+        this.gl.useProgram(this.program);
 
         // Get uniform locations
         this.uniformLocations = {
@@ -78,7 +126,11 @@ export class WebGLVideoProcessor {
             shadows: this.gl.getUniformLocation(this.program, 'u_shadows'),
             highlights: this.gl.getUniformLocation(this.program, 'u_highlights'),
             temperature: this.gl.getUniformLocation(this.program, 'u_temperature'),
-            tint: this.gl.getUniformLocation(this.program, 'u_tint')
+            tint: this.gl.getUniformLocation(this.program, 'u_tint'),
+            // Primary Grading uniforms
+            lift: this.gl.getUniformLocation(this.program, 'u_lift'),
+            gammaColor: this.gl.getUniformLocation(this.program, 'u_gamma_color'),
+            gain: this.gl.getUniformLocation(this.program, 'u_gain')
         };
 
         // Create texture
@@ -161,6 +213,11 @@ export class WebGLVideoProcessor {
             uniform float u_highlights;
             uniform float u_temperature;
             uniform float u_tint;
+
+            // Primary Grading uniforms
+            uniform vec3 u_lift;
+            uniform vec3 u_gamma_color;
+            uniform vec3 u_gain;
             
             varying vec2 v_texCoord;
             
@@ -181,44 +238,71 @@ export class WebGLVideoProcessor {
                 return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
             }
             
-            void main() {
-                vec4 color = texture2D(u_texture, v_texCoord);
-                vec3 rgb = color.rgb;
+            // Temperature and Tint
+            vec3 applyTemperatureTint(vec3 color, float temp, float tint) {
+                // Simplified temperature/tint implementation
+                // Temp: blue <-> orange
+                // Tint: green <-> magenta
                 
-                // 1. Exposure (multiply by 2^exposure)
-                rgb *= pow(2.0, u_exposure);
+                vec3 result = color;
+                
+                // Temperature (warm/cool)
+                result.r += temp * 0.1;
+                result.b -= temp * 0.1;
+                
+                // Tint (green/magenta)
+                result.g += tint * 0.1;
+                
+                return result;
+            }
+
+            void main() {
+                vec4 texColor = texture2D(u_texture, v_texCoord);
+                vec3 color = texColor.rgb;
+                
+                // 1. Exposure
+                color = color * pow(2.0, u_exposure);
                 
                 // 2. Brightness
-                rgb += u_brightness;
+                color = color + u_brightness;
                 
                 // 3. Contrast
-                rgb = (rgb - 0.5) * u_contrast + 0.5;
+                color = (color - 0.5) * u_contrast + 0.5;
                 
-                // 3. Saturation
-                float luminance = dot(rgb, vec3(0.299, 0.587, 0.114));
-                rgb = mix(vec3(luminance), rgb, u_saturation);
+                // 4. Primary Grading (Lift/Gamma/Gain)
+                // Lift (Offset)
+                color += u_lift;
                 
-                // 4. Gamma correction
-                rgb = pow(max(rgb, vec3(0.0)), vec3(1.0 / max(0.001, u_gamma)));
+                // Gamma (Power)
+                // Avoid division by zero and negative values
+                vec3 gammaExp = 1.0 / (1.0 + u_gamma_color);
+                color = pow(max(color, vec3(0.0)), gammaExp);
                 
-                // 5. Shadows & Highlights (tone curve)
-                float lum = dot(rgb, vec3(0.333, 0.333, 0.333));
-                float shadowLift = u_shadows / 100.0 * 0.2;
-                float highlightCompress = -u_highlights / 100.0 * 0.2;
-                float tone = lum < 0.5
-                  ? 1.0 + shadowLift * (1.0 - lum * 2.0)
-                  : 1.0 + highlightCompress * (lum * 2.0 - 1.0);
-                rgb *= tone;
+                // Gain (Multiply)
+                color *= (1.0 + u_gain);
+
+                // 5. Saturation
+                float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+                color = mix(vec3(luminance), color, u_saturation);
                 
-                // 6. Temperature & Tint (color channel mixing)
-                rgb.r *= (1.0 + u_temperature / 100.0 * 0.3);
-                rgb.b *= (1.0 - u_temperature / 100.0 * 0.3);
-                rgb.g *= (1.0 + u_tint / 100.0 * 0.2);
+                // 6. Gamma (Scalar)
+                if (u_gamma != 1.0) {
+                    color = pow(max(color, vec3(0.0)), vec3(1.0 / u_gamma));
+                }
                 
-                // Clamp to valid range
-                rgb = clamp(rgb, 0.0, 1.0);
+                // 7. Shadows/Highlights (Simplified)
+                // This is a very basic implementation
+                float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+                if (luma < 0.5) {
+                    color += u_shadows * (1.0 - luma * 2.0) * 0.2;
+                } else {
+                    color += u_highlights * (luma * 2.0 - 1.0) * 0.2;
+                }
                 
-                gl_FragColor = vec4(rgb, color.a);
+                // 8. Temperature/Tint
+                color = applyTemperatureTint(color, u_temperature / 100.0, u_tint / 100.0);
+                
+                gl_FragColor = vec4(color, texColor.a);
             }
         `;
     }
@@ -226,35 +310,35 @@ export class WebGLVideoProcessor {
     private setupGeometry(): void {
         if (!this.gl || !this.program) return;
 
-        // Fullscreen quad vertices
-        const positions = new Float32Array([
-            -1, -1,
-            1, -1,
-            -1, 1,
-            1, 1
-        ]);
-
-        // Texture coordinates
-        const texCoords = new Float32Array([
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 0
-        ]);
-
-        // Position buffer
         const positionBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+        // Fullscreen quad
+        const positions = [
+            -1.0, -1.0,
+            1.0, -1.0,
+            -1.0, 1.0,
+            1.0, 1.0,
+        ];
+
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
 
         const positionLocation = this.gl.getAttribLocation(this.program, 'a_position');
         this.gl.enableVertexAttribArray(positionLocation);
         this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
 
-        // TexCoord buffer
         const texCoordBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, texCoordBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, texCoords, this.gl.STATIC_DRAW);
+
+        // Texture coordinates (flipped Y for WebGL)
+        const texCoords = [
+            0.0, 1.0,
+            1.0, 1.0,
+            0.0, 0.0,
+            1.0, 0.0,
+        ];
+
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(texCoords), this.gl.STATIC_DRAW);
 
         const texCoordLocation = this.gl.getAttribLocation(this.program, 'a_texCoord');
         this.gl.enableVertexAttribArray(texCoordLocation);
@@ -264,8 +348,8 @@ export class WebGLVideoProcessor {
     /**
      * Load and start rendering a video element
      */
-    loadVideo(videoElement: HTMLVideoElement): void {
-        this.video = videoElement;
+    public loadVideo(video: HTMLVideoElement): void {
+        this.video = video;
 
         // Resize canvas to match video
         if (this.video.videoWidth && this.video.videoHeight) {
@@ -281,7 +365,7 @@ export class WebGLVideoProcessor {
             this.canvas.style.left = '0';
         }
 
-        console.log('[WebGLVideoProcessor] Video loaded, dimensions:', this.canvas.width, 'x', this.canvas.height);
+
 
         // Start rendering if not already started
         if (!this.isRendering) {
@@ -292,96 +376,108 @@ export class WebGLVideoProcessor {
     /**
      * Start the rendering loop
      */
-    startRendering(): void {
-        if (this.isRendering) return;
-
+    private startRendering(): void {
         this.isRendering = true;
-        console.log('[WebGLVideoProcessor] Starting rendering loop');
-        this.render();
+
+        const render = () => {
+            if (!this.isRendering) return;
+
+            this.renderFrame();
+            this.animationFrameId = requestAnimationFrame(render);
+        };
+
+        render();
     }
 
-    /**
-     * Stop the rendering loop
-     */
-    stopRendering(): void {
+    public stopRendering(): void {
         this.isRendering = false;
         if (this.animationFrameId !== null) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-        console.log('[WebGLVideoProcessor] Stopped rendering loop');
     }
 
-    /**
-     * Main rendering function
-     */
-    private render = (): void => {
-        if (!this.isRendering || !this.gl || !this.program || !this.video || !this.texture) {
-            return;
-        }
+    private renderFrame(): void {
+        if (!this.gl || !this.video || !this.program || this.video.readyState < 2) return;
 
-        // Only render if video is playing and has data
-        if (this.video.readyState >= this.video.HAVE_CURRENT_DATA) {
-            // Update canvas size if video dimensions changed
-            if (this.video.videoWidth !== this.canvas.width || this.video.videoHeight !== this.canvas.height) {
-                this.canvas.width = this.video.videoWidth;
-                this.canvas.height = this.video.videoHeight;
-                this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-            }
+        this.gl.useProgram(this.program);
 
-            // Upload video frame to texture
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-            this.gl.texImage2D(
-                this.gl.TEXTURE_2D,
-                0,
-                this.gl.RGBA,
-                this.gl.RGBA,
-                this.gl.UNSIGNED_BYTE,
-                this.video
-            );
-
-            // Clear
-            this.gl.clearColor(0, 0, 0, 0);
-            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-
-            // Update viewport to match current canvas dimensions
+        // Update canvas size if video dimensions changed
+        if (this.video.videoWidth !== this.canvas.width || this.video.videoHeight !== this.canvas.height) {
+            this.canvas.width = this.video.videoWidth;
+            this.canvas.height = this.video.videoHeight;
             this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-
-            // Use shader program
-            this.gl.useProgram(this.program);
-
-            // Set uniforms
-            this.gl.uniform1i(this.uniformLocations.texture!, 0);
-            this.gl.uniform1f(this.uniformLocations.exposure!, this.settings.exposure ?? 0);
-            this.gl.uniform1f(this.uniformLocations.brightness!, this.settings.brightness ?? 0);
-            this.gl.uniform1f(this.uniformLocations.contrast!, this.settings.contrast ?? 1);
-            this.gl.uniform1f(this.uniformLocations.saturation!, this.settings.saturation ?? 1);
-            this.gl.uniform1f(this.uniformLocations.gamma!, this.settings.gamma ?? 1);
-            this.gl.uniform1f(this.uniformLocations.shadows!, this.settings.shadows ?? 0);
-            this.gl.uniform1f(this.uniformLocations.highlights!, this.settings.highlights ?? 0);
-            this.gl.uniform1f(this.uniformLocations.temperature!, this.settings.temperature ?? 0);
-            this.gl.uniform1f(this.uniformLocations.tint!, this.settings.tint ?? 0);
-
-            // Draw fullscreen quad
-            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
         }
 
-        // Continue rendering loop
-        this.animationFrameId = requestAnimationFrame(this.render);
-    };
+        // Update texture from video
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.video);
+
+        // Set uniforms based on settings type
+        if (this.settings.kind === 'primaryGrading') {
+            // Primary Grading
+            const s = this.settings as PrimaryGradingNodeSettings;
+
+            // Basic settings
+            if (this.uniformLocations.exposure) this.gl.uniform1f(this.uniformLocations.exposure, s.exposure ?? 0);
+            if (this.uniformLocations.contrast) this.gl.uniform1f(this.uniformLocations.contrast, s.contrast ?? 1);
+            if (this.uniformLocations.saturation) this.gl.uniform1f(this.uniformLocations.saturation, s.saturation ?? 1);
+            if (this.uniformLocations.temperature) this.gl.uniform1f(this.uniformLocations.temperature, s.temperature ?? 0);
+            if (this.uniformLocations.tint) this.gl.uniform1f(this.uniformLocations.tint, s.tint ?? 0);
+
+            // Set defaults for properties not present in PrimaryGrading
+            if (this.uniformLocations.brightness) this.gl.uniform1f(this.uniformLocations.brightness, 0);
+            if (this.uniformLocations.gamma) this.gl.uniform1f(this.uniformLocations.gamma, 1.0); // s.gamma is an object (wheel), not scalar
+            if (this.uniformLocations.shadows) this.gl.uniform1f(this.uniformLocations.shadows, 0);
+            if (this.uniformLocations.highlights) this.gl.uniform1f(this.uniformLocations.highlights, 0);
+
+            // Wheels
+            const defaultWheel = { hue: 0, saturation: 0, luminance: 0 };
+            const liftRGB = colorWheelToRGB(s.lift || defaultWheel);
+            const gammaRGB = colorWheelToRGB(s.gamma || defaultWheel);
+            const gainRGB = colorWheelToRGB(s.gain || defaultWheel);
+
+            if (this.uniformLocations.lift) this.gl.uniform3fv(this.uniformLocations.lift, liftRGB);
+            if (this.uniformLocations.gammaColor) this.gl.uniform3fv(this.uniformLocations.gammaColor, gammaRGB);
+            if (this.uniformLocations.gain) this.gl.uniform3fv(this.uniformLocations.gain, gainRGB);
+
+        } else {
+            // Color Correction (default)
+            const s = this.settings as ColorCorrectionNodeSettings;
+
+            if (this.uniformLocations.exposure) this.gl.uniform1f(this.uniformLocations.exposure, s.exposure ?? 0);
+            if (this.uniformLocations.brightness) this.gl.uniform1f(this.uniformLocations.brightness, s.brightness ?? 0);
+            if (this.uniformLocations.contrast) this.gl.uniform1f(this.uniformLocations.contrast, s.contrast ?? 1);
+            if (this.uniformLocations.saturation) this.gl.uniform1f(this.uniformLocations.saturation, s.saturation ?? 1);
+            if (this.uniformLocations.gamma) this.gl.uniform1f(this.uniformLocations.gamma, s.gamma ?? 1);
+            if (this.uniformLocations.shadows) this.gl.uniform1f(this.uniformLocations.shadows, s.shadows ?? 0);
+            if (this.uniformLocations.highlights) this.gl.uniform1f(this.uniformLocations.highlights, s.highlights ?? 0);
+            if (this.uniformLocations.temperature) this.gl.uniform1f(this.uniformLocations.temperature, s.temperature ?? 0);
+            if (this.uniformLocations.tint) this.gl.uniform1f(this.uniformLocations.tint, s.tint ?? 0);
+        }
+
+        // Draw
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
 
     /**
      * Apply color correction settings
      */
     applyCorrection(settings: Partial<ColorCorrectionNodeSettings>): void {
-        this.settings = { ...this.settings, ...settings };
+        this.settings = { ...this.settings, ...settings } as ColorCorrectionNodeSettings;
         // Settings will be applied on next render frame
     }
 
     /**
-     * Get the output canvas
+     * Apply primary grading settings
      */
-    getCanvas(): HTMLCanvasElement {
+    public applyPrimaryGrading(settings: PrimaryGradingNodeSettings): void {
+        this.settings = settings;
+        // Settings will be applied on next render frame
+    }
+
+    public getCanvas(): HTMLCanvasElement {
         return this.canvas;
     }
 
@@ -395,24 +491,16 @@ export class WebGLVideoProcessor {
         };
     }
 
-    /**
-     * Clean up resources
-     */
-    dispose(): void {
+    public dispose(): void {
         this.stopRendering();
-
-        if (this.gl && this.texture) {
-            this.gl.deleteTexture(this.texture);
+        if (this.gl) {
+            if (this.texture) this.gl.deleteTexture(this.texture);
+            if (this.program) this.gl.deleteProgram(this.program);
         }
-        if (this.gl && this.program) {
-            this.gl.deleteProgram(this.program);
-        }
-
         this.video = null;
         this.gl = null;
         this.program = null;
         this.texture = null;
 
-        console.log('[WebGLVideoProcessor] Disposed');
     }
 }

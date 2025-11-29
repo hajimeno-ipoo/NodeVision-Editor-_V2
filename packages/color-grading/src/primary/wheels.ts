@@ -25,14 +25,20 @@ export function colorWheelToRGB(wheel: ColorWheelControl): [number, number, numb
     // Convert to RGB
     const [r, g, b] = hslToRGB(h, s, l);
 
+    // Subtract 0.5 to center the color adjustment around 0
+    // When saturation is 0, RGB is (0.5, 0.5, 0.5), so subtracting 0.5 gives (0, 0, 0)
+    const rOffset = r - 0.5;
+    const gOffset = g - 0.5;
+    const bOffset = b - 0.5;
+
     // Apply luminance adjustment
     // Luminance shifts the entire RGB value up or down
     const lumFactor = wheel.luminance;
 
     return [
-        r + lumFactor,
-        g + lumFactor,
-        b + lumFactor
+        rOffset + lumFactor,
+        gOffset + lumFactor,
+        bOffset + lumFactor
     ];
 }
 

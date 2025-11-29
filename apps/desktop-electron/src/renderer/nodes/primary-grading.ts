@@ -8,6 +8,7 @@ import type { PrimaryGradingNodeSettings } from '@nodevision/editor';
 import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
+import { WebGLVideoProcessor } from './webgl-video-processor';
 
 // 動的にモジュールを読み込む
 const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
@@ -18,12 +19,18 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
 
     type Processor = WebGLLUTProcessor;
     const processors = new Map<string, Processor>();
+    const videoProcessors = new Map<string, WebGLVideoProcessor>();
     const lastSourceByNode = new Map<string, string>();
+    const isVideoSource = new Map<string, boolean>();
     const lutCache = new Map<string, { params: string; lut: LUT3D }>();
 
     const createProcessor = (): Processor => {
         const canvas = document.createElement('canvas');
-        return new WebGLLUTProcessor(canvas);
+        const processor = new WebGLLUTProcessor(canvas);
+        // Enable WebGL float texture extension for high quality LUT application
+        const gl = processor.getContext();
+        gl.getExtension('OES_texture_float_linear');
+        return processor;
     };
 
     /**
@@ -65,15 +72,38 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
     /**
      * メディアプレビューノードへ補正後の dataURL を反映
      */
-    const propagateToMediaPreview = (node: RendererNode, processor?: Processor) => {
-        let dataUrl: string | null = null;
-        let size = { width: 0, height: 0 };
-
-        if (processor) {
-            const canvas = processor.getContext().canvas;
-            size = { width: canvas.width, height: canvas.height };
-            dataUrl = (canvas as HTMLCanvasElement).toDataURL();
+    const propagateToMediaPreview = (node: RendererNode, processor?: Processor | WebGLVideoProcessor) => {
+        if (!processor) {
+            state.mediaPreviews.delete(node.id);
+            state.canvasPreviews.delete(node.id);
+            return;
         }
+
+        let dataUrl: string | undefined;
+        let size: { width: number; height: number } | undefined;
+
+        if (processor instanceof WebGLVideoProcessor) {
+            const canvas = processor.getCanvas();
+            size = { width: canvas.width, height: canvas.height };
+            // 動画の場合はCanvasPreviewとして登録
+            state.canvasPreviews.set(node.id, canvas);
+            // MediaPreviewにはダミーURLとメタデータを渡す
+            state.mediaPreviews.set(node.id, {
+                url: '', // CanvasPreviewが優先されるため空でOK
+                width: size.width,
+                height: size.height,
+                kind: 'video',
+                name: 'Primary Graded Video',
+                size: 0,
+                type: 'video/mp4',
+                ownedUrl: false
+            });
+            return;
+        }
+
+        const canvas = processor.getContext().canvas;
+        size = { width: canvas.width, height: canvas.height };
+        dataUrl = (canvas as HTMLCanvasElement).toDataURL();
 
         if (dataUrl) {
             state.mediaPreviews.set(node.id, {
@@ -117,7 +147,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
     /**
      * 上流ノードから元メディアの URL を取得
      */
-    const getSourceMedia = (node: RendererNode): string | null => {
+    const getSourceMedia = (node: RendererNode): { url: string; isVideo: boolean } | null => {
         const inputPorts = ['source'];
         const conn = state.connections.find(
             (c) => c.toNodeId === node.id && inputPorts.includes(c.toPortId)
@@ -128,12 +158,17 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
         if (!sourceNode) return null;
 
         const preview = state.mediaPreviews.get(sourceNode.id);
-        if (preview?.url) return preview.url;
+        if (preview?.url) {
+            return {
+                url: preview.url,
+                isVideo: preview.kind === 'video'
+            };
+        }
 
         if (sourceNode.typeId === 'loadVideo' || sourceNode.typeId === 'loadImage') {
             const settings = sourceNode.settings as { filePath?: string } | undefined;
             if (settings?.filePath) {
-                return settings.filePath;
+                return { url: settings.filePath, isVideo: sourceNode.typeId === 'loadVideo' };
             }
         }
 
@@ -178,7 +213,9 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
             )}</span>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="control-value" data-pg-value="${key}">${value.toFixed(2)}</span>
-            <button class="reset-btn" data-target-key="${key}" data-default-value="${defaultValue}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0 8px; font-size: 14px; height: 24px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">↺</button>
+            <button class="reset-btn" data-target-key="${key}" data-default-value="${defaultValue}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.2s;">
+                <span style="pointer-events: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">↺</span>
+            </button>
           </div>
         </div>
         <input 
@@ -186,8 +223,9 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
           class="node-slider" 
           data-pg-key="${key}" 
           data-node-id="${escapeHtml(node.id)}"
+          data-node-interactive="true"
           min="${min}" max="${max}" step="${step}" value="${value}"
-          style="width: 100%;"
+          style="width: 100%; position: relative; z-index: 10; pointer-events: auto;"
         />
       </label>
     `;
@@ -218,12 +256,12 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                     <button class="reset-wheel-btn" data-wheel-target="${keyPrefix}" style="background: none; border: none; color: #888; cursor: pointer; font-size: 12px;">↺</button>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <div class="wheel-area" style="position: relative; width: 120px; height: 120px; cursor: crosshair;">
+                    <div class="wheel-area" data-node-interactive="true" style="position: relative; width: 120px; height: 120px; cursor: crosshair;">
                         <div class="wheel-bg" style="
                             width: 100%; height: 100%; border-radius: 50%;
                             background: radial-gradient(circle, white 0%, transparent 70%), conic-gradient(red, magenta, blue, cyan, lime, yellow, red);
                         "></div>
-                        <svg width="120" height="120" class="color-wheel-svg" data-wheel-key="${keyPrefix}" style="position: absolute; top: 0; left: 0;">
+                        <svg width="120" height="120" class="color-wheel-svg" data-wheel-key="${keyPrefix}" data-node-interactive="true" style="position: absolute; top: 0; left: 0;">
                             <circle cx="${x}" cy="${y}" r="5" fill="none" stroke="black" stroke-width="2" class="wheel-indicator" style="pointer-events: none;" />
                             <circle cx="${x}" cy="${y}" r="4" fill="none" stroke="white" stroke-width="2" class="wheel-indicator-inner" style="pointer-events: none;" />
                         </svg>
@@ -232,13 +270,18 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                         <input 
                             type="range" 
                             class="lum-slider" 
-                            data-pg-key="${keyPrefix}_luminance" 
+                            data-pg-key="${keyPrefix}_luminance"
+                            data-node-interactive="true"
                             min="-1" max="1" step="0.01" value="${lum}"
+                            orient="vertical"
                             style="
-                                writing-mode: bt-lr; /* IE/Edge */
-                                -webkit-appearance: slider-vertical; /* WebKit */
-                                width: 8px; 
-                                height: 100%;
+                                width: 120px;
+                                height: 8px;
+                                transform: rotate(-90deg);
+                                transform-origin: center;
+                                position: relative;
+                                z-index: 10;
+                                pointer-events: auto;
                             "
                         />
                     </div>
@@ -281,8 +324,6 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                     processor = createProcessor();
                     processors.set(node.id, processor);
                 }
-
-                const sourceMediaUrl = getSourceMedia(node);
 
                 const updateValueAndPreview = (key: string, val: number) => {
                     // スライダー更新
@@ -331,7 +372,16 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
 
                         // プレビュー更新
                         const settings = currentSettings;
-                        if (processor) {
+
+                        // 動画プロセッサーの更新（動画の場合）
+                        const videoProcessor = videoProcessors.get(node.id);
+                        const isVideo = isVideoSource.get(node.id);
+
+                        if (isVideo && videoProcessor) {
+                            // 動画の場合：WebGLVideoProcessorで直接処理（LUT生成不要）
+                            videoProcessor.applyPrimaryGrading(settings);
+                        } else if (processor) {
+                            // 画像の場合：Offscreen CanvasでLUT処理
                             const paramsHash = JSON.stringify(settings);
                             let lut = lutCache.get(node.id)?.lut;
 
@@ -354,7 +404,77 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                     }
                 };
 
+                // スライダーのイベント処理
+                const sliders = element.querySelectorAll('.node-slider');
+                sliders.forEach(slider => {
+                    // ノードのドラッグを防ぐが、スライダーのデフォルト動作は保持
+                    slider.addEventListener('mousedown', (e) => {
+                        e.stopPropagation(); // ノードのドラッグハンドラーに伝播させない
+                        // e.preventDefault() は呼ばない（スライダーのドラッグを許可）
+                    });
+
+                    // リアルタイム更新
+                    slider.addEventListener('input', (e) => {
+                        const target = e.target as HTMLInputElement;
+                        const key = target.getAttribute('data-pg-key');
+                        if (key) {
+                            updateValueAndPreview(key, parseFloat(target.value));
+                        }
+                    });
+                });
+
+                // 輝度スライダー（縦型）のイベント処理
+                const lumSliders = element.querySelectorAll('.lum-slider');
+                lumSliders.forEach(slider => {
+                    slider.addEventListener('mousedown', (e) => {
+                        e.stopPropagation();
+                        // スライダーのデフォルト動作は保持
+                    });
+
+                    slider.addEventListener('input', (e) => {
+                        const target = e.target as HTMLInputElement;
+                        const key = target.getAttribute('data-pg-key');
+                        if (key) {
+                            updateValueAndPreview(key, parseFloat(target.value));
+                        }
+                    });
+                });
+
+                // リセットボタン
+                const resetBtns = element.querySelectorAll('.reset-btn');
+                resetBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // ノード選択を防ぐ
+                        const target = e.currentTarget as HTMLElement;
+                        const key = target.getAttribute('data-target-key');
+                        const defaultVal = target.getAttribute('data-default-value');
+
+                        if (key && defaultVal !== null) {
+                            updateValueAndPreview(key, parseFloat(defaultVal));
+                        }
+                    });
+                });
+
                 // カラーホイールのイベント処理
+                const wheelAreas = element.querySelectorAll('.wheel-area');
+                wheelAreas.forEach(area => {
+                    // ホイールエリア全体でノード選択を防ぐ
+                    area.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    });
+
+                    area.addEventListener('pointerup', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    });
+
+                    area.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    });
+                });
+
                 const wheels = element.querySelectorAll('.color-wheel-svg');
                 wheels.forEach(svg => {
                     const keyPrefix = svg.getAttribute('data-wheel-key');
@@ -405,50 +525,38 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                         updateValueAndPreview(`${keyPrefix}_saturation`, sat);
                     };
 
-                    svg.addEventListener('mousedown', (e) => {
-                        isDragging = true;
-                        updateFromEvent(e as MouseEvent);
-                    });
-
-                    window.addEventListener('mousemove', (e) => {
+                    const handlePointerMove = (e: Event) => {
+                        const ptrEvent = e as PointerEvent;
                         if (!isDragging) return;
-                        // SVG外に出てもドラッグ継続するためにwindowでlistenするが、
-                        // 座標計算のためにrectが必要。
-                        // 簡易的に、svg要素上の座標系で計算したいので、
-                        // ここではsvg要素に対して座標を計算するロジックを再利用する
-                        // ただし、getBoundingClientRectはスクロール等で変わる可能性があるので注意
+                        ptrEvent.preventDefault();
+                        ptrEvent.stopPropagation();
+                        updateFromEvent(ptrEvent as unknown as MouseEvent);
+                    };
 
-                        // マウス位置がSVG矩形外にある場合でも、中心からの角度と距離（制限付き）で計算すればOK
-                        const rect = svg.getBoundingClientRect();
-                        const dx = e.clientX - rect.left - cx;
-                        const dy = e.clientY - rect.top - cy;
-
-                        let r = Math.sqrt(dx * dx + dy * dy);
-                        const angle = Math.atan2(dy, dx);
-
-                        if (r > radius) r = radius;
-                        const sat = r / radius;
-                        let hue = (angle * 180) / Math.PI;
-                        if (hue < 0) hue += 360;
-
-                        // インジケーター更新
-                        const indicator = svg.querySelector('.wheel-indicator');
-                        const indicatorInner = svg.querySelector('.wheel-indicator-inner');
-                        if (indicator && indicatorInner) {
-                            const ix = cx + r * Math.cos(angle);
-                            const iy = cy + r * Math.sin(angle);
-                            indicator.setAttribute('cx', ix.toString());
-                            indicator.setAttribute('cy', iy.toString());
-                            indicatorInner.setAttribute('cx', ix.toString());
-                            indicatorInner.setAttribute('cy', iy.toString());
-                        }
-
-                        updateValueAndPreview(`${keyPrefix}_hue`, hue);
-                        updateValueAndPreview(`${keyPrefix}_saturation`, sat);
-                    });
-
-                    window.addEventListener('mouseup', () => {
+                    const handlePointerUp = (e: Event) => {
+                        const ptrEvent = e as PointerEvent;
+                        ptrEvent.stopPropagation();
+                        ptrEvent.preventDefault();
                         isDragging = false;
+                        try {
+                            svg.releasePointerCapture(ptrEvent.pointerId);
+                        } catch (err) {
+                            // Ignore error if pointer capture was lost
+                        }
+                        svg.removeEventListener('pointermove', handlePointerMove);
+                        svg.removeEventListener('pointerup', handlePointerUp);
+                    };
+
+                    svg.addEventListener('pointerdown', (e: Event) => {
+                        const ptrEvent = e as PointerEvent;
+                        ptrEvent.stopPropagation();
+                        ptrEvent.preventDefault();
+                        isDragging = true;
+                        svg.setPointerCapture(ptrEvent.pointerId);
+                        updateFromEvent(ptrEvent as unknown as MouseEvent);
+
+                        svg.addEventListener('pointermove', handlePointerMove);
+                        svg.addEventListener('pointerup', handlePointerUp);
                     });
 
                     // ダブルクリックでリセット
@@ -472,7 +580,13 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
 
                 // ホイールリセットボタン
                 element.querySelectorAll('.reset-wheel-btn').forEach(btn => {
+                    // Prevent node selection
+                    btn.addEventListener('mousedown', (e) => {
+                        e.stopPropagation();
+                    });
+
                     btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         const target = e.currentTarget as HTMLElement;
                         const keyPrefix = target.getAttribute('data-wheel-target');
                         if (keyPrefix) {
@@ -499,64 +613,111 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                 });
 
                 // 初期化処理
-                if (sourceMediaUrl) {
+                const sourceMedia = getSourceMedia(node);
+                if (sourceMedia) {
                     try {
-                        let imageUrl = sourceMediaUrl;
+                        const isVideo = sourceMedia.isVideo;
+                        isVideoSource.set(node.id, isVideo);
 
-                        if (sourceMediaUrl.startsWith('file://')) {
-                            const result = await window.nodevision.loadImageAsDataURL({
-                                filePath: sourceMediaUrl,
-                            });
-                            if (result.ok && result.dataURL) {
-                                imageUrl = result.dataURL;
+                        if (isVideo) {
+                            // 動画の場合：WebGLVideoProcessorで処理
+
+
+                            const videoUrl = sourceMedia.url;
+                            // VideoProcessorの取得または作成
+                            let videoProcessor = videoProcessors.get(node.id);
+                            if (!videoProcessor) {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = 1280;
+                                canvas.height = 720;
+                                videoProcessor = new WebGLVideoProcessor(canvas);
+                                videoProcessors.set(node.id, videoProcessor);
+                            }
+
+                            // 隠しvideo要素の管理
+                            let video = (videoProcessor as any)._videoElement as HTMLVideoElement;
+                            if (!video) {
+                                video = document.createElement('video');
+                                video.crossOrigin = 'anonymous';
+                                video.loop = true;
+                                video.muted = true;
+                                video.playsInline = true;
+                                (videoProcessor as any)._videoElement = video;
+                            }
+
+                            if (video.src !== videoUrl) {
+                                video.src = videoUrl;
+                                // 非同期で再生開始
+                                video.play().catch(e => console.error('[PrimaryGrading] Video auto-play failed:', e));
+                                videoProcessor.loadVideo(video);
+                            }
+
+                            // Apply primary grading settings to video processor
+                            videoProcessor.applyPrimaryGrading(node.settings as PrimaryGradingNodeSettings);
+
+                            // プレビュー伝播（メタデータのみ）
+                            propagateToMediaPreview(node, videoProcessor);
+
+                            // プレビュー伝播（再生開始を待たずに即座に登録）
+                            propagateToMediaPreview(node, videoProcessor);
+                        } else {
+                            // 静止画の場合
+                            let imageUrl = sourceMedia.url;
+
+                            if (sourceMedia.url.startsWith('file://')) {
+                                const result = await window.nodevision.loadImageAsDataURL({
+                                    filePath: sourceMedia.url,
+                                });
+                                if (result.ok && result.dataURL) {
+                                    imageUrl = result.dataURL;
+                                }
+                            }
+
+                            const lastSource = lastSourceByNode.get(node.id);
+                            // 画像がない場合、または異なるソースの場合は必ず再ロード
+                            const shouldReload = !processor.hasImage?.() || lastSource !== imageUrl;
+
+                            if (shouldReload) {
+                                await processor.loadImage(imageUrl);
+                                lastSourceByNode.set(node.id, imageUrl);
+                            }
+
+                            // 初期プレビュー生成
+                            const settings = node.settings as PrimaryGradingNodeSettings;
+
+                            const paramsHash = JSON.stringify(settings);
+                            let lut = lutCache.get(node.id)?.lut;
+
+                            if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
+                                const pipeline = buildPipeline(settings);
+                                const transform = buildColorTransform(pipeline);
+                                lut = generateLUT3D(33, transform);
+                                if (lut) {
+                                    lutCache.set(node.id, { params: paramsHash, lut });
+                                } else {
+                                    console.error('[PrimaryGrading] LUT generation failed');
+                                }
+                            }
+
+                            if (lut && processor.hasImage?.()) {
+                                processor.loadLUT(lut);
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
+                            } else {
+                                console.warn('[PrimaryGrading] Skipping preview generation', {
+                                    hasLUT: !!lut,
+                                    hasImage: processor.hasImage?.()
+                                });
                             }
                         }
-
-                        const lastSource = lastSourceByNode.get(node.id);
-                        const shouldReload = !processor.hasImage?.() || lastSource !== imageUrl;
-
-                        if (shouldReload) {
-                            await processor.loadImage(imageUrl);
-                            lastSourceByNode.set(node.id, imageUrl);
-                        }
-
-                        const settings = node.settings as PrimaryGradingNodeSettings;
-                        updateValueAndPreview('exposure', settings.exposure ?? 0);
                     } catch (error) {
                         console.error('[PrimaryGrading] Preview setup failed', error);
                     }
                 } else {
                     lastSourceByNode.delete(node.id);
+                    isVideoSource.delete(node.id);
                     propagateToMediaPreview(node, undefined);
                 }
-
-                // スライダー入力イベント
-                const inputs = element.querySelectorAll('input[type="range"]');
-                inputs.forEach((input) => {
-                    input.addEventListener('input', (e) => {
-                        const target = e.target as HTMLInputElement;
-                        const key = target.getAttribute('data-pg-key');
-                        if (!key) return;
-                        const val = parseFloat(target.value);
-                        updateValueAndPreview(key, val);
-                    });
-                });
-
-                // リセットボタンイベント
-                const resetButtons = element.querySelectorAll('.reset-btn');
-                resetButtons.forEach((btn) => {
-                    btn.addEventListener('click', (e) => {
-                        const target = e.currentTarget as HTMLButtonElement;
-                        const key = target.getAttribute('data-target-key');
-                        const defaultValue = parseFloat(
-                            target.getAttribute('data-default-value') || '0'
-                        );
-
-                        if (key) {
-                            updateValueAndPreview(key, defaultValue);
-                        }
-                    });
-                });
             },
         }),
     };
