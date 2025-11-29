@@ -2,7 +2,7 @@
  * Complete color grading pipeline configuration
  */
 
-import type { RGBCurves } from '../curves/types';
+import type { RGBCurves, HueCurves } from '../curves/types';
 import type { BasicCorrection, TonalCorrection, ColorWheels } from '../primary/types';
 import type { HSLKeyerParams } from '../secondary/hsl-keyer';
 
@@ -39,6 +39,9 @@ export interface ColorGradingPipeline {
 
     /** RGB Curves (Master, R, G, B) */
     curves?: RGBCurves;
+
+    /** Hue Curves (Hue vs Hue, Hue vs Sat, Hue vs Luma) */
+    hueCurves?: HueCurves;
 
     /** Secondary corrections (HSL Keyer + Adjustment) */
     secondary?: SecondaryCorrection[];

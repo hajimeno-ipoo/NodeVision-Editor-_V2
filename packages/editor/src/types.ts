@@ -111,6 +111,9 @@ export interface CurvesNodeSettings {
   red: CurvePoint[];
   green: CurvePoint[];
   blue: CurvePoint[];
+  hueVsHue?: CurvePoint[];
+  hueVsSat?: CurvePoint[];
+  hueVsLuma?: CurvePoint[];
 }
 
 export interface SecondaryGradingNodeSettings {

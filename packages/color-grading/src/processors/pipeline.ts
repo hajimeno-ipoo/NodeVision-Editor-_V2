@@ -3,6 +3,7 @@
  * Combines all correction types in the correct order
  */
 
+import { applyHueCurves } from '../curves/hue-curves';
 import { applyRGBCurves } from '../curves/rgb-curves';
 import type { ColorTransformFunction } from '../lut/types';
 import { applyBasicCorrection } from '../primary/basic';
@@ -57,6 +58,11 @@ export function buildColorTransform(pipeline: ColorGradingPipeline): ColorTransf
         // Step 7: Apply RGB curves (in sRGB space)
         if (pipeline.curves) {
             [rOut, gOut, bOut] = applyRGBCurves(rOut, gOut, bOut, pipeline.curves);
+        }
+
+        // Step 7.5: Apply Hue curves
+        if (pipeline.hueCurves) {
+            [rOut, gOut, bOut] = applyHueCurves(rOut, gOut, bOut, pipeline.hueCurves);
         }
 
         // Step 8: Apply Secondary Corrections

@@ -10,13 +10,16 @@ const { evaluateCurve, buildColorTransform, generateLUT3D } = colorGrading;
 import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 // チャンネル定義
-type ChannelType = 'master' | 'red' | 'green' | 'blue';
+type ChannelType = 'master' | 'red' | 'green' | 'blue' | 'hueVsHue' | 'hueVsSat' | 'hueVsLuma';
 
 const CHANNEL_COLORS = {
     master: '#ffffff',
     red: '#ff4444',
     green: '#44ff44',
-    blue: '#4488ff'
+    blue: '#4488ff',
+    hueVsHue: '#ff00ff',
+    hueVsSat: '#00ffff',
+    hueVsLuma: '#ffff00'
 };
 
 export const createCurveEditorNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
@@ -213,23 +216,24 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
         return `
       <div class="node-controls" style="padding: 12px;">
-        <div class="channel-tabs" style="display: flex; gap: 4px; margin-bottom: 8px;">
-          ${['master', 'red', 'green', 'blue'].map(ch => `
+        <div class="channel-tabs" style="display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
+          ${['master', 'red', 'green', 'blue', 'hueVsHue', 'hueVsSat', 'hueVsLuma'].map(ch => `
             <button 
               class="channel-tab ${ch === activeChannel ? 'active' : ''}" 
               data-channel="${ch}"
               style="
                 flex: 1; 
+                min-width: 60px;
                 padding: 4px; 
                 border: none; 
                 background: ${ch === activeChannel ? '#444' : '#222'}; 
                 color: ${ch === activeChannel ? '#fff' : '#888'};
                 border-bottom: 2px solid ${ch === activeChannel ? CHANNEL_COLORS[ch as ChannelType] : 'transparent'};
                 cursor: pointer;
-                font-size: 11px;
+                font-size: 10px;
               "
             >
-              ${ch.toUpperCase()}
+              ${ch.replace('hueVs', 'Hue ')}
             </button>
           `).join('')}
         </div>
@@ -281,6 +285,9 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 if (!settings.red) settings.red = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
                 if (!settings.green) settings.green = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
                 if (!settings.blue) settings.blue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                if (!settings.hueVsHue) settings.hueVsHue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                if (!settings.hueVsSat) settings.hueVsSat = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                if (!settings.hueVsLuma) settings.hueVsLuma = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
 
                 const activeChannel = activeChannels.get(node.id) || 'master';
                 const canvas = element.querySelector('.curve-canvas') as HTMLCanvasElement;
@@ -416,6 +423,9 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         settings.red = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
                         settings.green = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
                         settings.blue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                        settings.hueVsHue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                        settings.hueVsSat = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                        settings.hueVsLuma = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
                         updateSettings();
                     });
                 }
@@ -430,7 +440,10 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             master: [...settings.master],
                             red: [...settings.red],
                             green: [...settings.green],
-                            blue: [...settings.blue]
+                            blue: [...settings.blue],
+                            hueVsHue: settings.hueVsHue ? [...settings.hueVsHue] : [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+                            hueVsSat: settings.hueVsSat ? [...settings.hueVsSat] : [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+                            hueVsLuma: settings.hueVsLuma ? [...settings.hueVsLuma] : [{ x: 0, y: 0 }, { x: 1, y: 1 }]
                         };
                         targetNode.settings = newSettings;
                         node.settings = newSettings;
@@ -456,6 +469,11 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                 red: settings.red,
                                 green: settings.green,
                                 blue: settings.blue
+                            },
+                            hueCurves: {
+                                hueVsHue: settings.hueVsHue || [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+                                hueVsSat: settings.hueVsSat || [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+                                hueVsLuma: settings.hueVsLuma || [{ x: 0, y: 0 }, { x: 1, y: 1 }]
                             }
                         };
 

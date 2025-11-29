@@ -110,7 +110,7 @@
 - [x] テストケース作成
 
 ### Task 3.4: Hueカーブ実装
-- [ ] `src/curves/hue-curves.ts` 作成
+- [x] `src/curves/hue-curves.ts` 作成
 - [x] **Secondary Gradingノード** <!-- id: 7 -->
   - [x] HSL Keyerロジック
   - [x] UI実装
@@ -166,12 +166,19 @@
 
 ---
 
-## Phase 8: UI実装 (Week 13-14)
+### Task 2.5: Electron統合とモジュール解決 (New)
+- [x] Electronの `nodeIntegration` を有効化
+- [x] `preload.ts` で `require` を公開
+- [x] レンダラープロセスでの動的モジュール読み込み実装
+- [x] カラーグレーディングノードの有効化と動作確認
 
-### Task 8.1: ノードテンプレート追加
-- [x] `packages/editor/src/templates.ts` 更新
-- [x] `primaryGrading` ノード追加
-- [x] `curves` ノード追加
+## Phase 3: 高度な機能 (Next)
+
+### Task 3.1: カーブエディタUI
+- [x] `packages/editor/src/components/CurveEditor/` 作成
+- [x] ベジェ曲線操作ロジック実装
+- [ ] ヒストグラム表示（オプション）
+- [x] ノードUIへの統合`curves` ノード追加
 - [x] `secondaryGrading` ノード追加
 - [x] `lutLoader` ノード追加
 
@@ -186,7 +193,7 @@
 - [x] `apps/desktop-electron/src/renderer/nodes/curve-editor.ts` 作成
 - [x] Canvas描画実装
 - [x] カーブポイント追加/削除/ドラッグ
-- [x] チャンネル切り替え（Master/R/G/B）
+- [x] チャンネル切り替え（Master/R/G/B/Hue）
 - [x] ノードに統合
 
 ### Task 8.4: LUTローダーUI
