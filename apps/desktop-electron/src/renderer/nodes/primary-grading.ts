@@ -196,6 +196,8 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
             tint: 0,
         };
 
+        const resetIcon = (window as any).__NODEVISION_ICONS__?.reset ?? '↺';
+
         const renderSlider = (
             labelKey: string,
             key: string,
@@ -214,7 +216,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="control-value" data-pg-value="${key}">${value.toFixed(2)}</span>
             <button class="reset-btn" data-target-key="${key}" data-default-value="${defaultValue}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.2s;">
-                <span style="pointer-events: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">↺</span>
+                <span style="pointer-events: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">${resetIcon}</span>
             </button>
           </div>
         </div>
@@ -253,7 +255,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
             <div class="color-wheel-control" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
                     <label style="font-size: 12px;">${label}</label>
-                    <button class="reset-wheel-btn" data-wheel-target="${keyPrefix}" style="background: none; border: none; color: #888; cursor: pointer; font-size: 12px;">↺</button>
+                    <button class="reset-wheel-btn" data-wheel-target="${keyPrefix}" style="background: none; border: none; color: #888; cursor: pointer; width: 16px; height: 16px; padding: 0; display: flex; align-items: center; justify-content: center;">${resetIcon}</button>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <div class="wheel-area" data-node-interactive="true" style="position: relative; width: 120px; height: 120px; cursor: crosshair;">
@@ -408,7 +410,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                 const sliders = element.querySelectorAll('.node-slider');
                 sliders.forEach(slider => {
                     // ノードのドラッグを防ぐが、スライダーのデフォルト動作は保持
-                    slider.addEventListener('mousedown', (e) => {
+                    slider.addEventListener('pointerdown', (e) => {
                         e.stopPropagation(); // ノードのドラッグハンドラーに伝播させない
                         // e.preventDefault() は呼ばない（スライダーのドラッグを許可）
                     });
@@ -426,7 +428,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                 // 輝度スライダー（縦型）のイベント処理
                 const lumSliders = element.querySelectorAll('.lum-slider');
                 lumSliders.forEach(slider => {
-                    slider.addEventListener('mousedown', (e) => {
+                    slider.addEventListener('pointerdown', (e) => {
                         e.stopPropagation();
                         // スライダーのデフォルト動作は保持
                     });
@@ -440,9 +442,11 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                     });
                 });
 
-                // リセットボタン
                 const resetBtns = element.querySelectorAll('.reset-btn');
                 resetBtns.forEach(btn => {
+                    btn.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                    });
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation(); // ノード選択を防ぐ
                         const target = e.currentTarget as HTMLElement;
@@ -581,7 +585,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                 // ホイールリセットボタン
                 element.querySelectorAll('.reset-wheel-btn').forEach(btn => {
                     // Prevent node selection
-                    btn.addEventListener('mousedown', (e) => {
+                    btn.addEventListener('pointerdown', (e) => {
                         e.stopPropagation();
                     });
 
