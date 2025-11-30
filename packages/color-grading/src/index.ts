@@ -25,7 +25,7 @@ export { applyColorWheels, applyLift, applyGamma as applyGammaWheel, applyGain, 
 
 // Curves
 export type { CurvePoint, Curve, RGBCurves, HueCurves } from './curves/types.js';
-export { DEFAULT_CURVE, DEFAULT_RGB_CURVES, DEFAULT_HUE_CURVES } from './curves/types.js';
+export { DEFAULT_CURVE, DEFAULT_FLAT_CURVE, DEFAULT_RGB_CURVES, DEFAULT_HUE_CURVES } from './curves/types.js';
 export {
     evaluateCurve,
     curveTolookupTable,

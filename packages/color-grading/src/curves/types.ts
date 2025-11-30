@@ -54,6 +54,12 @@ export const DEFAULT_CURVE: Curve = [
 ];
 
 /**
+ * Default flat curve for Hue curves (Y=0.5 is neutral)
+ * DaVinci Resolve starts with no points, so we use an empty array
+ */
+export const DEFAULT_FLAT_CURVE: Curve = [];
+
+/**
  * デフォルトのRGBカーブセット
  */
 export const DEFAULT_RGB_CURVES: RGBCurves = {
@@ -64,10 +70,10 @@ export const DEFAULT_RGB_CURVES: RGBCurves = {
 };
 
 /**
- * デフォルトのHueカーブセット
+ * Default Hue curves (all empty/neutral)
  */
 export const DEFAULT_HUE_CURVES: HueCurves = {
-    hueVsHue: DEFAULT_CURVE,
-    hueVsSat: DEFAULT_CURVE,
-    hueVsLuma: DEFAULT_CURVE,
+    hueVsHue: DEFAULT_FLAT_CURVE,
+    hueVsSat: DEFAULT_FLAT_CURVE,
+    hueVsLuma: DEFAULT_FLAT_CURVE,
 };

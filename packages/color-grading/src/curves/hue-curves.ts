@@ -26,7 +26,7 @@ export function applyHueCurves(
     // 2. Apply Hue vs Hue
     // Y=0.5 means no shift. Range is +/- 180 degrees (or similar)
     // We assume Y=0.5 is neutral.
-    const hueShiftVal = evaluateCurve(curves.hueVsHue, normalizedHue);
+    const hueShiftVal = evaluateCurve(curves.hueVsHue, normalizedHue, true);
     // Map 0.0-1.0 to -180 to +180 degrees shift
     // 0.5 -> 0
     // 1.0 -> +180
@@ -42,7 +42,7 @@ export function applyHueCurves(
     // Y=0.5 means scale 1.0. Range 0.0 to 2.0x?
     // Or maybe Y is absolute saturation? Usually it's a scaler.
     // Let's assume Y=0.5 is 1.0x, Y=0 is 0.0x, Y=1 is 2.0x
-    const satScaleVal = evaluateCurve(curves.hueVsSat, normalizedHue);
+    const satScaleVal = evaluateCurve(curves.hueVsSat, normalizedHue, true);
     const satScale = satScaleVal * 2.0;
     let newS = s * satScale;
 
@@ -52,7 +52,7 @@ export function applyHueCurves(
     // 4. Apply Hue vs Luma
     // Y=0.5 means no change.
     // This modifies Lightness (L) based on Hue.
-    const lumaOffsetVal = evaluateCurve(curves.hueVsLuma, normalizedHue);
+    const lumaOffsetVal = evaluateCurve(curves.hueVsLuma, normalizedHue, true);
     // Map 0.0-1.0 to -1.0 to +1.0 offset? Or smaller range?
     // Let's try +/- 0.5 for smoother control, or +/- 1.0 for full range.
     // Let's use +/- 1.0

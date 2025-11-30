@@ -46,24 +46,6 @@ function normalizeCurve(curve: Curve): Curve {
         }
     }
 
-    // 最低限 (0, 0) と (1, 1) を確保
-    if (unique.length === 0) {
-        return [
-            { x: 0, y: 0 },
-            { x: 1, y: 1 },
-        ];
-    }
-
-    // 先頭が 0 でない場合は (0, 0) を追加
-    if (unique[0].x > 0) {
-        unique.unshift({ x: 0, y: 0 });
-    }
-
-    // 末尾が 1 でない場合は (1, 1) を追加
-    if (unique[unique.length - 1].x < 1) {
-        unique.push({ x: 1, y: 1 });
-    }
-
     return unique;
 }
 
@@ -75,13 +57,59 @@ function normalizeCurve(curve: Curve): Curve {
  * @param x - 入力値（0.0 ~ 1.0）
  * @returns 補間された出力値（クランプされた 0.0 ~ 1.0）
  */
-export function evaluateCurve(curve: Curve, x: number): number {
-    // クランプ
-    if (x <= 0) return 0;
-    if (x >= 1) return 1;
-
+export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): number {
     // カーブを正規化
     const normalized = normalizeCurve(curve);
+
+    // 空配列の場合：Hueカーブの中立値（0.5）を返す
+    if (normalized.length === 0) {
+        return loop ? 0.5 : 0;
+    }
+
+    // 1ポイントのみの場合：そのポイントのY値を常に返す（水平線）
+    if (normalized.length === 1) {
+        return normalized[0].y;
+    }
+
+    // ループ処理（Hueカーブ用）
+    if (loop) {
+        // 仮想的にポイントを前後に追加してループを表現
+        // 前: x - 1, 後: x + 1
+        const prevPoints = normalized.map(p => ({ x: p.x - 1, y: p.y }));
+        const nextPoints = normalized.map(p => ({ x: p.x + 1, y: p.y }));
+
+        // 検索範囲を広げる
+        const extended = [...prevPoints, ...normalized, ...nextPoints];
+
+        // 該当する区間を見つける
+        // x は 0~1 の範囲だが、extended は -1 ~ 2 をカバー
+        // x が 0未満や1以上の場合も考慮（正規化されているはずだが念のため）
+
+        // 検索
+        let i1 = 0;
+        for (let i = 0; i < extended.length - 1; i++) {
+            if (x >= extended[i].x && x <= extended[i + 1].x) {
+                i1 = i;
+                break;
+            }
+        }
+
+        const p1 = extended[i1];
+        const p2 = extended[i1 + 1];
+
+        // Catmull-Rom 制御点
+        const p0 = i1 > 0 ? extended[i1 - 1] : p1; // 端の場合は複製（ループならありえないが安全策）
+        const p3 = i1 < extended.length - 2 ? extended[i1 + 2] : p2;
+
+        const t = (p2.x === p1.x) ? 0 : (x - p1.x) / (p2.x - p1.x);
+        const y = catmullRomInterpolate(p0.y, p1.y, p2.y, p3.y, t);
+
+        return Math.max(0, Math.min(1, y));
+    }
+
+    // 通常のクランプ処理（RGBカーブ用）
+    if (x <= 0) return normalized[0].y;
+    if (x >= 1) return normalized[normalized.length - 1].y;
 
     // 該当する区間を見つける
     let i1 = 0;

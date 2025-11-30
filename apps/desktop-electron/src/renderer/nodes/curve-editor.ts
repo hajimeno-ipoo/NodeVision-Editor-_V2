@@ -135,6 +135,33 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         ctx.fillStyle = '#222';
         ctx.fillRect(0, 0, width, height);
 
+        // Hueカーブの場合は背景に色相グラデーションを描画
+        const isHue = channel.startsWith('hueVs');
+        if (isHue) {
+            const gradient = ctx.createLinearGradient(padding, 0, width - padding, 0);
+            gradient.addColorStop(0, '#ff0000');
+            gradient.addColorStop(0.17, '#ffff00');
+            gradient.addColorStop(0.33, '#00ff00');
+            gradient.addColorStop(0.5, '#00ffff');
+            gradient.addColorStop(0.67, '#0000ff');
+            gradient.addColorStop(0.83, '#ff00ff');
+            gradient.addColorStop(1, '#ff0000');
+
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = 0.2; // 背景として控えめに表示
+            ctx.fillRect(padding, padding, drawWidth, drawHeight);
+            ctx.globalAlpha = 1.0;
+
+            // 中心線 (Y=0.5)
+            const centerY = height - padding - 0.5 * drawHeight;
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, centerY);
+            ctx.lineTo(width - padding, centerY);
+            ctx.stroke();
+        }
+
         // グリッド描画
         ctx.strokeStyle = '#444';
         ctx.lineWidth = 1;
@@ -155,14 +182,16 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         }
         ctx.stroke();
 
-        // 対角線（基準線）
-        ctx.strokeStyle = '#333';
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(padding, height - padding);
-        ctx.lineTo(width - padding, padding);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        // 対角線（基準線） - RGBカーブのみ
+        if (!isHue) {
+            ctx.strokeStyle = '#333';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+            ctx.lineTo(width - padding, padding);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
 
         // カーブ描画
         ctx.strokeStyle = CHANNEL_COLORS[channel];
@@ -173,7 +202,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         const steps = 100;
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
-            const val = evaluateCurve(points, t);
+            const val = evaluateCurve(points, t, isHue); // Hueカーブはループ有効
 
             const x = padding + t * drawWidth;
             const y = height - padding - val * drawHeight; // Y軸は下が大きいので反転
@@ -243,6 +272,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
           <canvas 
             class="curve-canvas" 
             data-node-id="${escapeHtml(node.id)}"
+            data-node-interactive="true"
             width="280" 
             height="200"
             style="width: 100%; height: 100%; cursor: crosshair;"
@@ -282,13 +312,16 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 };
 
                 // 初期設定がない場合のフォールバック
-                if (!settings.master) settings.master = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                if (!settings.red) settings.red = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                if (!settings.green) settings.green = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                if (!settings.blue) settings.blue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                if (!settings.hueVsHue) settings.hueVsHue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                if (!settings.hueVsSat) settings.hueVsSat = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                if (!settings.hueVsLuma) settings.hueVsLuma = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                const defaultLinear = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                const defaultFlat: CurvePoint[] = []; // DaVinci Resolve starts with empty
+
+                if (!settings.master) settings.master = [...defaultLinear];
+                if (!settings.red) settings.red = [...defaultLinear];
+                if (!settings.green) settings.green = [...defaultLinear];
+                if (!settings.blue) settings.blue = [...defaultLinear];
+                if (!settings.hueVsHue) settings.hueVsHue = [...defaultFlat];
+                if (!settings.hueVsSat) settings.hueVsSat = [...defaultFlat];
+                if (!settings.hueVsLuma) settings.hueVsLuma = [...defaultFlat];
 
                 const activeChannel = activeChannels.get(node.id) || 'master';
                 const canvas = element.querySelector('.curve-canvas') as HTMLCanvasElement;
@@ -309,14 +342,19 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     let dragIndex = -1;
                     const padding = 10;
 
-                    const getPointFromEvent = (e: MouseEvent) => {
+                    const getPointFromEvent = (e: MouseEvent | PointerEvent) => {
                         const rect = canvas.getBoundingClientRect();
                         const x = Math.max(0, Math.min(1, (e.clientX - rect.left - padding) / (canvas.width - padding * 2)));
                         const y = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top - padding) / (canvas.height - padding * 2)));
                         return { x, y };
                     };
 
-                    canvas.addEventListener('mousedown', (e) => {
+                    canvas.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation(); // ノードのドラッグ/選択を防止
+                        // e.preventDefault(); // これを入れるとpointermoveが発火しなくなる場合があるので注意が必要だが、setPointerCaptureを使うならOK
+
+                        canvas.setPointerCapture(e.pointerId); // キャプチャしてドラッグを追跡
+
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
                         if (!points) return;
@@ -332,23 +370,22 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             isDragging = true;
                             dragIndex = foundIndex;
                         } else {
-                            // 新しいポイントを追加
-                            // 両端（x=0, x=1）以外に追加
-                            if (x > 0.02 && x < 0.98) {
-                                const newPoint = { x, y };
-                                points.push(newPoint);
-                                // X座標でソート
-                                points.sort((a, b) => a.x - b.x);
+                            // 新しいポイントを追加（DaVinci Resolveは全範囲で追加可能）
+                            const newPoint = { x, y };
+                            points.push(newPoint);
+                            // X座標でソート
+                            points.sort((a, b) => a.x - b.x);
 
-                                isDragging = true;
-                                dragIndex = points.indexOf(newPoint);
-                                updateSettings();
-                            }
+                            isDragging = true;
+                            dragIndex = points.indexOf(newPoint);
+                            updateSettings();
                         }
                     });
 
-                    window.addEventListener('mousemove', (e) => {
+                    window.addEventListener('pointermove', (e) => {
                         if (!isDragging || dragIndex === -1) return;
+                        e.preventDefault();
+                        e.stopPropagation();
 
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
@@ -356,18 +393,17 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         const point = points[dragIndex];
 
-                        // 両端のポイントはX座標を固定
-                        if (dragIndex === 0) {
-                            point.y = y;
-                        } else if (dragIndex === points.length - 1) {
+                        // ポイント数に応じた操作制限（DaVinci Resolve仕様）
+                        if (points.length === 1) {
+                            // 1ポイントのみ：Y座標のみ変更可能
                             point.y = y;
                         } else {
-                            // 中間のポイント
-                            // 隣接するポイントを超えないように制限
-                            const prevX = points[dragIndex - 1].x;
-                            const nextX = points[dragIndex + 1].x;
+                            // 2ポイント以上：全ポイントを自由に移動可能
+                            // ただし、他のポイントを超えないように制限
+                            const minX = dragIndex > 0 ? points[dragIndex - 1].x + 0.01 : 0;
+                            const maxX = dragIndex < points.length - 1 ? points[dragIndex + 1].x - 0.01 : 1;
 
-                            point.x = Math.max(prevX + 0.01, Math.min(nextX - 0.01, x));
+                            point.x = Math.max(minX, Math.min(maxX, x));
                             point.y = y;
                         }
 
@@ -377,16 +413,18 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         updateSettings(true); // true = skip renderNodes (Canvasだけ更新)
                     });
 
-                    window.addEventListener('mouseup', () => {
+                    window.addEventListener('pointerup', (e) => {
                         if (isDragging) {
                             isDragging = false;
                             dragIndex = -1;
+                            canvas.releasePointerCapture(e.pointerId);
                             updateSettings(); // 最終確定
                         }
                     });
 
                     // ダブルクリックでポイント削除（両端以外）
                     canvas.addEventListener('dblclick', (e) => {
+                        e.stopPropagation(); // ノードのダブルクリック動作を防止
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
                         if (!points) return;
@@ -417,7 +455,10 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 const resetChannelBtn = element.querySelector('.reset-channel-btn');
                 if (resetChannelBtn) {
                     resetChannelBtn.addEventListener('click', () => {
-                        settings[activeChannel] = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                        const isHue = activeChannel.startsWith('hueVs');
+                        settings[activeChannel] = isHue
+                            ? [] // DaVinci Resolve starts with empty
+                            : [{ x: 0, y: 0 }, { x: 1, y: 1 }];
                         updateSettings();
                     });
                 }
@@ -425,13 +466,16 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 const resetAllBtn = element.querySelector('.reset-all-btn');
                 if (resetAllBtn) {
                     resetAllBtn.addEventListener('click', () => {
-                        settings.master = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                        settings.red = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                        settings.green = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                        settings.blue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                        settings.hueVsHue = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                        settings.hueVsSat = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
-                        settings.hueVsLuma = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                        const defaultLinear = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+                        const defaultFlat: CurvePoint[] = []; // DaVinci Resolve starts with empty
+
+                        settings.master = [...defaultLinear];
+                        settings.red = [...defaultLinear];
+                        settings.green = [...defaultLinear];
+                        settings.blue = [...defaultLinear];
+                        settings.hueVsHue = [...defaultFlat];
+                        settings.hueVsSat = [...defaultFlat];
+                        settings.hueVsLuma = [...defaultFlat];
                         updateSettings();
                     });
                 }
@@ -447,9 +491,9 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             red: [...settings.red],
                             green: [...settings.green],
                             blue: [...settings.blue],
-                            hueVsHue: settings.hueVsHue ? [...settings.hueVsHue] : [{ x: 0, y: 0 }, { x: 1, y: 1 }],
-                            hueVsSat: settings.hueVsSat ? [...settings.hueVsSat] : [{ x: 0, y: 0 }, { x: 1, y: 1 }],
-                            hueVsLuma: settings.hueVsLuma ? [...settings.hueVsLuma] : [{ x: 0, y: 0 }, { x: 1, y: 1 }]
+                            hueVsHue: settings.hueVsHue ? [...settings.hueVsHue] : [],
+                            hueVsSat: settings.hueVsSat ? [...settings.hueVsSat] : [],
+                            hueVsLuma: settings.hueVsLuma ? [...settings.hueVsLuma] : []
                         };
                         targetNode.settings = newSettings;
                         node.settings = newSettings;
@@ -480,9 +524,9 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                 blue: settings.blue
                             },
                             hueCurves: {
-                                hueVsHue: settings.hueVsHue || [{ x: 0, y: 0 }, { x: 1, y: 1 }],
-                                hueVsSat: settings.hueVsSat || [{ x: 0, y: 0 }, { x: 1, y: 1 }],
-                                hueVsLuma: settings.hueVsLuma || [{ x: 0, y: 0 }, { x: 1, y: 1 }]
+                                hueVsHue: settings.hueVsHue || [],
+                                hueVsSat: settings.hueVsSat || [],
+                                hueVsLuma: settings.hueVsLuma || []
                             }
                         };
 
