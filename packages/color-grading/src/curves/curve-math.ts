@@ -31,11 +31,12 @@ function catmullRomInterpolate(
 }
 
 /**
- * カーブポイントをソートして重複を除去
- * x が同一のポイントがある場合、最初のものを残す
+ * カーブを正規化（ソート + 重複除去）
  */
 function normalizeCurve(curve: Curve): Curve {
-    // x でソート
+    if (curve.length === 0) return [];
+
+    // X座標でソート
     const sorted = [...curve].sort((a, b) => a.x - b.x);
 
     // 重複除去
@@ -66,9 +67,11 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
         return loop ? 0.5 : 0;
     }
 
-    // 1ポイントのみの場合：そのポイントのY値を常に返す（水平線）
+    // 1ポイントのみの場合
     if (normalized.length === 1) {
-        return normalized[0].y;
+        // Hueカーブ（ループ）の場合は水平線
+        if (loop) return normalized[0].y;
+        // RGBカーブの場合は下の端点補間処理に任せる（(0,0) -> P -> (1,1) の直線になる）
     }
 
     // ループ処理（Hueカーブ用）
@@ -82,10 +85,6 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
         const extended = [...prevPoints, ...normalized, ...nextPoints];
 
         // 該当する区間を見つける
-        // x は 0~1 の範囲だが、extended は -1 ~ 2 をカバー
-        // x が 0未満や1以上の場合も考慮（正規化されているはずだが念のため）
-
-        // 検索
         let i1 = 0;
         for (let i = 0; i < extended.length - 1; i++) {
             if (x >= extended[i].x && x <= extended[i + 1].x) {
@@ -98,7 +97,7 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
         const p2 = extended[i1 + 1];
 
         // Catmull-Rom 制御点
-        const p0 = i1 > 0 ? extended[i1 - 1] : p1; // 端の場合は複製（ループならありえないが安全策）
+        const p0 = i1 > 0 ? extended[i1 - 1] : p1; // 端の場合は複製
         const p3 = i1 < extended.length - 2 ? extended[i1 + 2] : p2;
 
         const t = (p2.x === p1.x) ? 0 : (x - p1.x) / (p2.x - p1.x);
@@ -108,8 +107,22 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
     }
 
     // 通常のクランプ処理（RGBカーブ用）
-    if (x <= 0) return normalized[0].y;
-    if (x >= 1) return normalized[normalized.length - 1].y;
+    // DaVinci Resolve仕様：端点の外側は直線補間
+    if (x <= normalized[0].x) {
+        // 最初のポイントより左側：(0, 0)から最初のポイントまで直線補間
+        const p = normalized[0];
+        if (p.x === 0) return p.y;
+        const t = x / p.x;
+        return t * p.y;
+    }
+
+    if (x >= normalized[normalized.length - 1].x) {
+        // 最後のポイントより右側：最後のポイントから(1, 1)まで直線補間
+        const p = normalized[normalized.length - 1];
+        if (p.x === 1) return p.y;
+        const t = (x - p.x) / (1 - p.x);
+        return p.y + t * (1 - p.y);
+    }
 
     // 該当する区間を見つける
     let i1 = 0;

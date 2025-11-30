@@ -242,18 +242,38 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         ctx.lineWidth = 2;
         ctx.beginPath();
 
+        // 描画範囲の決定
+        let startT = 0;
+        let endT = 1;
+
+        // RGB/Lumaカーブでポイントが2つ以上ある場合、
+        // ポイントの範囲外（水平線になる部分）を描画しないようにする
+        if (!isHue && points.length >= 2) {
+            startT = points[0].x;
+            endT = points[points.length - 1].x;
+        }
+
         // 0から1まで細かく評価して描画
         const steps = 100;
-        for (let i = 0; i <= steps; i++) {
-            const t = i / steps;
-            const val = evaluateCurve(points, t, isHue); // Hueカーブはループ有効
+        const range = endT - startT;
 
-            const x = padding + t * drawWidth;
-            const y = height - padding - val * drawHeight; // Y軸は下が大きいので反転
+        // 範囲が0の場合は描画しない（または点として描画すべきだが、通常2ポイント以上なら範囲はある）
+        if (range > 0) {
+            for (let i = 0; i <= steps; i++) {
+                const t = startT + (i / steps) * range;
+                const val = evaluateCurve(points, t, isHue); // Hueカーブはループ有効
 
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+                const x = padding + t * drawWidth;
+                const y = height - padding - val * drawHeight; // Y軸は下が大きいので反転
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+        } else if (points.length === 1) {
+            // 1ポイントのみ（かつ範囲0）の場合のフォールバック
+            // 通常ここには来ない（startT=0, endT=1になるため）
         }
+
         ctx.stroke();
 
         // コントロールポイント描画
@@ -459,13 +479,44 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             // 1ポイントのみ：Y座標のみ変更可能
                             point.y = y;
                         } else {
-                            // 2ポイント以上：全ポイントを自由に移動可能
-                            // ただし、他のポイントを超えないように制限
-                            const minX = dragIndex > 0 ? points[dragIndex - 1].x + 0.01 : 0;
-                            const maxX = dragIndex < points.length - 1 ? points[dragIndex + 1].x - 0.01 : 1;
+                            // 端点の判定（配列の最初と最後）
+                            const isLeftEndpoint = dragIndex === 0;
+                            const isRightEndpoint = dragIndex === points.length - 1;
 
-                            point.x = Math.max(minX, Math.min(maxX, x));
-                            point.y = y;
+                            if (isLeftEndpoint) {
+                                // 左端点：L字型の移動制限（左端または下端に吸着）
+                                // x=0 (左端) または y=0 (下端) のどちらに近いかで判定
+                                if (x < y) {
+                                    // 左端に吸着
+                                    point.x = 0;
+                                    point.y = y;
+                                } else {
+                                    // 下端に吸着
+                                    const maxX = points.length > 1 ? points[1].x - 0.01 : 1;
+                                    point.x = Math.max(0, Math.min(maxX, x));
+                                    point.y = 0;
+                                }
+                            } else if (isRightEndpoint) {
+                                // 右端点：逆L字型の移動制限（右端または上端に吸着）
+                                // x=1 (右端) または y=1 (上端) のどちらに近いかで判定
+                                // (1-x) vs (1-y)
+                                if ((1 - x) < (1 - y)) {
+                                    // 右端に吸着
+                                    point.x = 1;
+                                    point.y = y;
+                                } else {
+                                    // 上端に吸着
+                                    const minX = points.length > 1 ? points[points.length - 2].x + 0.01 : 0;
+                                    point.x = Math.max(minX, Math.min(1, x));
+                                    point.y = 1;
+                                }
+                            } else {
+                                // 中間ポイント：X/Y両方向に移動可能
+                                const minX = points[dragIndex - 1].x + 0.01;
+                                const maxX = points[dragIndex + 1].x - 0.01;
+                                point.x = Math.max(minX, Math.min(maxX, x));
+                                point.y = y;
+                            }
                         }
 
                         let histData: HistogramData | null = null;
