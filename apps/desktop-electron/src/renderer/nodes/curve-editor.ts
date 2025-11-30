@@ -37,6 +37,10 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
     const inputHistograms = new Map<string, HistogramData>();
     const outputHistograms = new Map<string, HistogramData>();
 
+    // 動画プレビュー生成のフラグ
+    let isGeneratingFFmpeg = false;
+    let pendingFFmpegNode: RendererNode | null = null;
+
     const createProcessor = (): WebGLLUTProcessor => {
         const canvas = document.createElement('canvas');
         return new WebGLLUTProcessor(canvas);
@@ -642,11 +646,128 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             }
                         }
 
-                        updatePreview();
+                        // プレビュー更新：動画か画像かを判定
+                        const sourcePreview = state.mediaPreviews.get(
+                            state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || ''
+                        );
+                        const isVideo = sourcePreview?.kind === 'video';
+
+                        if (isVideo) {
+                            // 動画の場合：FFmpegで再生成（非同期）
+                            generateFFmpegVideoPreview(targetNode).catch(err => {
+                                console.error('[Curves] Failed to update video preview:', err);
+                            });
+                        } else {
+                            // 画像の場合：WebGLで即座に更新
+                            updatePreview();
+                        }
                     }
                 };
 
-                // WebGLプレビュー更新
+                /**
+                 * FFmpegを使って動画にカーブを適用したプレビューを生成
+                 */
+                const generateFFmpegVideoPreview = async (nodeToProcess: RendererNode) => {
+                    if (isGeneratingFFmpeg) {
+                        pendingFFmpegNode = nodeToProcess;
+                        return;
+                    }
+
+                    isGeneratingFFmpeg = true;
+                    pendingFFmpegNode = null;
+
+                    try {
+                        // 上流ノードチェーンを収集
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const collectUpstreamNodes = (startNodeId: string): any[] => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const nodes: any[] = [];
+                            let currentId = startNodeId;
+                            let depth = 0;
+                            const MAX_DEPTH = 50;
+
+                            while (currentId && depth < MAX_DEPTH) {
+                                const currentNode = state.nodes.find(n => n.id === currentId);
+                                if (!currentNode) break;
+
+                                const nodeSettings = currentNode.settings || {};
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const mediaNode: any = {
+                                    id: currentNode.id,
+                                    typeId: currentNode.typeId,
+                                    nodeVersion: '1.0.0',
+                                    ...nodeSettings
+                                };
+
+                                if (currentNode.typeId === 'loadVideo' || currentNode.typeId === 'loadImage') {
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    mediaNode.path = (nodeSettings as any).filePath;
+                                }
+
+                                nodes.unshift(mediaNode);
+
+                                const inputPorts = ['program', 'source', 'input', 'base', 'background'];
+                                const conn = state.connections.find(c => c.toNodeId === currentId && inputPorts.includes(c.toPortId));
+                                if (!conn) break;
+                                currentId = conn.fromNodeId;
+                                depth++;
+                            }
+                            return nodes;
+                        };
+
+                        const upstreamNodes = collectUpstreamNodes(nodeToProcess.id);
+                        const result = await window.nodevision.generatePreview({ nodes: upstreamNodes });
+
+                        if (result.ok && result.url) {
+                            state.mediaPreviews.set(nodeToProcess.id, {
+                                url: result.url,
+                                name: 'Preview',
+                                kind: 'video',
+                                width: 1280,
+                                height: 720,
+                                size: 0,
+                                type: 'video/mp4',
+                                ownedUrl: true
+                            });
+
+                            // UI更新
+                            requestAnimationFrame(() => {
+                                const connectedPreviewNodes = state.connections
+                                    .filter(c => c.fromNodeId === nodeToProcess.id)
+                                    .map(c => c.toNodeId);
+
+                                connectedPreviewNodes.forEach(previewNodeId => {
+                                    const previewNode = state.nodes.find(n => n.id === previewNodeId);
+                                    if (previewNode && previewNode.typeId === 'mediaPreview') {
+                                        const video = document.querySelector(
+                                            `.node-media[data-node-id="${previewNodeId}"] video`
+                                        );
+
+                                        if (video && result.url) {
+                                            (video as HTMLVideoElement).src = result.url;
+                                        } else if (!video && result.url) {
+                                            context.renderNodes();
+                                        }
+                                    }
+                                });
+                            });
+                        } else {
+                            console.error('[Curves] FFmpeg preview generation failed:', result);
+                        }
+                    } catch (error) {
+                        console.error('[Curves] FFmpeg preview generation error:', error);
+                    } finally {
+                        isGeneratingFFmpeg = false;
+
+                        if (pendingFFmpegNode) {
+                            const nextNode = pendingFFmpegNode;
+                            pendingFFmpegNode = null;
+                            setTimeout(() => generateFFmpegVideoPreview(nextNode), 100);
+                        }
+                    }
+                };
+
+                // WebGLプレビュー更新（画像用）
                 const updatePreview = () => {
                     const sourceMediaUrl = getSourceMedia(node);
                     if (sourceMediaUrl && processor) {
@@ -692,37 +813,49 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     }
                 };
 
-                // 初期化：画像ロードとプレビュー
+                // 初期化：画像/動画ロードとプレビュー
                 const sourceMediaUrl = getSourceMedia(node);
                 if (sourceMediaUrl) {
-                    let imageUrl = sourceMediaUrl;
-                    if (sourceMediaUrl.startsWith('file://')) {
-                        const result = await window.nodevision.loadImageAsDataURL({
-                            filePath: sourceMediaUrl,
-                        });
-                        if (result.ok && result.dataURL) {
-                            imageUrl = result.dataURL;
+                    // 動画かどうかを判定
+                    const sourcePreview = state.mediaPreviews.get(
+                        state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || ''
+                    );
+                    const isVideo = sourcePreview?.kind === 'video';
+
+                    if (isVideo) {
+                        // 動画の場合：FFmpegでプレビュー生成
+                        await generateFFmpegVideoPreview(node);
+                    } else {
+                        // 画像の場合：WebGLで処理
+                        let imageUrl = sourceMediaUrl;
+                        if (sourceMediaUrl.startsWith('file://')) {
+                            const result = await window.nodevision.loadImageAsDataURL({
+                                filePath: sourceMediaUrl,
+                            });
+                            if (result.ok && result.dataURL) {
+                                imageUrl = result.dataURL;
+                            }
                         }
-                    }
 
-                    const lastSource = lastSourceByNode.get(node.id);
-                    const shouldReload = !processor.hasImage?.() || lastSource !== imageUrl;
+                        const lastSource = lastSourceByNode.get(node.id);
+                        const shouldReload = !processor.hasImage?.() || lastSource !== imageUrl;
 
-                    if (shouldReload) {
-                        await processor.loadImage(imageUrl);
-                        lastSourceByNode.set(node.id, imageUrl);
+                        if (shouldReload) {
+                            await processor.loadImage(imageUrl);
+                            lastSourceByNode.set(node.id, imageUrl);
 
-                        // Inputヒストグラム計算
-                        const pixels = processor.getInputPixels();
-                        if (pixels && processor.hasImage()) {
-                            // processorのcanvasサイズを取得（リサイズされている可能性があるため）
-                            const { width, height } = processor.getContext().canvas;
-                            const hist = calculateHistogram(pixels, width, height);
-                            inputHistograms.set(node.id, hist);
+                            // Inputヒストグラム計算
+                            const pixels = processor.getInputPixels();
+                            if (pixels && processor.hasImage()) {
+                                // processorのcanvasサイズを取得（リサイズされている可能性があるため）
+                                const { width, height } = processor.getContext().canvas;
+                                const hist = calculateHistogram(pixels, width, height);
+                                inputHistograms.set(node.id, hist);
+                            }
                         }
-                    }
 
-                    updatePreview();
+                        updatePreview();
+                    }
                 } else {
                     lastSourceByNode.delete(node.id);
                     propagateToMediaPreview(node, undefined);
