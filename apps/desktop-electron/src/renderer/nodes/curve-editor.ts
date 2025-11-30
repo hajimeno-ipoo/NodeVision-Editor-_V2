@@ -4,6 +4,7 @@ import type { CurvesNodeSettings, CurvePoint } from '@nodevision/editor';
 import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
+import { calculateHistogram, type HistogramData } from './histogram-utils';
 
 // 動的にモジュールを読み込む
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,6 +30,12 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
     const processors = new Map<string, WebGLLUTProcessor>();
     const lastSourceByNode = new Map<string, string>();
     const activeChannels = new Map<string, ChannelType>(); // ノードごとのアクティブチャンネル
+
+    // ヒストグラム関連の状態
+    type HistogramMode = 'input' | 'output' | 'off';
+    const histogramModes = new Map<string, HistogramMode>();
+    const inputHistograms = new Map<string, HistogramData>();
+    const outputHistograms = new Map<string, HistogramData>();
 
     const createProcessor = (): WebGLLUTProcessor => {
         const canvas = document.createElement('canvas');
@@ -120,6 +127,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         canvas: HTMLCanvasElement,
         points: CurvePoint[],
         channel: ChannelType,
+        histogramData: HistogramData | null,
         activePointIndex: number = -1
     ) => {
         const ctx = canvas.getContext('2d');
@@ -160,6 +168,42 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
             ctx.moveTo(padding, centerY);
             ctx.lineTo(width - padding, centerY);
             ctx.stroke();
+        }
+
+        // ヒストグラム描画
+        if (histogramData) {
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = '#888'; // デフォルト色
+
+            let data: number[] = [];
+            if (isHue) {
+                data = histogramData.hue;
+            } else {
+                switch (channel) {
+                    case 'master': data = histogramData.master; break;
+                    case 'red': data = histogramData.red; ctx.fillStyle = '#ff4444'; break;
+                    case 'green': data = histogramData.green; ctx.fillStyle = '#44ff44'; break;
+                    case 'blue': data = histogramData.blue; ctx.fillStyle = '#4488ff'; break;
+                }
+            }
+
+            if (data && data.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(padding, height - padding);
+
+                const binWidth = drawWidth / data.length;
+                for (let i = 0; i < data.length; i++) {
+                    const h = data[i] * drawHeight;
+                    const x = padding + i * binWidth;
+                    const y = height - padding - h;
+                    ctx.lineTo(x, y);
+                }
+
+                ctx.lineTo(width - padding, height - padding);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
         }
 
         // グリッド描画
@@ -243,6 +287,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         // };
 
         const activeChannel = activeChannels.get(node.id) || 'master';
+        const histogramMode = histogramModes.get(node.id) || 'input';
 
         return `
       <div class="node-controls" style="padding: 12px;">
@@ -279,13 +324,20 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
           ></canvas>
         </div>
         
-        <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-          <button class="reset-channel-btn" style="font-size: 11px; padding: 4px 8px; background: #333; color: #ccc; border: none; border-radius: 2px; cursor: pointer;">
-            Reset Channel
-          </button>
-          <button class="reset-all-btn" style="font-size: 11px; padding: 4px 8px; background: #333; color: #ccc; border: none; border-radius: 2px; cursor: pointer;">
-            Reset All
-          </button>
+        <div style="display: flex; justify-content: space-between; margin-top: 8px; align-items: center;">
+          <div class="histogram-controls" style="display: flex; gap: 2px;">
+             <button class="hist-mode-btn ${histogramMode === 'input' ? 'active' : ''}" data-mode="input" style="font-size: 10px; padding: 2px 6px; background: ${histogramMode === 'input' ? '#555' : '#333'}; color: #ccc; border: none; cursor: pointer;">Input</button>
+             <button class="hist-mode-btn ${histogramMode === 'output' ? 'active' : ''}" data-mode="output" style="font-size: 10px; padding: 2px 6px; background: ${histogramMode === 'output' ? '#555' : '#333'}; color: #ccc; border: none; cursor: pointer;">Output</button>
+             <button class="hist-mode-btn ${histogramMode === 'off' ? 'active' : ''}" data-mode="off" style="font-size: 10px; padding: 2px 6px; background: ${histogramMode === 'off' ? '#555' : '#333'}; color: #ccc; border: none; cursor: pointer;">Off</button>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button class="reset-channel-btn" style="font-size: 11px; padding: 4px 8px; background: #333; color: #ccc; border: none; border-radius: 2px; cursor: pointer;">
+                Reset Channel
+            </button>
+            <button class="reset-all-btn" style="font-size: 11px; padding: 4px 8px; background: #333; color: #ccc; border: none; border-radius: 2px; cursor: pointer;">
+                Reset All
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -324,6 +376,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 if (!settings.hueVsLuma) settings.hueVsLuma = [...defaultFlat];
 
                 const activeChannel = activeChannels.get(node.id) || 'master';
+                const histogramMode = histogramModes.get(node.id) || 'input';
                 const canvas = element.querySelector('.curve-canvas') as HTMLCanvasElement;
 
                 // Canvas描画
@@ -335,7 +388,15 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                     const points = settings[activeChannel];
                     if (!points) return;
-                    drawCurveEditor(canvas, points, activeChannel);
+
+                    let histData: HistogramData | null = null;
+                    if (histogramMode === 'input') {
+                        histData = inputHistograms.get(node.id) || null;
+                    } else if (histogramMode === 'output') {
+                        histData = outputHistograms.get(node.id) || null;
+                    }
+
+                    drawCurveEditor(canvas, points, activeChannel, histData);
 
                     // マウス操作
                     let isDragging = false;
@@ -407,7 +468,14 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             point.y = y;
                         }
 
-                        drawCurveEditor(canvas, points, activeChannel);
+                        let histData: HistogramData | null = null;
+                        if (histogramMode === 'input') {
+                            histData = inputHistograms.get(node.id) || null;
+                        } else if (histogramMode === 'output') {
+                            histData = outputHistograms.get(node.id) || null;
+                        }
+
+                        drawCurveEditor(canvas, points, activeChannel, histData);
                         // リアルタイム更新は重いかもしれないので、requestAnimationFrameなどで間引くべきだが
                         // ここでは簡易的に直接更新
                         updateSettings(true); // true = skip renderNodes (Canvasだけ更新)
@@ -480,6 +548,16 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     });
                 }
 
+                // ヒストグラムモード切り替え
+                element.querySelectorAll('.hist-mode-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const target = e.currentTarget as HTMLElement;
+                        const mode = target.dataset.mode as HistogramMode;
+                        histogramModes.set(node.id, mode);
+                        context.renderNodes(); // 再描画
+                    });
+                });
+
                 // 設定更新とプレビュー反映
                 const updateSettings = (skipRenderNodes = false) => {
                     const targetNode = state.nodes.find((n) => n.id === node.id);
@@ -503,7 +581,13 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             // 基本的にはCanvasは自前で更新し、設定だけ保存する
                             const channelPoints = settings[activeChannel];
                             if (channelPoints) {
-                                drawCurveEditor(canvas, channelPoints, activeChannel);
+                                let histData: HistogramData | null = null;
+                                if (histogramMode === 'input') {
+                                    histData = inputHistograms.get(node.id) || null;
+                                } else if (histogramMode === 'output') {
+                                    histData = outputHistograms.get(node.id) || null;
+                                }
+                                drawCurveEditor(canvas, channelPoints, activeChannel, histData);
                             }
                         }
 
@@ -538,6 +622,22 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         processor.loadLUT(lut);
                         processor.renderWithCurrentTexture();
                         propagateToMediaPreview(node, processor);
+
+                        // Outputヒストグラム更新
+                        const pixels = processor.getOutputPixels();
+                        if (pixels) {
+                            const { width, height } = processor.getContext().canvas;
+                            const hist = calculateHistogram(pixels, width, height);
+                            outputHistograms.set(node.id, hist);
+
+                            // Outputモードなら再描画
+                            if (histogramMode === 'output') {
+                                const channelPoints = settings[activeChannel];
+                                if (channelPoints && canvas) {
+                                    drawCurveEditor(canvas, channelPoints, activeChannel, hist);
+                                }
+                            }
+                        }
                     }
                 };
 
@@ -560,6 +660,15 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     if (shouldReload) {
                         await processor.loadImage(imageUrl);
                         lastSourceByNode.set(node.id, imageUrl);
+
+                        // Inputヒストグラム計算
+                        const pixels = processor.getInputPixels();
+                        if (pixels && processor.hasImage()) {
+                            // processorのcanvasサイズを取得（リサイズされている可能性があるため）
+                            const { width, height } = processor.getContext().canvas;
+                            const hist = calculateHistogram(pixels, width, height);
+                            inputHistograms.set(node.id, hist);
+                        }
                     }
 
                     updatePreview();

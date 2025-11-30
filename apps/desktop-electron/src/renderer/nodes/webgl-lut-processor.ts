@@ -353,4 +353,40 @@ export class WebGLLUTProcessor {
             img.src = src;
         });
     }
+
+    /**
+     * Get input image pixels
+     */
+    getInputPixels(): Uint8Array | null {
+        if (!this.inputTexture || !this.imageSize) return null;
+
+        const { gl } = this;
+        const width = this.imageSize.width;
+        const height = this.imageSize.height;
+
+        // Create a framebuffer to read from the texture
+        const fb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.inputTexture, 0);
+
+        const pixels = new Uint8Array(width * height * 4);
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+        gl.deleteFramebuffer(fb);
+        return pixels;
+    }
+
+    /**
+     * Get output image pixels (from current canvas content)
+     */
+    getOutputPixels(): Uint8Array | null {
+        const { gl } = this;
+        const width = gl.drawingBufferWidth;
+        const height = gl.drawingBufferHeight;
+
+        const pixels = new Uint8Array(width * height * 4);
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+        return pixels;
+    }
 }
