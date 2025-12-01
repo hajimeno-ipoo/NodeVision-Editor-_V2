@@ -65,6 +65,41 @@ export class WebGLLUTProcessor {
         this.createInputTexture(img, width, height);
     }
 
+    /**
+     * Load a video frame directly into the input texture
+     */
+    loadVideoFrame(video: HTMLVideoElement): void {
+        const { gl } = this;
+
+        // Update image size
+        this.imageSize = { width: video.videoWidth, height: video.videoHeight };
+        this.gl.canvas.width = video.videoWidth;
+        this.gl.canvas.height = video.videoHeight;
+
+        if (!this.inputTexture) {
+            this.inputTexture = gl.createTexture();
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, this.inputTexture);
+
+        // Ensure pixel store is correct
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+
+        // Set parameters
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // Upload video frame directly
+        try {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+        } catch (e) {
+            console.error('[WebGLLUT] Error uploading video frame:', e);
+        }
+    }
+
     private createInputTexture(img: HTMLImageElement, width: number, height: number) {
         const gl = this.gl;
         console.log('[WebGLLUT] Creating input texture:', width, 'x', height);

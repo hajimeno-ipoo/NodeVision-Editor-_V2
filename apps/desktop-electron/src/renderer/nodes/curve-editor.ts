@@ -4,8 +4,8 @@ import type { CurvesNodeSettings, CurvePoint } from '@nodevision/editor';
 import type { RendererNode } from '../types';
 
 import { calculateHistogram, type HistogramData } from './histogram-utils';
-import { WebGLLUTProcessor } from './webgl-lut-processor';
 import type { NodeRendererContext, NodeRendererModule } from './types';
+import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 // 動的にモジュールを読み込む
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,71 +108,397 @@ let pendingFFmpegNode: RendererNode | null = null;
 // 初期化済みフラグ（無限ループ防止）
 const initializedNodes = new Map<string, boolean>();
 
+// リアルタイム動画プレビュー関連
+const videoElements = new Map<string, HTMLVideoElement>();
+const animationFrameIds = new Map<string, number>();
+const realtimeMode = new Map<string, boolean>(); // ノードごとのリアルタイムモードフラグ
+const needsHistogramUpdate = new Map<string, boolean>(); // ヒストグラム更新フラグ
+const frameCounts = new Map<string, number>(); // フレームカウンタ
+let globalContext: NodeRendererContext | null = null;
+
 const createProcessor = (): WebGLLUTProcessor => {
     const canvas = document.createElement('canvas');
     return new WebGLLUTProcessor(canvas);
 };
 
+/**
+ * カーブエディタのCanvasを描画
+ */
+function drawCurveEditor(
+    canvas: HTMLCanvasElement,
+    points: CurvePoint[],
+    channel: ChannelType,
+    histogramData: HistogramData | null,
+    activePointIndex: number = -1
+) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = 10;
+    const drawWidth = width - padding * 2;
+    const drawHeight = height - padding * 2;
+
+    // 背景クリア
+    ctx.fillStyle = '#222';
+    ctx.fillRect(0, 0, width, height);
+
+    // Hueカーブの場合は背景に色相グラデーションを描画
+    const isHue = channel.startsWith('hueVs');
+    if (isHue) {
+        const gradient = ctx.createLinearGradient(padding, 0, width - padding, 0);
+        gradient.addColorStop(0, '#ff0000');
+        gradient.addColorStop(0.17, '#ffff00');
+        gradient.addColorStop(0.33, '#00ff00');
+        gradient.addColorStop(0.5, '#00ffff');
+        gradient.addColorStop(0.67, '#0000ff');
+        gradient.addColorStop(0.83, '#ff00ff');
+        gradient.addColorStop(1, '#ff0000');
+
+        ctx.fillStyle = gradient;
+        ctx.globalAlpha = 0.2; // 背景として控えめに表示
+        ctx.fillRect(padding, padding, drawWidth, drawHeight);
+        ctx.globalAlpha = 1.0;
+
+        // 中心線 (Y=0.5)
+        const centerY = height - padding - 0.5 * drawHeight;
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding, centerY);
+        ctx.lineTo(width - padding, centerY);
+        ctx.stroke();
+    }
+
+    // ヒストグラム描画
+    if (histogramData) {
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#888'; // デフォルト色
+
+        let data: number[] = [];
+        if (isHue) {
+            data = histogramData.hue;
+        } else {
+            switch (channel) {
+                case 'master': data = histogramData.master; break;
+                case 'red': data = histogramData.red; ctx.fillStyle = '#ff4444'; break;
+                case 'green': data = histogramData.green; ctx.fillStyle = '#44ff44'; break;
+                case 'blue': data = histogramData.blue; ctx.fillStyle = '#4488ff'; break;
+            }
+        }
+
+        if (data && data.length > 0) {
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+
+            const binWidth = drawWidth / data.length;
+            for (let i = 0; i < data.length; i++) {
+                const h = data[i] * drawHeight;
+                const x = padding + i * binWidth;
+                const y = height - padding - h;
+                ctx.lineTo(x, y);
+            }
+
+            ctx.lineTo(width - padding, height - padding);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+
+    // グリッド描画
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+
+    // 縦線 (25%刻み)
+    for (let i = 0; i <= 4; i++) {
+        const x = padding + (drawWidth * i) / 4;
+        ctx.moveTo(x, padding);
+        ctx.lineTo(x, height - padding);
+    }
+
+    // 横線 (25%刻み)
+    for (let i = 0; i <= 4; i++) {
+        const y = padding + (drawHeight * i) / 4;
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+    }
+    ctx.stroke();
+
+    // 対角線（基準線） - RGBカーブのみ
+    if (!isHue) {
+        ctx.strokeStyle = '#333';
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(padding, height - padding);
+        ctx.lineTo(width - padding, padding);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // カーブ描画
+    ctx.strokeStyle = CHANNEL_COLORS[channel];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    // 描画範囲の決定
+    let startT = 0;
+    let endT = 1;
+
+    // RGB/Lumaカーブでポイントが2つ以上ある場合、
+    // ポイントの範囲外（水平線になる部分）を描画しないようにする
+    if (!isHue && points.length >= 2) {
+        startT = points[0].x;
+        endT = points[points.length - 1].x;
+    }
+
+    // 0から1まで細かく評価して描画
+    const steps = 100;
+    const range = endT - startT;
+
+    // 範囲が0の場合は描画しない（または点として描画すべきだが、通常2ポイント以上なら範囲はある）
+    if (range > 0) {
+        for (let i = 0; i <= steps; i++) {
+            const t = startT + (i / steps) * range;
+            const val = evaluateCurve(points, t, isHue); // Hueカーブはループ有効
+
+            const x = padding + t * drawWidth;
+            const y = height - padding - val * drawHeight; // Y軸は下が大きいので反転
+
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+    } else if (points.length === 1) {
+        // 1ポイントのみ（かつ範囲0）の場合のフォールバック
+        // 通常ここには来ない（startT=0, endT=1になるはず）
+        const val = points[0].y;
+        const y = height - padding - val * drawHeight;
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+    }
+
+    ctx.stroke();
+
+    // ポイント描画
+    points.forEach((p, index) => {
+        const x = padding + p.x * drawWidth;
+        const y = height - padding - p.y * drawHeight;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = index === activePointIndex ? '#fff' : CHANNEL_COLORS[channel];
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    });
+}
+
+/**
+ * リアルタイム動画プレビューを開始
+ */
+const startRealtimeVideoPreview = (node: RendererNode, videoUrl: string) => {
+    // 既存のプレビューを停止
+    stopRealtimeVideoPreview(node.id);
+
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+
+    video.onloadeddata = () => {
+        videoElements.set(node.id, video);
+        realtimeMode.set(node.id, true);
+        video.play();
+        renderVideoFrame(node);
+    };
+
+    video.onerror = (e) => {
+        console.error('[Curves] Video load error:', e);
+        stopRealtimeVideoPreview(node.id);
+    };
+};
+
+/**
+ * リアルタイム動画プレビューを停止
+ */
+const stopRealtimeVideoPreview = (nodeId: string) => {
+    // アニメーションフレームをキャンセル
+    const frameId = animationFrameIds.get(nodeId);
+    if (frameId !== undefined) {
+        cancelAnimationFrame(frameId);
+        animationFrameIds.delete(nodeId);
+    }
+
+    // 動画要素を削除
+    const video = videoElements.get(nodeId);
+    if (video) {
+        video.pause();
+        video.src = '';
+        video.load();
+        videoElements.delete(nodeId);
+    }
+
+    realtimeMode.delete(nodeId);
+};
+
+/**
+ * 動画フレームをレンダリング（リアルタイムループ）
+ */
+const renderVideoFrame = (node: RendererNode) => {
+    const video = videoElements.get(node.id);
+    const processor = processors.get(node.id);
+
+    if (!video || !processor || !realtimeMode.get(node.id)) {
+        return;
+    }
+
+    // 動画が再生中でフレームが更新されている場合のみ処理
+    if (video.paused || video.ended || video.readyState < 2) {
+        const frameId = requestAnimationFrame(() => renderVideoFrame(node));
+        animationFrameIds.set(node.id, frameId);
+        return;
+    }
+
+    try {
+        // 新しいAPIを使用して動画フレームをロード
+        processor.loadVideoFrame(video);
+        processor.renderWithCurrentTexture();
+        // 背景Canvasに描画結果を表示
+        const canvas = processor.getContext().canvas as HTMLCanvasElement;
+        updateBackgroundCanvas(node.id, canvas);
+
+        // ヒストグラム更新が必要な場合、または動画再生中は定期的に更新
+        // 動画の場合はInput/Outputに関わらず内容が変化するため常時更新する
+        const count = (frameCounts.get(node.id) || 0) + 1;
+        frameCounts.set(node.id, count);
+
+        const shouldUpdate = needsHistogramUpdate.get(node.id) || count % 3 === 0;
+
+        if (shouldUpdate) {
+            const pixels = processor.getOutputPixels();
+            if (pixels) {
+                const hist = calculateHistogram(pixels, canvas.width, canvas.height);
+                outputHistograms.set(node.id, hist);
+                needsHistogramUpdate.set(node.id, false);
+
+                // ヒストグラム表示を更新するために再描画
+                const curveCanvas = document.querySelector(
+                    `.node[data-id="${node.id}"] .node-curve-editor canvas`
+                ) as HTMLCanvasElement;
+
+                if (curveCanvas) {
+                    const channel = activeChannels.get(node.id) || 'master';
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const settings = (node as any).data.settings as CurvesNodeSettings;
+                    const points = settings[channel];
+
+                    if (points) {
+                        drawCurveEditor(curveCanvas, points, channel, hist);
+                    }
+                }
+
+                // FIXME: 無限ループの原因となるため一時的に無効化
+                // Media Previewへの反映（3フレームに1回）
+                // propagateToMediaPreview(node, processor);
+            }
+        }
+    } catch (e) {
+        console.error('[Curves] Frame render error:', e);
+    }
+
+    // 次のフレーム
+    const frameId = requestAnimationFrame(() => renderVideoFrame(node));
+    animationFrameIds.set(node.id, frameId);
+};
+
+/**
+ * 背景Canvasに描画結果を表示
+ */
+const updateBackgroundCanvas = (nodeId: string, sourceCanvas: HTMLCanvasElement) => {
+    const bgCanvas = document.querySelector(
+        `.node[data-id="${nodeId}"] canvas.node-background`
+    ) as HTMLCanvasElement;
+
+    if (bgCanvas) {
+        const bgCtx = bgCanvas.getContext('2d');
+        if (bgCtx) {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgCtx.drawImage(sourceCanvas, 0, 0, bgCanvas.width, bgCanvas.height);
+        }
+    }
+};
+
+/**
+ * メディアプレビューノードへ補正後の dataURL を反映
+ */
+function propagateToMediaPreview(node: RendererNode, processor?: WebGLLUTProcessor) {
+    if (!globalContext) return;
+    const { state } = globalContext;
+
+    let dataUrl: string | null = null;
+    let size = { width: 0, height: 0 };
+
+    if (processor) {
+        const canvas = processor.getContext().canvas;
+        size = { width: canvas.width, height: canvas.height };
+        dataUrl = (canvas as HTMLCanvasElement).toDataURL();
+    }
+
+    if (dataUrl) {
+        state.mediaPreviews.set(node.id, {
+            url: dataUrl,
+            name: 'Preview',
+            kind: 'image',
+            width: size.width,
+            height: size.height,
+            size: 0,
+            type: 'image/png',
+            ownedUrl: true,
+        });
+    } else {
+        state.mediaPreviews.delete(node.id);
+    }
+
+    const connectedPreviewNodes = state.connections
+        .filter((c) => c.fromNodeId === node.id)
+        .map((c) => c.toNodeId);
+
+    if (connectedPreviewNodes.length > 0) {
+        requestAnimationFrame(() => {
+            connectedPreviewNodes.forEach((previewNodeId) => {
+                const previewNode = state.nodes.find((n) => n.id === previewNodeId);
+                if (previewNode && previewNode.typeId === 'mediaPreview') {
+                    const img = document.querySelector(
+                        `.node-media[data-node-id="${previewNodeId}"] img`
+                    );
+
+                    if (img && dataUrl) {
+                        (img as HTMLImageElement).src = dataUrl;
+                    } else if (!img && dataUrl && globalContext) {
+                        globalContext.renderNodes();
+                    }
+                }
+            });
+        });
+    }
+}
+
 export const createCurveEditorNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml } = context;
+    globalContext = context;
 
-    /**
-     * メディアプレビューノードへ補正後の dataURL を反映
-     */
-    const propagateToMediaPreview = (node: RendererNode, processor?: WebGLLUTProcessor) => {
-        let dataUrl: string | null = null;
-        let size = { width: 0, height: 0 };
 
-        if (processor) {
-            const canvas = processor.getContext().canvas;
-            size = { width: canvas.width, height: canvas.height };
-            dataUrl = (canvas as HTMLCanvasElement).toDataURL();
-        }
-
-        if (dataUrl) {
-            state.mediaPreviews.set(node.id, {
-                url: dataUrl,
-                name: 'Preview',
-                kind: 'image',
-                width: size.width,
-                height: size.height,
-                size: 0,
-                type: 'image/png',
-                ownedUrl: true,
-            });
-        } else {
-            state.mediaPreviews.delete(node.id);
-        }
-
-        const connectedPreviewNodes = state.connections
-            .filter((c) => c.fromNodeId === node.id)
-            .map((c) => c.toNodeId);
-
-        if (connectedPreviewNodes.length > 0) {
-            requestAnimationFrame(() => {
-                connectedPreviewNodes.forEach((previewNodeId) => {
-                    const previewNode = state.nodes.find((n) => n.id === previewNodeId);
-                    if (previewNode && previewNode.typeId === 'mediaPreview') {
-                        const img = document.querySelector(
-                            `.node-media[data-node-id="${previewNodeId}"] img`
-                        );
-
-                        if (img && dataUrl) {
-                            (img as HTMLImageElement).src = dataUrl;
-                        } else if (!img && dataUrl) {
-                            context.renderNodes();
-                        }
-                    }
-                });
-            });
-        }
-    };
 
     /**
      * 上流ノードから元メディアの URL を取得
      */
     const getSourceMedia = (node: RendererNode): string | null => {
-        const inputPorts = ['source'];
+        const inputPorts = ['source', 'input']; // 'program'は動画編集ノード用
         const conn = state.connections.find(
             (c) => c.toNodeId === node.id && inputPorts.includes(c.toPortId)
         );
@@ -197,13 +523,13 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
     /**
      * カーブエディタのCanvasを描画
      */
-    const drawCurveEditor = (
+    function drawCurveEditor(
         canvas: HTMLCanvasElement,
         points: CurvePoint[],
         channel: ChannelType,
         histogramData: HistogramData | null,
         activePointIndex: number = -1
-    ) => {
+    ) {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -763,10 +1089,46 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         const isVideo = sourcePreview?.kind === 'video';
 
                         if (isVideo) {
-                            // 動画の場合：FFmpegで再生成（非同期）
-                            generateFFmpegVideoPreview(targetNode).catch(err => {
-                                console.error('[Curves] Failed to update video preview:', err);
-                            });
+                            // 動画の場合：リアルタイムモードならLUT更新のみ、それ以外はFFmpeg再生成
+                            const isRealtime = realtimeMode.get(node.id);
+
+                            if (isRealtime) {
+                                // リアルタイムモード：LUT更新のみ（次のフレームで自動反映）
+                                const processor = processors.get(node.id);
+                                if (processor) {
+                                    const pipeline: ColorGradingPipeline = {
+                                        curves: {
+                                            master: newSettings.master,
+                                            red: newSettings.red,
+                                            green: newSettings.green,
+                                            blue: newSettings.blue
+                                        },
+                                        hueCurves: {
+                                            hueVsHue: newSettings.hueVsHue || [],
+                                            hueVsSat: newSettings.hueVsSat || [],
+                                            hueVsLuma: newSettings.hueVsLuma || []
+                                        }
+                                    };
+
+                                    const transform = buildColorTransform(pipeline);
+                                    const lut = generateLUT3D(33, transform);
+
+                                    // デバッグ: LUTデータの確認
+                                    console.log(`[Curves] LUT generated. Size: ${lut.size}, Data[0-3]:`,
+                                        lut.data[0], lut.data[1], lut.data[2], lut.data[3]);
+
+                                    processor.loadLUT(lut);
+                                    processor.setIntensity(1.0); // 念のため強度をリセット
+
+                                    // ヒストグラム更新をリクエスト
+                                    needsHistogramUpdate.set(node.id, true);
+                                }
+                            } else {
+                                // 非リアルタイムモード：FFmpegで再生成
+                                generateFFmpegVideoPreview(targetNode).catch(err => {
+                                    console.error('[Curves] Failed to update video preview:', err);
+                                });
+                            }
                         } else {
                             // 画像の場合：WebGLで即座に更新
                             updatePreview();
@@ -985,7 +1347,12 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             }
                         }
 
-                        // 動画の場合：FFmpegでプレビュー生成（初回のみ）
+                        // 動画の場合：リアルタイムWebGLプレビューを開始（初回のみ）
+                        if (sourceMediaUrl) {
+                            startRealtimeVideoPreview(node, sourceMediaUrl);
+                        }
+
+                        // FFmpegエンコードは初回のみ実行（Media Previewノード用）
                         await generateFFmpegVideoPreview(node);
                     } else {
                         // 画像の場合：WebGLで処理
