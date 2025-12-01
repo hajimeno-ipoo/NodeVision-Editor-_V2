@@ -402,9 +402,8 @@ const renderVideoFrame = (node: RendererNode) => {
                     }
                 }
 
-                // FIXME: 無限ループの原因となるため一時的に無効化
                 // Media Previewへの反映（3フレームに1回）
-                // propagateToMediaPreview(node, processor);
+                propagateToMediaPreview(node, processor);
             }
         }
     } catch (e) {
