@@ -25,6 +25,71 @@ const CHANNEL_COLORS = {
     hueVsLuma: '#ffff00'
 };
 
+/**
+ * 動画からヒストグラムを抽出するヘルパー関数
+ */
+const extractHistogramFromVideo = async (videoUrl: string): Promise<HistogramData | null> => {
+    return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.crossOrigin = 'anonymous';
+        video.src = videoUrl;
+        video.muted = true;
+        video.playsInline = true;
+
+        const cleanup = () => {
+            video.onloadeddata = null;
+            video.onseeked = null;
+            video.onerror = null;
+            video.src = '';
+            video.load();
+        };
+
+        const timeoutId = setTimeout(() => {
+            cleanup();
+            resolve(null);
+        }, 5000);
+
+        video.onloadeddata = () => {
+            video.currentTime = 0;
+        };
+
+        video.onseeked = () => {
+            clearTimeout(timeoutId);
+            try {
+                const canvas = document.createElement('canvas');
+                // パフォーマンスのためにリサイズ（最大幅320px）
+                const scale = Math.min(1, 320 / video.videoWidth);
+                canvas.width = Math.floor(video.videoWidth * scale);
+                canvas.height = Math.floor(video.videoHeight * scale);
+
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    // Uint8ClampedArray -> Uint8Array
+                    const data = new Uint8Array(imageData.data.buffer);
+                    const hist = calculateHistogram(data, canvas.width, canvas.height);
+                    cleanup();
+                    resolve(hist);
+                } else {
+                    cleanup();
+                    resolve(null);
+                }
+            } catch (e) {
+                console.error('[Curves] Histogram extraction failed:', e);
+                cleanup();
+                resolve(null);
+            }
+        };
+
+        video.onerror = () => {
+            clearTimeout(timeoutId);
+            cleanup();
+            resolve(null);
+        };
+    });
+};
+
 export const createCurveEditorNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml } = context;
 
@@ -760,6 +825,14 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                 ownedUrl: true
                             });
 
+                            // Outputヒストグラム更新（動画）
+                            extractHistogramFromVideo(result.url).then(hist => {
+                                if (hist) {
+                                    outputHistograms.set(nodeToProcess.id, hist);
+                                    updateSettings(true);
+                                }
+                            });
+
                             // UI更新
                             requestAnimationFrame(() => {
                                 const connectedPreviewNodes = state.connections
@@ -864,6 +937,17 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     const isVideo = sourcePreview?.kind === 'video';
 
                     if (isVideo) {
+                        // Inputヒストグラム更新（動画）
+                        // URLが変わった場合、またはヒストグラムが未計算の場合に実行
+                        if (!inputHistograms.has(node.id) || sourceMediaUrl !== lastUrl) {
+                            extractHistogramFromVideo(sourceMediaUrl).then(hist => {
+                                if (hist) {
+                                    inputHistograms.set(node.id, hist);
+                                    updateSettings(true);
+                                }
+                            });
+                        }
+
                         // 動画の場合：FFmpegでプレビュー生成（初回のみ）
                         await generateFFmpegVideoPreview(node);
                     } else {
