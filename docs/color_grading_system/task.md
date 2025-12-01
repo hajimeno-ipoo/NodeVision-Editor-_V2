@@ -253,7 +253,7 @@ The next step is to proceed with testing other color grading nodes as per the te
 - [x] `curve-editor.ts`の構文エラー修正
 - [x] 動画読み込み時のプレビュー即時反映修正（UI更新）
 - [x] 動画入力時のヒストグラム表示実装
-- [ ] 最終動作確認
+- [x] 最終動作確認
 - [ ] 全モジュールのテストカバレッジ80%以上
 - [ ] エッジケーステスト追加
 - [ ] CI統合
@@ -267,11 +267,15 @@ The next step is to proceed with testing other color grading nodes as per the te
 ### Task 9.3: パフォーマンス最適化
 - [ ] LUT生成時間計測
 - [ ] WebGLレンダリングプロファイリング
-- [ ] メモリ使用量最適化
-- [ ] 必要に応じてWorker化
+- [x] メモリ使用量最適化
+- [x] 必要に応じてWorker化
 
 ### Task 9.4: ドキュメント作成
-- [ ] API仕様書
-- [ ] ユーザーガイド
+- [x] API仕様書
+- [x] ポイント追加判定の厳格化
+- [x] 動画プレビュー更新の無限ループ対策
+- [x] レンダラー再生成時の状態維持（モジュールスコープ化）
+- [x] 動画プレビュー更新の無限ループ対策（renderNodes呼び出し削除）
+- [ ] 最終動作確認ユーザーガイド
 - [ ] サンプルワークフロー
-- [ ] トラブルシューティング
+- [ ] 最終動作確認トラブルシューティング

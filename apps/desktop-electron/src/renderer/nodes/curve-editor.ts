@@ -90,31 +90,31 @@ const extractHistogramFromVideo = async (videoUrl: string): Promise<HistogramDat
     });
 };
 
+const processors = new Map<string, WebGLLUTProcessor>();
+const lastSourceByNode = new Map<string, string>();
+const lastProcessedSourceUrl = new Map<string, string>(); // 入力ソースの変更検知用
+const activeChannels = new Map<string, ChannelType>(); // ノードごとのアクティブチャンネル
+
+// ヒストグラム関連の状態
+type HistogramMode = 'input' | 'output' | 'off';
+const histogramModes = new Map<string, HistogramMode>();
+const inputHistograms = new Map<string, HistogramData>();
+const outputHistograms = new Map<string, HistogramData>();
+
+// 動画プレビュー生成のフラグ
+let isGeneratingFFmpeg = false;
+let pendingFFmpegNode: RendererNode | null = null;
+
+// 初期化済みフラグ（無限ループ防止）
+const initializedNodes = new Map<string, boolean>();
+
+const createProcessor = (): WebGLLUTProcessor => {
+    const canvas = document.createElement('canvas');
+    return new WebGLLUTProcessor(canvas);
+};
+
 export const createCurveEditorNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml } = context;
-
-    const processors = new Map<string, WebGLLUTProcessor>();
-    const lastSourceByNode = new Map<string, string>();
-    const lastProcessedSourceUrl = new Map<string, string>(); // 入力ソースの変更検知用
-    const activeChannels = new Map<string, ChannelType>(); // ノードごとのアクティブチャンネル
-
-    // ヒストグラム関連の状態
-    type HistogramMode = 'input' | 'output' | 'off';
-    const histogramModes = new Map<string, HistogramMode>();
-    const inputHistograms = new Map<string, HistogramData>();
-    const outputHistograms = new Map<string, HistogramData>();
-
-    // 動画プレビュー生成のフラグ
-    let isGeneratingFFmpeg = false;
-    let pendingFFmpegNode: RendererNode | null = null;
-
-    // 初期化済みフラグ（無限ループ防止）
-    const initializedNodes = new Map<string, boolean>();
-
-    const createProcessor = (): WebGLLUTProcessor => {
-        const canvas = document.createElement('canvas');
-        return new WebGLLUTProcessor(canvas);
-    };
 
     /**
      * メディアプレビューノードへ補正後の dataURL を反映
@@ -531,15 +531,23 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             isDragging = true;
                             dragIndex = foundIndex;
                         } else {
-                            // 新しいポイントを追加（DaVinci Resolveは全範囲で追加可能）
-                            const newPoint = { x, y };
-                            points.push(newPoint);
-                            // X座標でソート
-                            points.sort((a, b) => a.x - b.x);
+                            // カーブ上（付近）をクリックした場合のみポイント追加
+                            const isHue = activeChannel.startsWith('hueVs');
+                            // evaluateCurve は正規化されたカーブを期待するため、念のためソート済みのものを使用
+                            // points は参照渡しだが、evaluateCurve 内で副作用はないはず
+                            const curveY = evaluateCurve(points, x, isHue);
 
-                            isDragging = true;
-                            dragIndex = points.indexOf(newPoint);
-                            updateSettings();
+                            if (Math.abs(curveY - y) < threshold) {
+                                // 新しいポイントを追加
+                                const newPoint = { x, y };
+                                points.push(newPoint);
+                                // X座標でソート
+                                points.sort((a, b) => a.x - b.x);
+
+                                isDragging = true;
+                                dragIndex = points.indexOf(newPoint);
+                                updateSettings();
+                            }
                         }
                     });
 
@@ -702,6 +710,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                 // 設定更新とプレビュー反映
                 const updateSettings = (skipRenderNodes = false) => {
+                    console.log('[Curves] updateSettings called', { skipRenderNodes });
                     const targetNode = state.nodes.find((n) => n.id === node.id);
                     if (targetNode) {
                         // オブジェクトの参照を新しくして変更を検知させる
@@ -826,12 +835,15 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             });
 
                             // Outputヒストグラム更新（動画）
-                            extractHistogramFromVideo(result.url).then(hist => {
-                                if (hist) {
-                                    outputHistograms.set(nodeToProcess.id, hist);
-                                    updateSettings(true);
-                                }
-                            });
+                            // 既に存在する場合はスキップして無限ループを防ぐ
+                            if (!outputHistograms.has(nodeToProcess.id)) {
+                                extractHistogramFromVideo(result.url).then(hist => {
+                                    if (hist) {
+                                        outputHistograms.set(nodeToProcess.id, hist);
+                                        updateSettings(true);
+                                    }
+                                });
+                            }
 
                             // UI更新
                             requestAnimationFrame(() => {
@@ -850,9 +862,31 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                             (video as HTMLVideoElement).src = result.url;
                                             (video as HTMLVideoElement).load(); // 明示的にリロード
                                         } else if (!video && result.url) {
-                                            // video要素がない場合（初回ロード時など）は、再レンダリングをトリガーして
-                                            // Media Previewノードにvideo要素を生成させる
-                                            context.renderNodes();
+                                            // video要素がない場合、DOM更新を待ってから再試行
+                                            // renderNodes() を呼ぶと無限ループ（FFmpeg再生成）のリスクがあるため、
+                                            // 単純にDOMポーリングでvideo要素を探す
+                                            const maxRetries = 10;
+                                            const retryInterval = 200;
+
+                                            const tryUpdateVideo = (attempts: number) => {
+                                                if (attempts <= 0) return;
+
+                                                setTimeout(() => {
+                                                    const retryVideo = document.querySelector(
+                                                        `.node-media[data-node-id="${previewNodeId}"] video`
+                                                    );
+                                                    if (retryVideo) {
+                                                        if (result.url) {
+                                                            (retryVideo as HTMLVideoElement).src = result.url;
+                                                            (retryVideo as HTMLVideoElement).load();
+                                                        }
+                                                    } else {
+                                                        tryUpdateVideo(attempts - 1);
+                                                    }
+                                                }, retryInterval);
+                                            };
+
+                                            tryUpdateVideo(maxRetries);
                                         }
                                     }
                                 });
@@ -925,6 +959,15 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 const sourceMediaUrl = getSourceMedia(node);
                 const lastUrl = lastProcessedSourceUrl.get(node.id);
 
+                console.log('[Curves] render check:', {
+                    id: node.id,
+                    sourceMediaUrl,
+                    lastUrl,
+                    isInitialized,
+                    match: sourceMediaUrl === lastUrl,
+                    isVideo: state.mediaPreviews.get(state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || '')?.kind === 'video'
+                });
+
                 if (sourceMediaUrl && (!isInitialized || sourceMediaUrl !== lastUrl)) {
                     // 初期化済みフラグと最終ソースを更新
                     initializedNodes.set(node.id, true);
@@ -940,12 +983,14 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         // Inputヒストグラム更新（動画）
                         // URLが変わった場合、またはヒストグラムが未計算の場合に実行
                         if (!inputHistograms.has(node.id) || sourceMediaUrl !== lastUrl) {
-                            extractHistogramFromVideo(sourceMediaUrl).then(hist => {
-                                if (hist) {
-                                    inputHistograms.set(node.id, hist);
-                                    updateSettings(true);
-                                }
-                            });
+                            if (sourceMediaUrl) {
+                                extractHistogramFromVideo(sourceMediaUrl).then(hist => {
+                                    if (hist) {
+                                        inputHistograms.set(node.id, hist);
+                                        updateSettings(true);
+                                    }
+                                });
+                            }
                         }
 
                         // 動画の場合：FFmpegでプレビュー生成（初回のみ）
