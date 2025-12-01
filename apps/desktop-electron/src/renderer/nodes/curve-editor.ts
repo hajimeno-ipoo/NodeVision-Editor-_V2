@@ -28,6 +28,17 @@ const CHANNEL_COLORS = {
     hueVsLuma: '#ffff00'
 };
 
+// UI用の淡いチャンネルカラー（ノードのトーンに合わせてパステル寄せ）
+const LIGHT_CHANNEL_COLORS: Record<ChannelType, string> = {
+    master: '#ffffff',
+    red: '#ffb3b3',
+    green: '#b6e3b3',
+    blue: '#b3d1ff',
+    hueVsHue: '#f3b3ff',
+    hueVsSat: '#b3f0ff',
+    hueVsLuma: '#fff7b3'
+};
+
 /**
  * 動画からヒストグラムを抽出するヘルパー関数
  */
@@ -151,8 +162,8 @@ function drawCurveEditor(
     const drawWidth = width - padding * 2;
     const drawHeight = height - padding * 2;
 
-    // 背景クリア
-    ctx.fillStyle = '#222';
+    // 背景クリア（さらに明るめに）
+    ctx.fillStyle = '#3a3a3a';
     ctx.fillRect(0, 0, width, height);
 
     // Hueカーブの場合は背景に色相グラデーションを描画
@@ -597,7 +608,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
             gradient.addColorStop(1, '#ff0000');
 
             ctx.fillStyle = gradient;
-            ctx.globalAlpha = 0.2; // 背景として控えめに表示
+            ctx.globalAlpha = 0.8; // Hue系は明るめに表示
             ctx.fillRect(padding, padding, drawWidth, drawHeight);
             ctx.globalAlpha = 1.0;
 
@@ -647,25 +658,57 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
             ctx.globalAlpha = 1.0;
         }
 
-        // グリッド描画
-        ctx.strokeStyle = '#444';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
+        // グリッド描画：チャンネルで分岐
+        //  - Master/Red/Green/Blue: メジャー5x5（濃い線）＋各メジャー5x5サブ（薄い線）
+        //  - Hue系: 現行の6x2メジャー＋各メジャー8x8サブ
+        ctx.save();
+        ctx.translate(0.5, 0.5); // 線をシャープに
 
-        // 縦線 (25%刻み)
-        for (let i = 0; i <= 4; i++) {
-            const x = padding + (drawWidth * i) / 4;
+        const useHueGrid = isHue;
+        const majorDivX = useHueGrid ? 6 : 5;
+        const majorDivY = useHueGrid ? 2 : 5;
+        const subDivsPerMajor = useHueGrid ? 8 : 5;
+        const subLineWidth = useHueGrid ? 0.5 : 0.6;
+        const majorLineWidth = useHueGrid ? 1.0 : 1.2;
+
+        // サブグリッド
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = subLineWidth;
+        ctx.beginPath();
+        for (let mx = 0; mx < majorDivX; mx++) {
+            const startX = padding + (drawWidth / majorDivX) * mx;
+            for (let sx = 0; sx <= subDivsPerMajor; sx++) {
+                const x = startX + (drawWidth / majorDivX) * (sx / subDivsPerMajor);
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, height - padding);
+            }
+        }
+        for (let my = 0; my < majorDivY; my++) {
+            const startY = padding + (drawHeight / majorDivY) * my;
+            for (let sy = 0; sy <= subDivsPerMajor; sy++) {
+                const y = startY + (drawHeight / majorDivY) * (sy / subDivsPerMajor);
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+            }
+        }
+        ctx.stroke();
+
+        // メジャーグリッド
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = majorLineWidth;
+        ctx.beginPath();
+        for (let i = 0; i <= majorDivX; i++) {
+            const x = padding + (drawWidth * i) / majorDivX;
             ctx.moveTo(x, padding);
             ctx.lineTo(x, height - padding);
         }
-
-        // 横線 (25%刻み)
-        for (let i = 0; i <= 4; i++) {
-            const y = padding + (drawHeight * i) / 4;
+        for (let i = 0; i <= majorDivY; i++) {
+            const y = padding + (drawHeight * i) / majorDivY;
             ctx.moveTo(padding, y);
             ctx.lineTo(width - padding, y);
         }
         ctx.stroke();
+        ctx.restore();
 
         // 対角線（基準線） - RGBカーブのみ
         if (!isHue) {
@@ -761,12 +804,12 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 flex: 1; 
                 min-width: 60px;
                 padding: 4px; 
-                border: none; 
-                background: ${ch === activeChannel ? '#444' : '#222'}; 
-                color: ${ch === activeChannel ? '#fff' : '#888'};
-                border-bottom: 2px solid ${ch === activeChannel ? CHANNEL_COLORS[ch as ChannelType] : 'transparent'};
+                border: 1px solid ${ch === activeChannel ? LIGHT_CHANNEL_COLORS[ch as ChannelType] : '#cbd6ff'};
+                background: ${ch === activeChannel ? LIGHT_CHANNEL_COLORS[ch as ChannelType] : '#e9edff'};
+                color: ${ch === activeChannel ? '#111' : '#202840'};
                 cursor: pointer;
                 font-size: 10px;
+                border-radius: 12px;
               "
             >
               ${ch.replace('hueVs', 'Hue ')}
@@ -787,15 +830,23 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         
         <div style="display: flex; justify-content: space-between; margin-top: 8px; align-items: center;">
           <div class="histogram-controls" style="display: flex; gap: 2px;">
-             <button class="hist-mode-btn ${histogramMode === 'input' ? 'active' : ''}" data-mode="input" style="font-size: 10px; padding: 2px 6px; background: ${histogramMode === 'input' ? '#555' : '#333'}; color: #ccc; border: none; cursor: pointer;">Input</button>
-             <button class="hist-mode-btn ${histogramMode === 'output' ? 'active' : ''}" data-mode="output" style="font-size: 10px; padding: 2px 6px; background: ${histogramMode === 'output' ? '#555' : '#333'}; color: #ccc; border: none; cursor: pointer;">Output</button>
-             <button class="hist-mode-btn ${histogramMode === 'off' ? 'active' : ''}" data-mode="off" style="font-size: 10px; padding: 2px 6px; background: ${histogramMode === 'off' ? '#555' : '#333'}; color: #ccc; border: none; cursor: pointer;">Off</button>
+             <button class="hist-mode-btn ${histogramMode === 'input' ? 'active' : ''}" data-mode="input" style="font-size: 10px; padding: 4px 10px; border: 1px solid ${histogramMode === 'input' ? '#aebff5' : '#cbd6ff'}; background: ${histogramMode === 'input' ? '#cbd6ff' : '#e9edff'}; color: ${histogramMode === 'input' ? '#111' : '#202840'}; border-radius: 10px; cursor: pointer;">Input</button>
+             <button class="hist-mode-btn ${histogramMode === 'output' ? 'active' : ''}" data-mode="output" style="font-size: 10px; padding: 4px 10px; border: 1px solid ${histogramMode === 'output' ? '#aebff5' : '#cbd6ff'}; background: ${histogramMode === 'output' ? '#cbd6ff' : '#e9edff'}; color: ${histogramMode === 'output' ? '#111' : '#202840'}; border-radius: 10px; cursor: pointer;">Output</button>
+             <button class="hist-mode-btn ${histogramMode === 'off' ? 'active' : ''}" data-mode="off" style="font-size: 10px; padding: 4px 10px; border: 1px solid ${histogramMode === 'off' ? '#aebff5' : '#cbd6ff'}; background: ${histogramMode === 'off' ? '#cbd6ff' : '#e9edff'}; color: ${histogramMode === 'off' ? '#111' : '#202840'}; border-radius: 10px; cursor: pointer;">Off</button>
           </div>
           <div style="display: flex; gap: 4px;">
-            <button class="reset-channel-btn" style="font-size: 11px; padding: 4px 8px; background: #333; color: #ccc; border: none; border-radius: 2px; cursor: pointer;">
+            <button 
+              class="reset-channel-btn press-feedback" 
+              data-base-bg="#e9edff" data-base-border="#cbd6ff"
+              data-active-bg="#c0cbf7" data-active-border="#99b4ff"
+              style="font-size: 11px; padding: 6px 10px; border: 1px solid #cbd6ff; background: #e9edff; color: #202840; border-radius: 8px; cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease;">
                 Reset Channel
             </button>
-            <button class="reset-all-btn" style="font-size: 11px; padding: 4px 8px; background: #333; color: #ccc; border: none; border-radius: 2px; cursor: pointer;">
+            <button 
+              class="reset-all-btn press-feedback"
+              data-base-bg="#e9edff" data-base-border="#cbd6ff"
+              data-active-bg="#c0cbf7" data-active-border="#99b4ff"
+              style="font-size: 11px; padding: 6px 10px; border: 1px solid #cbd6ff; background: #e9edff; color: #202840; border-radius: 8px; cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease;">
                 Reset All
             </button>
           </div>
@@ -1038,6 +1089,30 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         activeChannels.set(node.id, channel);
                         context.renderNodes(); // 再描画してタブの状態とCanvasを更新
                     });
+                });
+
+                // 押下時に色が変わるフィードバック（Reset系ボタン）
+                element.querySelectorAll('.press-feedback').forEach(btn => {
+                    const el = btn as HTMLButtonElement;
+                    const baseBg = el.dataset.baseBg || el.style.backgroundColor;
+                    const baseBorder = el.dataset.baseBorder || el.style.borderColor;
+                    const activeBg = el.dataset.activeBg || baseBg;
+                    const activeBorder = el.dataset.activeBorder || baseBorder;
+
+                    const setBase = () => {
+                        el.style.backgroundColor = baseBg;
+                        el.style.borderColor = baseBorder;
+                    };
+                    const setActive = () => {
+                        el.style.backgroundColor = activeBg;
+                        el.style.borderColor = activeBorder;
+                    };
+
+                    el.addEventListener('mousedown', setActive);
+                    el.addEventListener('mouseup', setBase);
+                    el.addEventListener('mouseleave', setBase);
+                    el.addEventListener('touchstart', setActive, { passive: true });
+                    el.addEventListener('touchend', setBase, { passive: true });
                 });
 
                 // リセットボタン
