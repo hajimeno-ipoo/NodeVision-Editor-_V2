@@ -636,6 +636,8 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             isDragging = false;
                             dragIndex = -1;
                             canvas.releasePointerCapture(e.pointerId);
+                            // カーブ変更時はOutputヒストグラムをクリアして再計算させる
+                            outputHistograms.delete(node.id);
                             updateSettings(); // 最終確定
                         }
                     });
@@ -643,17 +645,29 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     // ダブルクリックでポイント削除（両端以外）
                     canvas.addEventListener('dblclick', (e) => {
                         e.stopPropagation(); // ノードのダブルクリック動作を防止
-                        const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
                         if (!points) return;
 
-                        const threshold = 0.05;
-                        const foundIndex = points.findIndex(p =>
-                            Math.abs(p.x - x) < threshold && Math.abs(p.y - y) < threshold
-                        );
+                        const rect = canvas.getBoundingClientRect();
+                        const x = (e.clientX - rect.left) / rect.width;
+                        const y = 1 - (e.clientY - rect.top) / rect.height;
 
-                        if (foundIndex > 0 && foundIndex < points.length - 1) {
+                        // 既存のポイントをクリックした場合は削除
+                        const threshold = 10 / rect.width;
+                        let foundIndex = -1;
+                        for (let i = 0; i < points.length; i++) {
+                            const dx = Math.abs(points[i].x - x);
+                            const dy = Math.abs(points[i].y - y);
+                            if (dx < threshold && dy < threshold) {
+                                foundIndex = i;
+                                break;
+                            }
+                        }
+
+                        if (foundIndex !== -1) {
                             points.splice(foundIndex, 1);
+                            // カーブ変更時はOutputヒストグラムをクリアして再計算させる
+                            outputHistograms.delete(node.id);
                             updateSettings();
                         }
                     });
@@ -840,57 +854,35 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                 extractHistogramFromVideo(result.url).then(hist => {
                                     if (hist) {
                                         outputHistograms.set(nodeToProcess.id, hist);
-                                        updateSettings(true);
+                                        // updateSettings呼び出しは無限ループを引き起こすため、直接キャンバス再描画
+                                        const histMode = histogramModes.get(nodeToProcess.id);
+                                        if (histMode === 'output') {
+                                            const canvas = document.querySelector(`.node[data-id="${nodeToProcess.id}"] canvas.curve-canvas`);
+                                            const activeChannel = activeChannels.get(nodeToProcess.id) || 'master';
+                                            const channelPoints = (nodeToProcess.settings as CurvesNodeSettings)[activeChannel];
+                                            if (canvas && channelPoints) {
+                                                drawCurveEditor(canvas as HTMLCanvasElement, channelPoints, activeChannel, hist);
+                                            }
+                                        }
                                     }
                                 });
                             }
 
-                            // UI更新
-                            requestAnimationFrame(() => {
-                                const connectedPreviewNodes = state.connections
-                                    .filter(c => c.fromNodeId === nodeToProcess.id)
-                                    .map(c => c.toNodeId);
-
-                                connectedPreviewNodes.forEach(previewNodeId => {
-                                    const previewNode = state.nodes.find(n => n.id === previewNodeId);
-                                    if (previewNode && previewNode.typeId === 'mediaPreview') {
-                                        const video = document.querySelector(
-                                            `.node-media[data-node-id="${previewNodeId}"] video`
-                                        );
-
-                                        if (video && result.url) {
-                                            (video as HTMLVideoElement).src = result.url;
-                                            (video as HTMLVideoElement).load(); // 明示的にリロード
-                                        } else if (!video && result.url) {
-                                            // video要素がない場合、DOM更新を待ってから再試行
-                                            // renderNodes() を呼ぶと無限ループ（FFmpeg再生成）のリスクがあるため、
-                                            // 単純にDOMポーリングでvideo要素を探す
-                                            const maxRetries = 10;
-                                            const retryInterval = 200;
-
-                                            const tryUpdateVideo = (attempts: number) => {
-                                                if (attempts <= 0) return;
-
-                                                setTimeout(() => {
-                                                    const retryVideo = document.querySelector(
-                                                        `.node-media[data-node-id="${previewNodeId}"] video`
-                                                    );
-                                                    if (retryVideo) {
-                                                        if (result.url) {
-                                                            (retryVideo as HTMLVideoElement).src = result.url;
-                                                            (retryVideo as HTMLVideoElement).load();
-                                                        }
-                                                    } else {
-                                                        tryUpdateVideo(attempts - 1);
-                                                    }
-                                                }, retryInterval);
-                                            };
-
-                                            tryUpdateVideo(maxRetries);
-                                        }
-                                    }
-                                });
+                            // Media Previewノードへプレビューを伝播
+                            // video.srcの直接設定は不安定なため、state.mediaPreviewsを経由する
+                            state.mediaPreviews.set(nodeToProcess.id, {
+                                url: result.url,
+                                name: 'Video Preview',
+                                kind: 'video',
+                                width: sourcePreview?.width || 1920,
+                                height: sourcePreview?.height || 1080,
+                                size: 0,
+                                type: 'video/mp4',
+                                ownedUrl: true,
                             });
+
+                            // renderNodesを呼んでMedia Previewノードを更新
+                            context.renderNodes();
                         } else {
                             console.error('[Curves] FFmpeg preview generation failed:', result);
                         }
