@@ -7,6 +7,9 @@ import { calculateHistogram, type HistogramData } from './histogram-utils';
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
 
+// デバッグログのオンオフ
+const DEBUG_CURVES = false;
+
 // 動的にモジュールを読み込む
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
@@ -114,6 +117,14 @@ const animationFrameIds = new Map<string, number>();
 const realtimeMode = new Map<string, boolean>(); // ノードごとのリアルタイムモードフラグ
 const needsHistogramUpdate = new Map<string, boolean>(); // ヒストグラム更新フラグ
 const frameCounts = new Map<string, number>(); // フレームカウンタ
+const lastFailedVideoUrl = new Map<string, string>();
+const lastHistogramUpdateAt = new Map<string, number>();
+const lastPreviewUpdateAt = new Map<string, number>();
+const HIST_FRAME_INTERVAL = 10;
+const HIST_UPDATE_MIN_MS = 120;
+const PREVIEW_UPDATE_MIN_MS = 60;
+const HIST_DOWNSAMPLE_STEP = 2; // ヒスト計算を1/2解像度で
+const ENABLE_REALTIME_HISTOGRAM = true; // 重いときは false にして負荷軽減
 let globalContext: NodeRendererContext | null = null;
 
 const createProcessor = (): WebGLLUTProcessor => {
@@ -303,6 +314,9 @@ const startRealtimeVideoPreview = (node: RendererNode, videoUrl: string) => {
     // 既存のプレビューを停止
     stopRealtimeVideoPreview(node.id);
 
+    if (!videoUrl) return;
+    if (lastFailedVideoUrl.get(node.id) === videoUrl) return;
+
     const video = document.createElement('video');
     video.src = videoUrl;
     video.crossOrigin = 'anonymous';
@@ -311,6 +325,7 @@ const startRealtimeVideoPreview = (node: RendererNode, videoUrl: string) => {
     video.playsInline = true;
 
     video.onloadeddata = () => {
+        lastFailedVideoUrl.delete(node.id);
         videoElements.set(node.id, video);
         realtimeMode.set(node.id, true);
         video.play();
@@ -318,7 +333,10 @@ const startRealtimeVideoPreview = (node: RendererNode, videoUrl: string) => {
     };
 
     video.onerror = (e) => {
-        console.error('[Curves] Video load error:', e);
+        if (DEBUG_CURVES) {
+            console.error('[Curves] Video load error:', e);
+        }
+        lastFailedVideoUrl.set(node.id, videoUrl);
         stopRealtimeVideoPreview(node.id);
     };
 };
@@ -377,14 +395,38 @@ const renderVideoFrame = (node: RendererNode) => {
         const count = (frameCounts.get(node.id) || 0) + 1;
         frameCounts.set(node.id, count);
 
-        const shouldUpdate = needsHistogramUpdate.get(node.id) || count % 3 === 0;
+        const now = Date.now();
+        const lastHistTs = lastHistogramUpdateAt.get(node.id) || 0;
+        const intervalOk = now - lastHistTs >= HIST_UPDATE_MIN_MS;
+        const shouldUpdate =
+            (needsHistogramUpdate.get(node.id) || count % HIST_FRAME_INTERVAL === 0) && intervalOk;
 
-        if (shouldUpdate) {
+        if (shouldUpdate && ENABLE_REALTIME_HISTOGRAM) {
             const pixels = processor.getOutputPixels();
             if (pixels) {
-                const hist = calculateHistogram(pixels, canvas.width, canvas.height);
+                // ダウンサンプルしてヒスト計算を軽量化
+                const sw = Math.max(1, Math.floor(canvas.width / HIST_DOWNSAMPLE_STEP));
+                const sh = Math.max(1, Math.floor(canvas.height / HIST_DOWNSAMPLE_STEP));
+                const sampled = new Uint8Array(sw * sh * 4);
+                const stride = HIST_DOWNSAMPLE_STEP;
+                let si = 0;
+                for (let y = 0; y < sh; y++) {
+                    const srcY = y * stride;
+                    const baseY = srcY * canvas.width * 4;
+                    for (let x = 0; x < sw; x++) {
+                        const srcX = x * stride;
+                        const srcIdx = baseY + srcX * 4;
+                        sampled[si++] = pixels[srcIdx];
+                        sampled[si++] = pixels[srcIdx + 1];
+                        sampled[si++] = pixels[srcIdx + 2];
+                        sampled[si++] = pixels[srcIdx + 3];
+                    }
+                }
+
+                const hist = calculateHistogram(sampled, sw, sh);
                 outputHistograms.set(node.id, hist);
                 needsHistogramUpdate.set(node.id, false);
+                lastHistogramUpdateAt.set(node.id, now);
 
                 // ヒストグラム表示を更新するために再描画
                 const curveCanvas = document.querySelector(
@@ -402,7 +444,7 @@ const renderVideoFrame = (node: RendererNode) => {
                     }
                 }
 
-                // Media Previewへの反映（3フレームに1回）
+                // Media Previewへの反映（ヒスト更新と同じ頻度で実行）
                 propagateToMediaPreview(node, processor);
             }
         }
@@ -881,6 +923,11 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         e.preventDefault();
                         e.stopPropagation();
 
+                        const now = Date.now();
+                        const last = lastPreviewUpdateAt.get(node.id) || 0;
+                        if (now - last < PREVIEW_UPDATE_MIN_MS) return;
+                        lastPreviewUpdateAt.set(node.id, now);
+
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
                         if (!points) return;
@@ -892,8 +939,6 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         if (points.length === 1 && !isHue) {
                             // 1ポイントのみ：Y座標のみ変更可能（RGBカーブの場合）
-                            // Hueカーブの場合は1ポイントでも自由に動かせるべきか？ -> DaVinciではHueカーブは最低2ポイントから始まることが多いが、
-                            // ここではHueカーブなら自由に動かせるようにする
                             if (isHue) {
                                 point.x = x;
                                 point.y = y;
@@ -907,41 +952,32 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                             if (isLeftEndpoint && !isHue) {
                                 // 左端点：L字型の移動制限（左端または下端に吸着）
-                                // x=0 (左端) または y=0 (下端) のどちらに近いかで判定
                                 if (x < y) {
-                                    // 左端に吸着
                                     point.x = 0;
                                     point.y = y;
                                 } else {
-                                    // 下端に吸着
                                     const maxX = points.length > 1 ? points[1].x - 0.01 : 1;
                                     point.x = Math.max(0, Math.min(maxX, x));
                                     point.y = 0;
                                 }
                             } else if (isRightEndpoint && !isHue) {
                                 // 右端点：逆L字型の移動制限（右端または上端に吸着）
-                                // x=1 (右端) または y=1 (上端) のどちらに近いかで判定
-                                // (1-x) vs (1-y)
                                 if ((1 - x) < (1 - y)) {
-                                    // 右端に吸着
                                     point.x = 1;
                                     point.y = y;
                                 } else {
-                                    // 上端に吸着
                                     const minX = points.length > 1 ? points[points.length - 2].x + 0.01 : 0;
                                     point.x = Math.max(minX, Math.min(1, x));
                                     point.y = 1;
                                 }
                             } else {
                                 // 中間ポイント（またはHueカーブの全ポイント）：X/Y両方向に移動可能
-                                // ただし、隣接するポイントを超えないように制限
                                 const minX = dragIndex > 0 ? points[dragIndex - 1].x + 0.01 : 0;
                                 const maxX = dragIndex < points.length - 1 ? points[dragIndex + 1].x - 0.01 : 1;
                                 point.x = Math.max(minX, Math.min(maxX, x));
                                 point.y = y;
                             }
                         }
-
 
                         let histData: HistogramData | null = null;
                         if (histogramMode === 'input') {
@@ -951,19 +987,19 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         }
 
                         drawCurveEditor(canvas, points, activeChannel, histData);
-                        // リアルタイム更新は重いかもしれないので、requestAnimationFrameなどで間引くべきだが
-                        // ここでは簡易的に直接更新
+                        // 間引いたタイミングだけ設定を保存（Canvasのみ更新）
                         updateSettings(true); // true = skip renderNodes (Canvasだけ更新)
                     });
 
                     window.addEventListener('pointerup', (e) => {
-                    if (isDragging) {
-                        isDragging = false;
-                        dragIndex = -1;
-                        canvas.releasePointerCapture(e.pointerId);
-                        updateSettings(); // 最終確定
-                    }
-                });
+                        if (isDragging) {
+                            isDragging = false;
+                            dragIndex = -1;
+                            canvas.releasePointerCapture(e.pointerId);
+                            needsHistogramUpdate.set(node.id, true);
+                            updateSettings(); // 最終確定
+                        }
+                    });
 
                     // ダブルクリックでポイント削除（両端以外）
                     canvas.addEventListener('dblclick', (e) => {
@@ -1045,7 +1081,9 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                 // 設定更新とプレビュー反映
                 const updateSettings = (skipRenderNodes = false) => {
-                    console.log('[Curves] updateSettings called', { skipRenderNodes });
+                    if (DEBUG_CURVES) {
+                        console.log('[Curves] updateSettings called', { skipRenderNodes });
+                    }
                     const targetNode = state.nodes.find((n) => n.id === node.id);
                     if (targetNode) {
                         // オブジェクトの参照を新しくして変更を検知させる
@@ -1085,38 +1123,44 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         if (isVideo) {
                             // 動画の場合：リアルタイムモードならLUT更新のみ、それ以外はFFmpeg再生成
-                            const isRealtime = realtimeMode.get(node.id);
+        const isRealtime = realtimeMode.get(node.id);
 
-                            if (isRealtime) {
-                                // リアルタイムモード：LUT更新のみ（次のフレームで自動反映）
-                                const processor = processors.get(node.id);
-                                if (processor) {
-                                    const pipeline: ColorGradingPipeline = {
-                                        curves: {
-                                            master: newSettings.master,
-                                            red: newSettings.red,
-                                            green: newSettings.green,
-                                            blue: newSettings.blue
-                                        },
-                                        hueCurves: {
-                                            hueVsHue: newSettings.hueVsHue || [],
-                                            hueVsSat: newSettings.hueVsSat || [],
-                                            hueVsLuma: newSettings.hueVsLuma || []
-                                        }
-                                    };
+        if (isRealtime) {
+            // リアルタイムモード：LUT更新のみ（次のフレームで自動反映）
+            const processor = processors.get(node.id);
+            if (processor) {
+                const pipeline: ColorGradingPipeline = {
+                    curves: {
+                        master: newSettings.master,
+                        red: newSettings.red,
+                        green: newSettings.green,
+                        blue: newSettings.blue
+                    },
+                    hueCurves: {
+                        hueVsHue: newSettings.hueVsHue || [],
+                        hueVsSat: newSettings.hueVsSat || [],
+                        hueVsLuma: newSettings.hueVsLuma || []
+                    }
+                };
 
-                                    const transform = buildColorTransform(pipeline);
+                const transform = buildColorTransform(pipeline);
                                     const lut = generateLUT3D(33, transform);
 
-                                    // デバッグ: LUTデータの確認
-                                    console.log(`[Curves] LUT generated. Size: ${lut.size}, Data[0-3]:`,
-                                        lut.data[0], lut.data[1], lut.data[2], lut.data[3]);
+                                    if (DEBUG_CURVES) {
+                                        console.log(
+                                            `[Curves] LUT generated. Data[0-3]:`,
+                                            lut.data[0],
+                                            lut.data[1],
+                                            lut.data[2],
+                                            lut.data[3]
+                                        );
+                                    }
 
-                                    processor.loadLUT(lut);
-                                    processor.setIntensity(1.0); // 念のため強度をリセット
+                processor.loadLUT(lut);
+                processor.setIntensity(1.0); // 念のため強度をリセット
 
-                                    // ヒストグラム更新をリクエスト
-                                    needsHistogramUpdate.set(node.id, true);
+                // ヒストグラム更新をリクエスト
+                needsHistogramUpdate.set(node.id, true);
                                 }
                             } else {
                                 // 非リアルタイムモード：FFmpegで再生成
@@ -1258,6 +1302,11 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                 // WebGLプレビュー更新（画像用）
                 const updatePreview = () => {
+                    const now = Date.now();
+                    const last = lastPreviewUpdateAt.get(node.id) || 0;
+                    if (now - last < PREVIEW_UPDATE_MIN_MS) return;
+                    lastPreviewUpdateAt.set(node.id, now);
+
                     const sourceMediaUrl = getSourceMedia(node);
                     if (sourceMediaUrl && processor) {
                         // パイプライン構築
@@ -1299,23 +1348,27 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                 }
                             }
                         }
-                    }
-                };
+            }
+        };
 
-                // 初期化：画像/動画ロードとプレビュー
-                // 無限ループ防止：初回のみ初期化を実行、ただしソースが変更された場合は再実行
-                const isInitialized = initializedNodes.get(node.id);
-                const sourceMediaUrl = getSourceMedia(node);
-                const lastUrl = lastProcessedSourceUrl.get(node.id);
+        // 初期化：画像/動画ロードとプレビュー
+        // 無限ループ防止：初回のみ初期化を実行、ただしソースが変更された場合は再実行
+        const isInitialized = initializedNodes.get(node.id);
+        const sourceMediaUrl = getSourceMedia(node);
+        const lastUrl = lastProcessedSourceUrl.get(node.id);
 
-                console.log('[Curves] render check:', {
-                    id: node.id,
-                    sourceMediaUrl,
-                    lastUrl,
-                    isInitialized,
-                    match: sourceMediaUrl === lastUrl,
-                    isVideo: state.mediaPreviews.get(state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || '')?.kind === 'video'
-                });
+        if (DEBUG_CURVES) {
+            console.log('[Curves] render check:', {
+                id: node.id,
+                sourceMediaUrl,
+                lastUrl,
+                isInitialized,
+                match: sourceMediaUrl === lastUrl,
+                isVideo: state.mediaPreviews.get(
+                    state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || ''
+                )?.kind === 'video'
+            });
+        }
 
                 if (sourceMediaUrl && (!isInitialized || sourceMediaUrl !== lastUrl)) {
                     // 初期化済みフラグと最終ソースを更新

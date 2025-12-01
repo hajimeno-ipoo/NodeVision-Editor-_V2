@@ -482,15 +482,16 @@ export const createLoadNodeRenderer = (context: NodeRendererContext): NodeRender
     const currentPath = preview?.filePath;
 
     // Debug logging for dropdown selection
-    if (fileHistory.length > 0) {
-      console.log('[NodeVision] Dropdown Debug:', {
-        nodeId,
-        currentPath,
-        historyLength: fileHistory.length,
-        firstHistory: fileHistory[0],
-        matchFound: fileHistory.includes(currentPath || '')
-      });
-    }
+    // const DEBUG_DROPDOWN = false;
+    // if (DEBUG_DROPDOWN && fileHistory.length > 0) {
+    //   console.log('[NodeVision] Dropdown Debug:', {
+    //     nodeId,
+    //     currentPath,
+    //     historyLength: fileHistory.length,
+    //     firstHistory: fileHistory[0],
+    //     matchFound: fileHistory.includes(currentPath || '')
+    //   });
+    // }
 
     let currentIndex = -1;
     if (currentPath && fileHistory.length > 0) {

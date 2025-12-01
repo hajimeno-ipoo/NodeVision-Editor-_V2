@@ -5,6 +5,8 @@
 
 import type { LUT3D } from '@nodevision/color-grading';
 
+const DEBUG_LUT_PROCESSOR = false;
+
 export class WebGLLUTProcessor {
     private gl: WebGL2RenderingContext;
     private program!: WebGLProgram;
@@ -102,7 +104,9 @@ export class WebGLLUTProcessor {
 
     private createInputTexture(img: HTMLImageElement, width: number, height: number) {
         const gl = this.gl;
-        console.log('[WebGLLUT] Creating input texture:', width, 'x', height);
+        if (DEBUG_LUT_PROCESSOR) {
+            console.log('[WebGLLUT] Creating input texture:', width, 'x', height);
+        }
 
         if (!this.inputTexture) {
             this.inputTexture = gl.createTexture();
@@ -138,7 +142,9 @@ export class WebGLLUTProcessor {
             if (error !== gl.NO_ERROR) {
                 console.error('[WebGLLUT] Error uploading input texture:', error);
             } else {
-                console.log('[WebGLLUT] Input texture uploaded successfully');
+                if (DEBUG_LUT_PROCESSOR) {
+                    console.log('[WebGLLUT] Input texture uploaded successfully');
+                }
             }
         } catch (e) {
             console.error('[WebGLLUT] Exception uploading input texture:', e);
@@ -221,7 +227,9 @@ export class WebGLLUTProcessor {
         const { gl } = this;
 
         if (!this.lut3DTexture) {
-            console.warn('[WebGLLUT] Cannot render: missing 3D LUT texture');
+            if (DEBUG_LUT_PROCESSOR) {
+                console.warn('[WebGLLUT] Cannot render: missing 3D LUT texture');
+            }
             return;
         }
 
@@ -253,8 +261,8 @@ export class WebGLLUTProcessor {
         const error = gl.getError();
         if (error !== gl.NO_ERROR) {
             console.error('[WebGLLUT] WebGL Error during render:', error);
-        } else {
-            // console.log('[WebGLLUT] Render successful');
+        } else if (DEBUG_LUT_PROCESSOR) {
+            console.log('[WebGLLUT] Render successful');
         }
     }
 

@@ -4,6 +4,8 @@ import { getMediaPreviewReservedHeight } from './preview-layout';
 import { calculatePreviewSize } from './preview-size';
 import { ensureTrimSettings } from './trim-shared';
 
+const DEBUG_MEDIA_PREVIEW = false;
+
 const MEDIA_PREVIEW_NODE_TYPE = 'mediaPreview';
 
 const resolveNodeTitle = (node: RendererNode | undefined, context: NodeRendererContext): string => {
@@ -141,10 +143,23 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       minimumNodePortion: 0.95
     });
 
+  if (DEBUG_MEDIA_PREVIEW) {
     console.log('[MediaPreview] Node size:', nodeWidth, 'x', nodeHeight);
-    console.log('[MediaPreview] widthLimit:', widthLimit, '=>', effectiveWidthLimit, 'chromePadding:', chrome, '=>', effectiveChrome, 'reservedHeight:', reservedHeight);
+    console.log(
+      '[MediaPreview] widthLimit:',
+      widthLimit,
+      '=>',
+      effectiveWidthLimit,
+      'chromePadding:',
+      chrome,
+      '=>',
+      effectiveChrome,
+      'reservedHeight:',
+      reservedHeight
+    );
     console.log('[MediaPreview] Canvas dimensions:', canvasPreview?.width, 'x', canvasPreview?.height);
     console.log('[MediaPreview] Calculated previewBox:', previewBox);
+  }
 
     const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
     const sourceTitle = resolveNodeTitle(sourceNode, context);
@@ -234,15 +249,21 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
         const sourceNodeId = canvasPlaceholder.getAttribute('data-canvas-source');
         // const canvasStyle = canvasPlaceholder.getAttribute('data-canvas-style'); // Unused
 
-        console.log('[MediaPreview] Found placeholder for source:', sourceNodeId);
+        if (DEBUG_MEDIA_PREVIEW) {
+          console.log('[MediaPreview] Found placeholder for source:', sourceNodeId);
+        }
 
         if (sourceNodeId) {
           const canvas = state.canvasPreviews.get(sourceNodeId);
-          console.log('[MediaPreview] Canvas found in state:', !!canvas);
+          if (DEBUG_MEDIA_PREVIEW) {
+            console.log('[MediaPreview] Canvas found in state:', !!canvas);
+          }
 
           if (canvas) {
-            console.log('[MediaPreview] Canvas dims:', canvas.width, 'x', canvas.height);
-            console.log('[MediaPreview] Canvas style before:', canvas.getAttribute('style'));
+            if (DEBUG_MEDIA_PREVIEW) {
+              console.log('[MediaPreview] Canvas dims:', canvas.width, 'x', canvas.height);
+              console.log('[MediaPreview] Canvas style before:', canvas.getAttribute('style'));
+            }
 
             // Canvasが見つかった場合、スタイルを常に適用する（DOMに既に存在する場合も含む）
             // position: absolute で強制的に広げる
@@ -258,9 +279,13 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
               // 既存のコンテンツをクリア
               canvasPlaceholder.innerHTML = '';
               canvasPlaceholder.appendChild(canvas);
-              console.log('[MediaPreview] Canvas inserted. Dimensions:', canvas.width, 'x', canvas.height);
+              if (DEBUG_MEDIA_PREVIEW) {
+                console.log('[MediaPreview] Canvas inserted. Dimensions:', canvas.width, 'x', canvas.height);
+              }
             } else {
-              console.log('[MediaPreview] Canvas already in placeholder, styles updated.');
+              if (DEBUG_MEDIA_PREVIEW) {
+                console.log('[MediaPreview] Canvas already in placeholder, styles updated.');
+              }
             }
           }
         }
