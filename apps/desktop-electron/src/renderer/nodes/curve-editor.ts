@@ -30,6 +30,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
     const processors = new Map<string, WebGLLUTProcessor>();
     const lastSourceByNode = new Map<string, string>();
+    const lastProcessedSourceUrl = new Map<string, string>(); // 入力ソースの変更検知用
     const activeChannels = new Map<string, ChannelType>(); // ノードごとのアクティブチャンネル
 
     // ヒストグラム関連の状態
@@ -775,9 +776,11 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                         if (video && result.url) {
                                             (video as HTMLVideoElement).src = result.url;
                                             (video as HTMLVideoElement).load(); // 明示的にリロード
+                                        } else if (!video && result.url) {
+                                            // video要素がない場合（初回ロード時など）は、再レンダリングをトリガーして
+                                            // Media Previewノードにvideo要素を生成させる
+                                            context.renderNodes();
                                         }
-                                        // video要素がない場合は、初回なので何もしない
-                                        // （renderNodes不要 - 初期化は別で行われる）
                                     }
                                 });
                             });
@@ -844,13 +847,15 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 };
 
                 // 初期化：画像/動画ロードとプレビュー
-                // 無限ループ防止：初回のみ初期化を実行
+                // 無限ループ防止：初回のみ初期化を実行、ただしソースが変更された場合は再実行
                 const isInitialized = initializedNodes.get(node.id);
                 const sourceMediaUrl = getSourceMedia(node);
+                const lastUrl = lastProcessedSourceUrl.get(node.id);
 
-                if (sourceMediaUrl && !isInitialized) {
-                    // 初期化済みフラグを設定
+                if (sourceMediaUrl && (!isInitialized || sourceMediaUrl !== lastUrl)) {
+                    // 初期化済みフラグと最終ソースを更新
                     initializedNodes.set(node.id, true);
+                    lastProcessedSourceUrl.set(node.id, sourceMediaUrl);
 
                     // 動画かどうかを判定
                     const sourcePreview = state.mediaPreviews.get(
@@ -895,6 +900,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 } else if (!sourceMediaUrl) {
                     // ソースがない場合はクリーンアップ
                     lastSourceByNode.delete(node.id);
+                    lastProcessedSourceUrl.delete(node.id);
                     initializedNodes.delete(node.id);
                     propagateToMediaPreview(node, undefined);
                 }

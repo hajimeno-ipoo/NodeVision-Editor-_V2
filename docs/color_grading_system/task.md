@@ -251,7 +251,8 @@ The next step is to proceed with testing other color grading nodes as per the te
 - [x] Hueカーブのポイント操作制限解除（端点吸着無効化）
 - [x] Hueカーブの補間ロジック修正（2点でもCatmull-Rom補間を適用）
 - [x] `curve-editor.ts`の構文エラー修正
-- [ ] 最終動作確認パイプライン統合のテスト作成
+- [x] 動画読み込み時のプレビュー即時反映修正（UI更新）
+- [ ] 最終動作確認
 - [ ] 全モジュールのテストカバレッジ80%以上
 - [ ] エッジケーステスト追加
 - [ ] CI統合
