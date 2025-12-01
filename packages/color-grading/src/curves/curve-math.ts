@@ -76,6 +76,12 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
 
     // ループ処理（Hueカーブ用）
     if (loop) {
+        // ポイントが1つもない場合は中立（0.5）
+        if (normalized.length === 0) return 0.5;
+
+        // ポイントが1つだけの場合は水平線
+        if (normalized.length === 1) return normalized[0].y;
+
         // 仮想的にポイントを前後に追加してループを表現
         // 前: x - 1, 後: x + 1
         const prevPoints = normalized.map(p => ({ x: p.x - 1, y: p.y }));
@@ -96,9 +102,17 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
         const p1 = extended[i1];
         const p2 = extended[i1 + 1];
 
-        // Catmull-Rom 制御点
-        const p0 = i1 > 0 ? extended[i1 - 1] : p1; // 端の場合は複製
-        const p3 = i1 < extended.length - 2 ? extended[i1 + 2] : p2;
+
+
+        // Catmull-Rom 制御点（線形外挿で仮想制御点を作成）
+        const p0 = i1 > 0 ? extended[i1 - 1] : {
+            x: 2 * p1.x - p2.x,
+            y: 2 * p1.y - p2.y
+        };
+        const p3 = i1 < extended.length - 2 ? extended[i1 + 2] : {
+            x: 2 * p2.x - p1.x,
+            y: 2 * p2.y - p1.y
+        };
 
         const t = (p2.x === p1.x) ? 0 : (x - p1.x) / (p2.x - p1.x);
         const y = catmullRomInterpolate(p0.y, p1.y, p2.y, p3.y, t);
@@ -138,16 +152,23 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
     const p1 = normalized[i1];
     const p2 = normalized[i2];
 
-    // 線形補間の場合（ポイントが2つだけ、または区間が狭い）
-    if (normalized.length === 2 || i1 === i2) {
+    // 線形補間の場合（ポイントが2つだけ）
+    if (normalized.length === 2) {
         const t = (x - p1.x) / (p2.x - p1.x);
         const y = p1.y + t * (p2.y - p1.y);
         return Math.max(0, Math.min(1, y));
     }
 
     // Catmull-Rom のための4つの制御点を取得
-    const p0 = i1 > 0 ? normalized[i1 - 1] : p1;
-    const p3 = i2 < normalized.length - 1 ? normalized[i2 + 1] : p2;
+    // 端点では線形外挿で仮想制御点を作成（端が不自然に曲がるのを防ぐ）
+    const p0 = i1 > 0 ? normalized[i1 - 1] : {
+        x: 2 * p1.x - p2.x,
+        y: 2 * p1.y - p2.y
+    };
+    const p3 = i2 < normalized.length - 1 ? normalized[i2 + 1] : {
+        x: 2 * p2.x - p1.x,
+        y: 2 * p2.y - p1.y
+    };
 
     // 正規化されたパラメータ t（p1 と p2 の間）
     const t = (x - p1.x) / (p2.x - p1.x);

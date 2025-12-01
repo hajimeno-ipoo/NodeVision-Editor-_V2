@@ -2,9 +2,10 @@ import type { ColorGradingPipeline } from '@nodevision/color-grading';
 import type { CurvesNodeSettings, CurvePoint } from '@nodevision/editor';
 
 import type { RendererNode } from '../types';
-import type { NodeRendererContext, NodeRendererModule } from './types';
-import { WebGLLUTProcessor } from './webgl-lut-processor';
+
 import { calculateHistogram, type HistogramData } from './histogram-utils';
+import { WebGLLUTProcessor } from './webgl-lut-processor';
+import type { NodeRendererContext, NodeRendererModule } from './types';
 
 // 動的にモジュールを読み込む
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,6 +41,9 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
     // 動画プレビュー生成のフラグ
     let isGeneratingFFmpeg = false;
     let pendingFFmpegNode: RendererNode | null = null;
+
+    // 初期化済みフラグ（無限ループ防止）
+    const initializedNodes = new Map<string, boolean>();
 
     const createProcessor = (): WebGLLUTProcessor => {
         const canvas = document.createElement('canvas');
@@ -429,8 +433,14 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                     const getPointFromEvent = (e: MouseEvent | PointerEvent) => {
                         const rect = canvas.getBoundingClientRect();
-                        const x = Math.max(0, Math.min(1, (e.clientX - rect.left - padding) / (canvas.width - padding * 2)));
-                        const y = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top - padding) / (canvas.height - padding * 2)));
+                        // CSS座標系で計算（高DPIディスプレイ対応）
+                        const canvasWidth = rect.width;
+                        const canvasHeight = rect.height;
+                        const drawWidth = canvasWidth - padding * 2;
+                        const drawHeight = canvasHeight - padding * 2;
+
+                        const x = Math.max(0, Math.min(1, (e.clientX - rect.left - padding) / drawWidth));
+                        const y = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top - padding) / drawHeight));
                         return { x, y };
                     };
 
@@ -479,15 +489,24 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         const point = points[dragIndex];
 
                         // ポイント数に応じた操作制限（DaVinci Resolve仕様）
-                        if (points.length === 1) {
-                            // 1ポイントのみ：Y座標のみ変更可能
-                            point.y = y;
+                        const isHue = activeChannel.startsWith('hueVs');
+
+                        if (points.length === 1 && !isHue) {
+                            // 1ポイントのみ：Y座標のみ変更可能（RGBカーブの場合）
+                            // Hueカーブの場合は1ポイントでも自由に動かせるべきか？ -> DaVinciではHueカーブは最低2ポイントから始まることが多いが、
+                            // ここではHueカーブなら自由に動かせるようにする
+                            if (isHue) {
+                                point.x = x;
+                                point.y = y;
+                            } else {
+                                point.y = y;
+                            }
                         } else {
                             // 端点の判定（配列の最初と最後）
                             const isLeftEndpoint = dragIndex === 0;
                             const isRightEndpoint = dragIndex === points.length - 1;
 
-                            if (isLeftEndpoint) {
+                            if (isLeftEndpoint && !isHue) {
                                 // 左端点：L字型の移動制限（左端または下端に吸着）
                                 // x=0 (左端) または y=0 (下端) のどちらに近いかで判定
                                 if (x < y) {
@@ -500,7 +519,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                     point.x = Math.max(0, Math.min(maxX, x));
                                     point.y = 0;
                                 }
-                            } else if (isRightEndpoint) {
+                            } else if (isRightEndpoint && !isHue) {
                                 // 右端点：逆L字型の移動制限（右端または上端に吸着）
                                 // x=1 (右端) または y=1 (上端) のどちらに近いかで判定
                                 // (1-x) vs (1-y)
@@ -515,13 +534,15 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                     point.y = 1;
                                 }
                             } else {
-                                // 中間ポイント：X/Y両方向に移動可能
-                                const minX = points[dragIndex - 1].x + 0.01;
-                                const maxX = points[dragIndex + 1].x - 0.01;
+                                // 中間ポイント（またはHueカーブの全ポイント）：X/Y両方向に移動可能
+                                // ただし、隣接するポイントを超えないように制限
+                                const minX = dragIndex > 0 ? points[dragIndex - 1].x + 0.01 : 0;
+                                const maxX = dragIndex < points.length - 1 ? points[dragIndex + 1].x - 0.01 : 1;
                                 point.x = Math.max(minX, Math.min(maxX, x));
                                 point.y = y;
                             }
                         }
+
 
                         let histData: HistogramData | null = null;
                         if (histogramMode === 'input') {
@@ -719,12 +740,20 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         const result = await window.nodevision.generatePreview({ nodes: upstreamNodes });
 
                         if (result.ok && result.url) {
+                            // 元のソース動画のサイズを取得
+                            const sourceConn = state.connections.find(c => c.toNodeId === nodeToProcess.id);
+                            const sourceNode = sourceConn ? state.nodes.find(n => n.id === sourceConn.fromNodeId) : null;
+                            const sourcePreview = sourceNode ? state.mediaPreviews.get(sourceNode.id) : null;
+
+                            const width = sourcePreview?.width ?? 1280;
+                            const height = sourcePreview?.height ?? 720;
+
                             state.mediaPreviews.set(nodeToProcess.id, {
                                 url: result.url,
                                 name: 'Preview',
                                 kind: 'video',
-                                width: 1280,
-                                height: 720,
+                                width,
+                                height,
                                 size: 0,
                                 type: 'video/mp4',
                                 ownedUrl: true
@@ -745,9 +774,10 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                                         if (video && result.url) {
                                             (video as HTMLVideoElement).src = result.url;
-                                        } else if (!video && result.url) {
-                                            context.renderNodes();
+                                            (video as HTMLVideoElement).load(); // 明示的にリロード
                                         }
+                                        // video要素がない場合は、初回なので何もしない
+                                        // （renderNodes不要 - 初期化は別で行われる）
                                     }
                                 });
                             });
@@ -814,8 +844,14 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 };
 
                 // 初期化：画像/動画ロードとプレビュー
+                // 無限ループ防止：初回のみ初期化を実行
+                const isInitialized = initializedNodes.get(node.id);
                 const sourceMediaUrl = getSourceMedia(node);
-                if (sourceMediaUrl) {
+
+                if (sourceMediaUrl && !isInitialized) {
+                    // 初期化済みフラグを設定
+                    initializedNodes.set(node.id, true);
+
                     // 動画かどうかを判定
                     const sourcePreview = state.mediaPreviews.get(
                         state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || ''
@@ -823,7 +859,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     const isVideo = sourcePreview?.kind === 'video';
 
                     if (isVideo) {
-                        // 動画の場合：FFmpegでプレビュー生成
+                        // 動画の場合：FFmpegでプレビュー生成（初回のみ）
                         await generateFFmpegVideoPreview(node);
                     } else {
                         // 画像の場合：WebGLで処理
@@ -856,8 +892,10 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         updatePreview();
                     }
-                } else {
+                } else if (!sourceMediaUrl) {
+                    // ソースがない場合はクリーンアップ
                     lastSourceByNode.delete(node.id);
+                    initializedNodes.delete(node.id);
                     propagateToMediaPreview(node, undefined);
                 }
             },

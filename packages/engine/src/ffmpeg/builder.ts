@@ -1,5 +1,6 @@
 /* c8 ignore start */
 import path from 'node:path';
+
 import { buildLegacyColorCorrectionPipeline, type ColorGradingPipeline } from '@nodevision/color-grading';
 
 export type MediaNodeType =
@@ -14,6 +15,7 @@ export type MediaNodeType =
   | 'speed'
   | 'changeFps'
   | 'colorCorrection'
+  | 'curves'
   | 'export';
 
 interface BaseMediaNode {
@@ -95,6 +97,18 @@ export interface ColorCorrectionNode extends BaseMediaNode {
   tint?: number;
 }
 
+export interface CurvesNode extends BaseMediaNode {
+  typeId: 'curves';
+  kind: 'curves';
+  master?: Array<{ x: number; y: number }>;
+  red?: Array<{ x: number; y: number }>;
+  green?: Array<{ x: number; y: number }>;
+  blue?: Array<{ x: number; y: number }>;
+  hueVsHue?: Array<{ x: number; y: number }>;
+  hueVsSat?: Array<{ x: number; y: number }>;
+  hueVsLuma?: Array<{ x: number; y: number }>;
+}
+
 export interface ExportNode extends BaseMediaNode {
   typeId: 'export';
   container?: 'mp4' | 'mov' | 'mkv';
@@ -113,6 +127,7 @@ export type MediaNode =
   | SpeedNode
   | ChangeFpsNode
   | ColorCorrectionNode
+  | CurvesNode
   | ExportNode;
 
 export interface MediaChain {
@@ -268,6 +283,10 @@ const collectColorCorrections = (nodes: MediaNode[]): ColorCorrectionNode[] => {
   return nodes.filter(node => node.typeId === 'colorCorrection') as ColorCorrectionNode[];
 };
 
+const collectCurves = (nodes: MediaNode[]): CurvesNode[] => {
+  return nodes.filter(node => node.typeId === 'curves') as CurvesNode[];
+};
+
 const computeDuration = (load: LoadMediaNode, speedRatio: number): number | null => {
   if (typeof load.durationMs !== 'number') {
     return null;
@@ -299,6 +318,7 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
   const overlays = collectOverlays(chain.nodes);
   const texts = collectTexts(chain.nodes);
   const colorCorrections = collectColorCorrections(chain.nodes);
+  const curves = collectCurves(chain.nodes);
   const speedRatio = calculateSpeed(chain.nodes);
   const fpsNode = pickChangeFps(chain.nodes);
 
@@ -410,6 +430,58 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
         params: {
           pipeline,
           nodeId: cc.id
+        }
+      });
+    }
+  });
+
+  // Curves: Use 3D LUT
+  curves.forEach(curve => {
+    // Check if there are any curve adjustments (non-linear curves)
+    const defaultLinear = [{ x: 0, y: 0 }, { x: 1, y: 1 }];
+    const isLinear = (points?: Array<{ x: number; y: number }>) => {
+      if (!points || points.length === 0) return true;
+      if (points.length !== 2) return false;
+      return points[0].x === 0 && points[0].y === 0 && points[1].x === 1 && points[1].y === 1;
+    };
+
+    const hasNonEmptyHueCurve = (points?: Array<{ x: number; y: number }>) => {
+      return points && points.length > 0;
+    };
+
+    const hasCurveAdjustments =
+      !isLinear(curve.master) ||
+      !isLinear(curve.red) ||
+      !isLinear(curve.green) ||
+      !isLinear(curve.blue) ||
+      hasNonEmptyHueCurve(curve.hueVsHue) ||
+      hasNonEmptyHueCurve(curve.hueVsSat) ||
+      hasNonEmptyHueCurve(curve.hueVsLuma);
+
+    if (hasCurveAdjustments) {
+      // Build ColorGradingPipeline from curves
+      const pipeline: ColorGradingPipeline = {
+        curves: {
+          master: curve.master ?? defaultLinear,
+          red: curve.red ?? defaultLinear,
+          green: curve.green ?? defaultLinear,
+          blue: curve.blue ?? defaultLinear,
+        },
+        // Hue curves are handled by LUT but FFmpeg doesn't support them directly
+        hueCurves: {
+          hueVsHue: curve.hueVsHue ?? [],
+          hueVsSat: curve.hueVsSat ?? [],
+          hueVsLuma: curve.hueVsLuma ?? [],
+        }
+      };
+
+      stages.push({
+        stage: 'filter',
+        typeId: 'lut3d_generator',
+        nodeVersion: curve.nodeVersion,
+        params: {
+          pipeline,
+          nodeId: curve.id
         }
       });
     }

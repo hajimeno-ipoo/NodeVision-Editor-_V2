@@ -121,12 +121,20 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
             if (result.ok && result.url) {
                 console.log('[ColorCorrection] FFmpeg preview generated successfully:', result.url);
 
+                // 元のソース動画のサイズを取得
+                const sourceConn = state.connections.find(c => c.toNodeId === node.id);
+                const sourceNode = sourceConn ? state.nodes.find(n => n.id === sourceConn.fromNodeId) : null;
+                const sourcePreview = sourceNode ? state.mediaPreviews.get(sourceNode.id) : null;
+
+                const width = sourcePreview?.width ?? 1280;
+                const height = sourcePreview?.height ?? 720;
+
                 state.mediaPreviews.set(node.id, {
                     url: result.url,
                     name: 'Preview',
                     kind: 'video', // 動画として設定
-                    width: 1280,
-                    height: 720,
+                    width,
+                    height,
                     size: 0,
                     type: 'video/mp4',
                     ownedUrl: true

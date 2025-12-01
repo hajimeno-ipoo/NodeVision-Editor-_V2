@@ -1,15 +1,16 @@
+import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
 import { promises as fs, createWriteStream } from 'node:fs';
 import fsSync from 'node:fs';
-import { spawn } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
-import crypto from 'node:crypto';
 import type { Server as HttpServer } from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 import archiver from 'archiver';
 import zipEncrypted from 'archiver-zip-encrypted';
-import os from 'node:os';
-import { generateLUT3D, exportCubeLUT, buildColorTransform } from '@nodevision/color-grading';
 
+import { generateLUT3D, exportCubeLUT, buildColorTransform } from '@nodevision/color-grading';
 import { DEFAULT_NODE_TEMPLATES, seedDemoNodes } from '@nodevision/editor';
 import {
   createInspectHttpServer,
@@ -403,15 +404,25 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
             if (k === 'fontSize') return `fontsize=${v}`;
             if (k === 'color') return `fontcolor=${v}`;
           }
-          if (stage.typeId === 'eq' as any || stage.typeId === 'curves' as any || stage.typeId === 'colorchannelmixer' as any) {
-            // These are FFmpeg filter names, use params as-is
+          if (stage.typeId === 'curves' as any) {
+            if (k === 'kind') return null;
+            // FFmpeg curves filter only supports master, red, green, blue
+            if (!['master', 'red', 'green', 'blue'].includes(k)) return null;
+
+            // Handle curve points array
+            if (Array.isArray(v)) {
+              const points = v as { x: number; y: number }[];
+              if (points.length === 0) return null;
+              // Convert to "x/y x/y" format
+              const pointsStr = points.map(p => `${p.x}/${p.y}`).join(' ');
+              return `${k}='${pointsStr}'`;
+            }
           }
 
           let valStr = String(v);
           // Always quote color correction filter parameters to ensure correct parsing
           if (
             stage.typeId === 'eq' as any ||
-            stage.typeId === 'curves' as any ||
             stage.typeId === 'colorchannelmixer' as any ||
             valStr.includes(' ')
           ) {

@@ -248,9 +248,10 @@ The next step is to proceed with testing other color grading nodes as per the te
 
 ### Task 9.1: ユニットテスト整備
 - [x] LUTパーサーのテスト作成
-- [x] カーブ補間のテスト作成
-- [x] HSL Keyerのテスト作成
-- [x] パイプライン統合のテスト作成
+- [x] Hueカーブのポイント操作制限解除（端点吸着無効化）
+- [x] Hueカーブの補間ロジック修正（2点でもCatmull-Rom補間を適用）
+- [x] `curve-editor.ts`の構文エラー修正
+- [ ] 最終動作確認パイプライン統合のテスト作成
 - [ ] 全モジュールのテストカバレッジ80%以上
 - [ ] エッジケーステスト追加
 - [ ] CI統合
