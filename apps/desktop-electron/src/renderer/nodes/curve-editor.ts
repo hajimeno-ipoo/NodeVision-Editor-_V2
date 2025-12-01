@@ -957,15 +957,13 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     });
 
                     window.addEventListener('pointerup', (e) => {
-                        if (isDragging) {
-                            isDragging = false;
-                            dragIndex = -1;
-                            canvas.releasePointerCapture(e.pointerId);
-                            // カーブ変更時はOutputヒストグラムをクリアして再計算させる
-                            outputHistograms.delete(node.id);
-                            updateSettings(); // 最終確定
-                        }
-                    });
+                    if (isDragging) {
+                        isDragging = false;
+                        dragIndex = -1;
+                        canvas.releasePointerCapture(e.pointerId);
+                        updateSettings(); // 最終確定
+                    }
+                });
 
                     // ダブルクリックでポイント削除（両端以外）
                     canvas.addEventListener('dblclick', (e) => {
@@ -991,8 +989,6 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         if (foundIndex !== -1) {
                             points.splice(foundIndex, 1);
-                            // カーブ変更時はOutputヒストグラムをクリアして再計算させる
-                            outputHistograms.delete(node.id);
                             updateSettings();
                         }
                     });
