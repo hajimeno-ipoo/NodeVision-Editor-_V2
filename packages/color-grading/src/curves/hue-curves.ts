@@ -2,6 +2,11 @@ import { HueCurves } from './types';
 import { evaluateCurve } from './curve-math';
 import { rgbToHSL, hslToRGB, clampRGB } from '../processors/color-math';
 
+// オプション：Rec.709(gamma2.4) で処理したい場合は true
+const USE_REC709_GAMMA = true;
+const toRec709Linear = (v: number) => Math.pow(v, 2.4);
+const fromRec709Linear = (v: number) => Math.pow(v, 1 / 2.4);
+
 /**
  * Apply Hue Curves to an RGB color
  * 
@@ -17,8 +22,13 @@ export function applyHueCurves(
     b: number,
     curves: HueCurves
 ): [number, number, number] {
+    // Rec.709ガンマを想定した線形域に変換
+    let rWork = USE_REC709_GAMMA ? toRec709Linear(r) : r;
+    let gWork = USE_REC709_GAMMA ? toRec709Linear(g) : g;
+    let bWork = USE_REC709_GAMMA ? toRec709Linear(b) : b;
+
     // 1. Convert to HSL
-    const [h, s, l] = rgbToHSL(r, g, b);
+    const [h, s, l] = rgbToHSL(rWork, gWork, bWork);
 
     // Normalize Hue to 0-1 for curve evaluation
     const normalizedHue = h / 360;
@@ -70,6 +80,13 @@ export function applyHueCurves(
     newR *= scale;
     newG *= scale;
     newB *= scale;
+
+    // 表示用にガンマ戻し
+    if (USE_REC709_GAMMA) {
+        newR = fromRec709Linear(newR);
+        newG = fromRec709Linear(newG);
+        newB = fromRec709Linear(newB);
+    }
 
     return clampRGB(newR, newG, newB);
 }
