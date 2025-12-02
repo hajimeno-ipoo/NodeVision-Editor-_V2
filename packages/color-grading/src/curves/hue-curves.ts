@@ -49,21 +49,27 @@ export function applyHueCurves(
     // Clamp Saturation
     newS = Math.max(0, Math.min(1, newS));
 
-    // 4. Apply Hue vs Luma
-    // Y=0.5 means no change.
-    // This modifies Lightness (L) based on Hue.
-    const lumaOffsetVal = evaluateCurve(curves.hueVsLuma, normalizedHue, true);
-    // Map 0.0-1.0 to -1.0 to +1.0 offset? Or smaller range?
-    // Let's try +/- 0.5 for smoother control, or +/- 1.0 for full range.
-    // Let's use +/- 1.0
-    const lumaOffset = (lumaOffsetVal - 0.5) * 2.0;
-    let newL = l + lumaOffset;
+    // 4. Apply Hue vs Luma（ゲイン＋肩落ち＋シャドウリフトでDaVinci寄せ）
+    const lumaVal = evaluateCurve(curves.hueVsLuma, normalizedHue, true);
+    // 0.5→1.0倍、1.0→2.0倍、0.0→0.0倍（レンジ広めに戻すが下は0.4で止める）
+    const gainRaw = 1 + (lumaVal - 0.5) * 2.0;
+    const gainClamped = Math.min(2.0, Math.max(0.4, gainRaw));
 
-    // Clamp Lightness
-    newL = Math.max(0, Math.min(1, newL));
+    // Hue/Sat 反映後のRGB
+    let [newR, newG, newB] = hslToRGB(newH, newS, l);
 
-    // 5. Convert back to RGB
-    const [newR, newG, newB] = hslToRGB(newH, newS, newL);
+    // Y' 計算
+    const currentY = 0.2126 * newR + 0.7152 * newG + 0.0722 * newB;
+    // ハイライト肩落ち（Reinhard風）
+    const shoulder = (gainClamped * currentY) / (1 + (gainClamped - 1) * currentY);
+    // シャドウリフトで真っ黒回避（0.02〜0.05 好みで。ここでは 0.03）
+    const lifted = Math.max(0.03, shoulder);
+
+    // RGBを等比スケール
+    const scale = currentY > 1e-6 ? lifted / currentY : lifted;
+    newR *= scale;
+    newG *= scale;
+    newB *= scale;
 
     return clampRGB(newR, newG, newB);
 }
