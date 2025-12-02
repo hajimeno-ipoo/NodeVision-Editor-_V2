@@ -108,6 +108,7 @@ const processors = new Map<string, WebGLLUTProcessor>();
 const lastSourceByNode = new Map<string, string>();
 const lastProcessedSourceUrl = new Map<string, string>(); // 入力ソースの変更検知用
 const activeChannels = new Map<string, ChannelType>(); // ノードごとのアクティブチャンネル
+const noSourceCleaned = new Set<string>(); // ソース切断後にクリーンアップ済みか
 
 // ヒストグラム関連の状態
 type HistogramMode = 'input' | 'output' | 'off';
@@ -543,7 +544,7 @@ function propagateToMediaPreview(node: RendererNode, processor?: WebGLLUTProcess
 }
 
 export const createCurveEditorNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
-    const { state, escapeHtml } = context;
+    const { state, escapeHtml, cleanupMediaPreview } = context;
     globalContext = context;
 
 
@@ -1475,6 +1476,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     initializedNodes.set(node.id, true);
                     lastProcessedSourceUrl.set(node.id, sourceMediaUrl);
                     if (currentKind) lastKindByNode.set(node.id, currentKind);
+                    noSourceCleaned.delete(node.id);
 
                     // 動画かどうかを判定
                     const sourcePreview = state.mediaPreviews.get(
@@ -1540,11 +1542,25 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         updatePreview();
                     }
                 } else if (!sourceMediaUrl) {
-                    // ソースがない場合はクリーンアップ
+                    // ソースがない場合はクリーンアップ（動画ループを確実に停止）
+                    if (noSourceCleaned.has(node.id)) {
+                        return;
+                    }
+                    noSourceCleaned.add(node.id);
+                    stopRealtimeVideoPreview(node.id);
+                    realtimeMode.delete(node.id);
+                    videoElements.delete(node.id);
+                    lastFailedVideoUrl.delete(node.id);
+                    needsHistogramUpdate.delete(node.id);
+                    inputHistograms.delete(node.id);
+                    outputHistograms.delete(node.id);
+                    lastHistogramUpdateAt.delete(node.id);
+                    lastPreviewUpdateAt.delete(node.id);
                     lastSourceByNode.delete(node.id);
                     lastProcessedSourceUrl.delete(node.id);
                     initializedNodes.delete(node.id);
                     lastKindByNode.delete(node.id);
+                    cleanupMediaPreview(node.id);
                     propagateToMediaPreview(node, undefined);
                 }
             },
