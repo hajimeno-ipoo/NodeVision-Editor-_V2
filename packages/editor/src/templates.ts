@@ -233,8 +233,8 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     category: 'Color',
     description: 'Adjust tonal range and color balance using curves',
     keywords: ['color', 'curves', 'rgb', 'luma'],
-    width: 400,
-    height: 500,
+    width: 474,
+    height: 520,
     inputs: [
       { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
     ],
