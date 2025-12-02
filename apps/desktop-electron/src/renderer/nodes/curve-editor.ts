@@ -974,11 +974,6 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         e.preventDefault();
                         e.stopPropagation();
 
-                        const now = Date.now();
-                        const last = lastPreviewUpdateAt.get(node.id) || 0;
-                        if (now - last < PREVIEW_UPDATE_MIN_MS) return;
-                        lastPreviewUpdateAt.set(node.id, now);
-
                         const { x, y } = getPointFromEvent(e);
                         const points = settings[activeChannel];
                         if (!points) return;
@@ -1198,27 +1193,27 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         if (isVideo) {
                             // 動画の場合：リアルタイムモードならLUT更新のみ、それ以外はFFmpeg再生成
-        const isRealtime = realtimeMode.get(node.id);
+                            const isRealtime = realtimeMode.get(node.id);
 
-        if (isRealtime) {
-            // リアルタイムモード：LUT更新のみ（次のフレームで自動反映）
-            const processor = processors.get(node.id);
-            if (processor) {
-                const pipeline: ColorGradingPipeline = {
-                    curves: {
-                        master: newSettings.master,
-                        red: newSettings.red,
-                        green: newSettings.green,
-                        blue: newSettings.blue
-                    },
-                    hueCurves: {
-                        hueVsHue: newSettings.hueVsHue || [],
-                        hueVsSat: newSettings.hueVsSat || [],
-                        hueVsLuma: newSettings.hueVsLuma || []
-                    }
-                };
+                            if (isRealtime) {
+                                // リアルタイムモード：LUT更新のみ（次のフレームで自動反映）
+                                const processor = processors.get(node.id);
+                                if (processor) {
+                                    const pipeline: ColorGradingPipeline = {
+                                        curves: {
+                                            master: newSettings.master,
+                                            red: newSettings.red,
+                                            green: newSettings.green,
+                                            blue: newSettings.blue
+                                        },
+                                        hueCurves: {
+                                            hueVsHue: newSettings.hueVsHue || [],
+                                            hueVsSat: newSettings.hueVsSat || [],
+                                            hueVsLuma: newSettings.hueVsLuma || []
+                                        }
+                                    };
 
-                const transform = buildColorTransform(pipeline);
+                                    const transform = buildColorTransform(pipeline);
                                     const lut = generateLUT3D(33, transform);
 
                                     if (DEBUG_CURVES) {
@@ -1231,11 +1226,11 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                         );
                                     }
 
-                processor.loadLUT(lut);
-                processor.setIntensity(1.0); // 念のため強度をリセット
+                                    processor.loadLUT(lut);
+                                    processor.setIntensity(1.0); // 念のため強度をリセット
 
-                // ヒストグラム更新をリクエスト
-                needsHistogramUpdate.set(node.id, true);
+                                    // ヒストグラム更新をリクエスト
+                                    needsHistogramUpdate.set(node.id, true);
                                 }
                             } else {
                                 // 非リアルタイムモード：FFmpegで再生成
@@ -1244,7 +1239,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                 });
                             }
                         } else {
-                            // 画像の場合：WebGLで即座に更新
+                            // 画像の場合：WebGLで即座に更新（skipRenderNodesでも反映させる）
                             updatePreview();
                         }
                     }
@@ -1478,6 +1473,11 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         // FFmpegエンコードは初回のみ実行（Media Previewノード用）
                         await generateFFmpegVideoPreview(node);
                     } else {
+                        // 画像モードに切り替わるので動画ループを確実に停止
+                        stopRealtimeVideoPreview(node.id);
+                        realtimeMode.delete(node.id);
+                        lastFailedVideoUrl.delete(node.id);
+
                         // 画像の場合：WebGLで処理
                         let imageUrl = sourceMediaUrl;
                         if (sourceMediaUrl.startsWith('file://')) {
