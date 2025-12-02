@@ -59,24 +59,44 @@ export function applyHueCurves(
     // Clamp Saturation
     newS = Math.max(0, Math.min(1, newS));
 
-    // 4. Apply Hue vs Luma（ゲイン＋肩落ち＋シャドウリフトでDaVinci寄せ）
+    // 4. Apply Hue vs Luma
+    // 中央(0.5)を基準に、色を保ったまま明暗を調整
     const lumaVal = evaluateCurve(curves.hueVsLuma, normalizedHue, true);
-    // 0.5→1.0倍、1.0→2.0倍、0.0→0.0倍（レンジ広めに戻すが下は0.4で止める）
-    const gainRaw = 1 + (lumaVal - 0.5) * 2.0;
-    const gainClamped = Math.min(2.0, Math.max(0.4, gainRaw));
+
+    // ゲイン計算（中央基準のマッピング）
+    // lumaVal = 0.0 → gain = 0.4（さらに明るく、色がはっきり残る）
+    // lumaVal = 0.5 → gain = 1.0（変化なし）
+    // lumaVal = 1.0 → gain = 4.0（より強く明るく、発光感を出す）
+    const gain = lumaVal < 0.5
+        ? 1.2 * lumaVal + 0.4   // 下半分: 0.4 〜 1.0
+        : 6.0 * lumaVal - 2.0;  // 上半分: 1.0 〜 4.0
 
     // Hue/Sat 反映後のRGB
     let [newR, newG, newB] = hslToRGB(newH, newS, l);
 
-    // Y' 計算
-    const currentY = 0.2126 * newR + 0.7152 * newG + 0.0722 * newB;
-    // ハイライト肩落ち（Reinhard風）
-    const shoulder = (gainClamped * currentY) / (1 + (gainClamped - 1) * currentY);
-    // シャドウリフトで真っ黒回避（0.02〜0.05 好みで。ここでは 0.03）
-    const lifted = Math.max(0.03, shoulder);
+    // 彩度補正：輝度を下げる時に彩度を上げて、色がくすむのを防ぐ
+    if (gain < 1.0) {
+        // ゲインが低いほど彩度を上げる（最大1.35倍程度）
+        const satBoost = 1.0 + (1.0 - gain) * 0.5;
+        newS = Math.min(1.0, newS * satBoost);
+        [newR, newG, newB] = hslToRGB(newH, newS, l);
+    }
+    // ハイライト側の彩度調整：明るくしすぎると色が濃くなりすぎるため、わずかに彩度を抑えて「光の強さ」を表現
+    else if (gain > 1.0) {
+        // gain=4.0の時、彩度を約0.9倍に
+        const satDamp = 1.0 - (gain - 1.0) * 0.03;
+        newS = Math.max(0.0, newS * satDamp);
+        [newR, newG, newB] = hslToRGB(newH, newS, l);
+    }
 
-    // RGBを等比スケール
-    const scale = currentY > 1e-6 ? lifted / currentY : lifted;
+    // Y'計算（Rec.709係数）
+    const currentY = 0.2126 * newR + 0.7152 * newG + 0.0722 * newB;
+
+    // 目標輝度
+    const targetY = currentY * gain;
+
+    // RGBを輝度比率でスケーリング
+    const scale = currentY > 1e-6 ? targetY / currentY : gain;
     newR *= scale;
     newG *= scale;
     newB *= scale;
