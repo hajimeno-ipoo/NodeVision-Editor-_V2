@@ -131,6 +131,7 @@ const frameCounts = new Map<string, number>(); // フレームカウンタ
 const lastFailedVideoUrl = new Map<string, string>();
 const lastHistogramUpdateAt = new Map<string, number>();
 const lastPreviewUpdateAt = new Map<string, number>();
+const lastKindByNode = new Map<string, 'video' | 'image'>();
 const HIST_FRAME_INTERVAL = 10;
 const HIST_UPDATE_MIN_MS = 120;
 const PREVIEW_UPDATE_MIN_MS = 60;
@@ -379,6 +380,7 @@ const stopRealtimeVideoPreview = (nodeId: string) => {
  * 動画フレームをレンダリング（リアルタイムループ）
  */
 const renderVideoFrame = (node: RendererNode) => {
+    if (!realtimeMode.get(node.id)) return;
     const video = videoElements.get(node.id);
     const processor = processors.get(node.id);
 
@@ -930,7 +932,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                     canvas.addEventListener('pointerdown', (e) => {
                         e.stopPropagation(); // ノードのドラッグ/選択を防止
-                        // e.preventDefault(); // これを入れるとpointermoveが発火しなくなる場合があるので注意が必要だが、setPointerCaptureを使うならOK
+                        e.preventDefault(); // テキスト選択やスクロール開始を防ぐ
 
                         canvas.setPointerCapture(e.pointerId); // キャプチャしてドラッグを追跡
 
@@ -1044,6 +1046,14 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                             canvas.releasePointerCapture(e.pointerId);
                             needsHistogramUpdate.set(node.id, true);
                             updateSettings(); // 最終確定
+                        }
+                    });
+
+                    window.addEventListener('pointercancel', (e) => {
+                        if (isDragging) {
+                            isDragging = false;
+                            dragIndex = -1;
+                            canvas.releasePointerCapture(e.pointerId);
                         }
                     });
 
@@ -1239,7 +1249,11 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                 });
                             }
                         } else {
-                            // 画像の場合：WebGLで即座に更新（skipRenderNodesでも反映させる）
+                            // 画像の場合：動画ループを確実に停止してからWebGL更新
+                            stopRealtimeVideoPreview(node.id);
+                            realtimeMode.delete(node.id);
+                            lastFailedVideoUrl.delete(node.id);
+                            // WebGLで即座に更新（skipRenderNodesでも反映させる）
                             updatePreview();
                         }
                     }
@@ -1427,6 +1441,19 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
         const sourceMediaUrl = getSourceMedia(node);
         const lastUrl = lastProcessedSourceUrl.get(node.id);
 
+        const sourcePreviewKind = state.mediaPreviews.get(
+            state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || ''
+        )?.kind;
+        const currentKind: 'video' | 'image' | null =
+            sourcePreviewKind === 'video'
+                ? 'video'
+                : sourcePreviewKind === 'image'
+                    ? 'image'
+                    : sourceMediaUrl
+                        ? (sourceMediaUrl.toLowerCase().match(/\.(mp4|mov|mkv|webm)$/) ? 'video' : 'image')
+                        : null;
+        const lastKind = lastKindByNode.get(node.id);
+
         if (DEBUG_CURVES) {
             console.log('[Curves] render check:', {
                 id: node.id,
@@ -1434,16 +1461,20 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                 lastUrl,
                 isInitialized,
                 match: sourceMediaUrl === lastUrl,
-                isVideo: state.mediaPreviews.get(
-                    state.connections.find(c => c.toNodeId === node.id)?.fromNodeId || ''
-                )?.kind === 'video'
+                currentKind,
+                lastKind
             });
         }
 
-                if (sourceMediaUrl && (!isInitialized || sourceMediaUrl !== lastUrl)) {
+                const needsInit =
+                    sourceMediaUrl &&
+                    (!isInitialized || sourceMediaUrl !== lastUrl || (currentKind && lastKind && currentKind !== lastKind));
+
+                if (needsInit) {
                     // 初期化済みフラグと最終ソースを更新
                     initializedNodes.set(node.id, true);
                     lastProcessedSourceUrl.set(node.id, sourceMediaUrl);
+                    if (currentKind) lastKindByNode.set(node.id, currentKind);
 
                     // 動画かどうかを判定
                     const sourcePreview = state.mediaPreviews.get(
@@ -1513,6 +1544,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                     lastSourceByNode.delete(node.id);
                     lastProcessedSourceUrl.delete(node.id);
                     initializedNodes.delete(node.id);
+                    lastKindByNode.delete(node.id);
                     propagateToMediaPreview(node, undefined);
                 }
             },
