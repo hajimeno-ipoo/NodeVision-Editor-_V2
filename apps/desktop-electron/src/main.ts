@@ -349,8 +349,8 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
         const { pipeline, nodeId } = stage.params as any;
 
         // Generate LUT
-        // Use 33x33x33 resolution for high quality export
-        const lut = generateLUT3D(33, buildColorTransform(pipeline));
+        // 65x65x65に上げて階調の粗さを抑える（要パフォーマンス確認）
+        const lut = generateLUT3D(65, buildColorTransform(pipeline));
 
         // Export to .cube file
         const cubeContent = exportCubeLUT(lut, { title: `NodeVision LUT ${nodeId}` });

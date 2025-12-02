@@ -318,7 +318,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                                     const pipeline = buildPipeline(settings);
                                     transform = buildColorTransform(pipeline);
                                 }
-                                lut = generateLUT3D(33, transform);
+                                lut = generateLUT3D(33, transform); // preview speed
                                 if (lut) {
                                     lutCache.set(node.id, { params: paramsHash, lut });
                                 }

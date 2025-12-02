@@ -1225,7 +1225,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                     };
 
                                     const transform = buildColorTransform(pipeline);
-                                    const lut = generateLUT3D(33, transform);
+                                    const lut = generateLUT3D(33, transform); // preview speed
 
                                     if (DEBUG_CURVES) {
                                         console.log(
@@ -1411,7 +1411,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         // LUT生成
                         const transform = buildColorTransform(pipeline);
-                        const lut = generateLUT3D(33, transform); // 33x33x33
+                        const lut = generateLUT3D(33, transform); // 33^3 preview
 
                         // WebGL適用
                         processor.loadLUT(lut);

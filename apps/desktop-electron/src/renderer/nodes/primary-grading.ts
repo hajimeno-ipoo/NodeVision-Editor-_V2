@@ -390,7 +390,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                             if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
                                 const pipeline = buildPipeline(settings);
                                 const transform = buildColorTransform(pipeline);
-                                lut = generateLUT3D(33, transform);
+                                lut = generateLUT3D(33, transform); // preview speed
                                 if (lut) {
                                     lutCache.set(node.id, { params: paramsHash, lut });
                                 }
@@ -695,7 +695,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                             if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
                                 const pipeline = buildPipeline(settings);
                                 const transform = buildColorTransform(pipeline);
-                                lut = generateLUT3D(33, transform);
+                                lut = generateLUT3D(33, transform); // preview speed
                                 if (lut) {
                                     lutCache.set(node.id, { params: paramsHash, lut });
                                 } else {

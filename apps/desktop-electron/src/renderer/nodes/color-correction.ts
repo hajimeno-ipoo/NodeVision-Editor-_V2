@@ -440,7 +440,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                                 if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
                                     // LUT再生成
                                     const transform = buildLegacyColorCorrectionTransform(settings);
-                                    lut = generateLUT3D(33, transform); // 33x33x33 is standard
+                                lut = generateLUT3D(33, transform); // preview: 33^3 for speed
                                     if (lut) {
                                         lutCache.set(node.id, { params: paramsHash, lut });
                                     }

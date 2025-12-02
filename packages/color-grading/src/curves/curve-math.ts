@@ -1,5 +1,10 @@
 import type { Curve, CurvePoint } from './types';
 
+// デバッグ・検証用: RGBカーブを線形補間に固定するトグル
+const USE_LINEAR_RGB_CURVE = false;
+// Catmull-Rom のオーバーシュートを抑えるモノトニック補間を使うか
+const USE_MONOTONIC_RGB_CURVE = true;
+
 /**
  * Catmull-Rom スプライン補間
  * 4つの制御点 p0, p1, p2, p3 を使って p1 と p2 の間を補間
@@ -151,6 +156,63 @@ export function evaluateCurve(curve: Curve, x: number, loop: boolean = false): n
 
     const p1 = normalized[i1];
     const p2 = normalized[i2];
+
+    // RGBカーブ検証用：Catmull-Rom の代わりに線形で挙動を確認
+    if (!loop && USE_LINEAR_RGB_CURVE) {
+        const t = (x - p1.x) / (p2.x - p1.x);
+        const y = p1.y + t * (p2.y - p1.y);
+        return Math.max(0, Math.min(1, y));
+    }
+
+    // RGBカーブ用：モノトニック Hermite 補間でオーバーシュート抑制
+    if (!loop && USE_MONOTONIC_RGB_CURVE) {
+        const h = p2.x - p1.x;
+        const delta = (p2.y - p1.y) / h;
+
+        // 近傍の傾きを取得（端は線形外挿）
+        const p0 = i1 > 0 ? normalized[i1 - 1] : {
+            x: 2 * p1.x - p2.x,
+            y: 2 * p1.y - p2.y
+        };
+        const p3 = i2 < normalized.length - 1 ? normalized[i2 + 1] : {
+            x: 2 * p2.x - p1.x,
+            y: 2 * p2.y - p1.y
+        };
+
+        const delta0 = (p1.y - p0.y) / (p1.x - p0.x);
+        const delta2 = (p3.y - p2.y) / (p3.x - p2.x);
+
+        let m1 = 0.5 * (delta0 + delta);
+        let m2 = 0.5 * (delta + delta2);
+
+        // Fritsch-Carlson で傾きをクリップしてモノトニックを保証
+        if (Math.abs(delta) < 1e-9) {
+            m1 = 0;
+            m2 = 0;
+        } else {
+            const a = m1 / delta;
+            const b = m2 / delta;
+            const maxMag = Math.max(Math.abs(a), Math.abs(b));
+            const limit = 3;
+            if (maxMag > limit) {
+                const scale = limit / maxMag;
+                m1 *= scale;
+                m2 *= scale;
+            }
+        }
+
+        const t = (x - p1.x) / h;
+        const t2 = t * t;
+        const t3 = t2 * t;
+
+        const y =
+            (2 * t3 - 3 * t2 + 1) * p1.y +
+            (t3 - 2 * t2 + t) * m1 * h +
+            (-2 * t3 + 3 * t2) * p2.y +
+            (t3 - t2) * m2 * h;
+
+        return Math.max(0, Math.min(1, y));
+    }
 
     // 線形補間の場合（ポイントが2つだけ）
     if (normalized.length === 2) {
