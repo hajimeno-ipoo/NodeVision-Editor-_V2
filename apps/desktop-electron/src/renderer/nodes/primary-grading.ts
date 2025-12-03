@@ -16,6 +16,7 @@ const { buildColorTransform, generateLUT3D } = colorGrading;
 
 export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml, t } = context;
+    const getPreviewLutRes = (): number => Math.min(129, Math.max(17, Math.round(state.lutResolutionPreview ?? 33)));
 
     type Processor = WebGLLUTProcessor;
     const processors = new Map<string, Processor>();
@@ -390,7 +391,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                             if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
                                 const pipeline = buildPipeline(settings);
                                 const transform = buildColorTransform(pipeline);
-                                lut = generateLUT3D(33, transform); // preview speed
+                                lut = generateLUT3D(getPreviewLutRes(), transform);
                                 if (lut) {
                                     lutCache.set(node.id, { params: paramsHash, lut });
                                 }
@@ -695,7 +696,7 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                             if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
                                 const pipeline = buildPipeline(settings);
                                 const transform = buildColorTransform(pipeline);
-                                lut = generateLUT3D(33, transform); // preview speed
+                                lut = generateLUT3D(getPreviewLutRes(), transform);
                                 if (lut) {
                                     lutCache.set(node.id, { params: paramsHash, lut });
                                 } else {

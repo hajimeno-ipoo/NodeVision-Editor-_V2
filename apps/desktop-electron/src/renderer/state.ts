@@ -102,6 +102,8 @@ export const createInitialState = (bootstrap: RendererPayload, locale: string): 
     workflowContextMenuOpen: false,
     workflowContextTargetId: null,
     directoryHistory: new Map<string, string>(),
-    nodeFileHistory: new Map<string, string[]>()
+    nodeFileHistory: new Map<string, string[]>(),
+    lutResolutionPreview: 33,
+    lutResolutionExport: 65
   };
 };

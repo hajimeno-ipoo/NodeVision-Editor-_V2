@@ -14,6 +14,7 @@ import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml } = context;
+    const getPreviewLutRes = (): number => Math.min(129, Math.max(17, Math.round(state.lutResolutionPreview ?? 33)));
 
     type Processor = WebGLLUTProcessor;
     const processors = new Map<string, Processor>();
@@ -318,7 +319,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                                     const pipeline = buildPipeline(settings);
                                     transform = buildColorTransform(pipeline);
                                 }
-                                lut = generateLUT3D(33, transform); // preview speed
+                                lut = generateLUT3D(getPreviewLutRes(), transform); // preview speed
                                 if (lut) {
                                     lutCache.set(node.id, { params: paramsHash, lut });
                                 }

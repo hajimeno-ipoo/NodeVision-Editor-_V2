@@ -126,6 +126,10 @@ export interface RendererState {
   workflowContextTargetId: string | null;
   directoryHistory: Map<string, string>;
   nodeFileHistory: Map<string, string[]>;
+  /** プレビュー用 LUT 解像度 */
+  lutResolutionPreview: number;
+  /** エクスポート用 LUT 解像度 */
+  lutResolutionExport: number;
 }
 
 export interface HistoryEntry {

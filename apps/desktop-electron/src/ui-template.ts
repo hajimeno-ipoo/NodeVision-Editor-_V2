@@ -125,6 +125,14 @@ const DEFAULT_ABOUT_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
               </svg>`;
 const ABOUT_PANEL_ICON_SYMBOL = iconSymbolFromAsset(ABOUT_PANEL_ICON_DATA_URI, DEFAULT_ABOUT_ICON_SYMBOL);
 
+const SETTINGS_PANEL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '設定.png'], 'image/png');
+const DEFAULT_SETTINGS_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" fill="none" />
+                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+              </svg>`;
+const SETTINGS_PANEL_ICON_SYMBOL = iconSymbolFromAsset(SETTINGS_PANEL_ICON_DATA_URI, DEFAULT_SETTINGS_ICON_SYMBOL);
+
 const SELECT_TOOL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', '選択.png'], 'image/png');
 const SELECT_TOOL_ICON_SYMBOL = iconSymbolFromAsset(SELECT_TOOL_ICON_DATA_URI, '🖱️');
 
@@ -2744,6 +2752,12 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             </span>
             <span class="sr-only">About</span>
           </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-settings" aria-controls="panel-settings" aria-expanded="false">
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              ${SETTINGS_PANEL_ICON_SYMBOL}
+            </span>
+            <span class="sr-only">Settings</span>
+          </button>
           <button type="button" class="sidebar-icon" data-panel="panel-help" aria-controls="panel-help" aria-expanded="false">
             <span aria-hidden="true" class="sidebar-icon-symbol">
               ${HELP_PANEL_ICON_SYMBOL}
@@ -2846,6 +2860,33 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
                 <span id="connection-pending" class="pending-hint" aria-live="polite"></span>
               </header>
               <ul id="connection-list" class="connections-list" role="list"></ul>
+            </div>
+          </div>
+          <div id="panel-settings" class="sidebar-panel" role="region" aria-hidden="true">
+            <div class="diagnostics-card" aria-label="LUT settings">
+              <header>
+                <strong data-i18n-key="settings.title">Settings</strong>
+              </header>
+              <div class="queue-section">
+                <label class="search-box">
+                  <span style="font-size:12px; color: rgba(255,255,255,0.7);" data-i18n-key="settings.previewLut">Preview LUT resolution</span>
+                  <input type="number" id="lut-preview-res" min="17" max="129" step="1" list="lut-presets" />
+                </label>
+              </div>
+              <div class="queue-section">
+                <label class="search-box">
+                  <span style="font-size:12px; color: rgba(255,255,255,0.7);" data-i18n-key="settings.exportLut">Export LUT resolution</span>
+                  <input type="number" id="lut-export-res" min="17" max="129" step="1" list="lut-presets" />
+                </label>
+              </div>
+              <datalist id="lut-presets">
+                <option value="17"></option>
+                <option value="33"></option>
+                <option value="65"></option>
+              </datalist>
+              <p style="font-size:12px; color: rgba(255,255,255,0.6);" data-i18n-key="settings.hint">
+                17〜129の間で指定できます。操作中は低解像度、停止後に高解像度を適用します。
+              </p>
             </div>
           </div>
           <div id="panel-diagnostics" class="sidebar-panel" role="region" aria-hidden="true">

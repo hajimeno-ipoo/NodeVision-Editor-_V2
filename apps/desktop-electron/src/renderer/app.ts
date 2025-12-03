@@ -96,6 +96,8 @@ import { calculatePreviewSize } from './nodes/preview-size';
   const LOCALE_STORAGE_KEY = 'nodevision.locale';
   const CANVAS_CONTROLS_POSITION_KEY = 'nodevision.canvasControls.position';
   const CANVAS_CONTROLS_MARGIN = 12;
+  const LUT_PREVIEW_STORAGE_KEY = 'nodevision.lut.previewRes';
+  const LUT_EXPORT_STORAGE_KEY = 'nodevision.lut.exportRes';
   const TRANSLATIONS: Record<string, Record<string, string>> = rendererWindow.__NODEVISION_TRANSLATIONS__ ?? {};
   const SUPPORTED_LOCALES: string[] = Array.isArray(rendererWindow.__NODEVISION_SUPPORTED_LOCALES__) && rendererWindow.__NODEVISION_SUPPORTED_LOCALES__.length
     ? rendererWindow.__NODEVISION_SUPPORTED_LOCALES__!
@@ -2711,6 +2713,48 @@ import { calculatePreviewSize } from './nodes/preview-size';
     });
   };
 
+  const clampLutResolution = (value: number): number => {
+    if (!Number.isFinite(value)) return 33;
+    return Math.min(129, Math.max(17, Math.round(value)));
+  };
+
+  const setupLutSettingsPanel = (): void => {
+    const previewInput = document.getElementById('lut-preview-res') as HTMLInputElement | null;
+    const exportInput = document.getElementById('lut-export-res') as HTMLInputElement | null;
+    if (!previewInput || !exportInput) return;
+
+    const loadStored = (key: string, fallback: number): number => {
+      const raw = localStorage.getItem(key);
+      const num = raw ? Number(raw) : NaN;
+      return clampLutResolution(Number.isFinite(num) ? num : fallback);
+    };
+
+    state.lutResolutionPreview = loadStored(LUT_PREVIEW_STORAGE_KEY, state.lutResolutionPreview);
+    state.lutResolutionExport = loadStored(LUT_EXPORT_STORAGE_KEY, state.lutResolutionExport);
+
+    previewInput.value = String(state.lutResolutionPreview);
+    exportInput.value = String(state.lutResolutionExport);
+
+    const applyPreview = (): void => {
+      const next = clampLutResolution(Number(previewInput.value));
+      state.lutResolutionPreview = next;
+      previewInput.value = String(next);
+      localStorage.setItem(LUT_PREVIEW_STORAGE_KEY, String(next));
+    };
+
+    const applyExport = (): void => {
+      const next = clampLutResolution(Number(exportInput.value));
+      state.lutResolutionExport = next;
+      exportInput.value = String(next);
+      localStorage.setItem(LUT_EXPORT_STORAGE_KEY, String(next));
+    };
+
+    previewInput.addEventListener('change', applyPreview);
+    previewInput.addEventListener('blur', applyPreview);
+    exportInput.addEventListener('change', applyExport);
+    exportInput.addEventListener('blur', applyExport);
+  };
+
   const refreshQueue = async (): Promise<void> => {
     if (!nodevision?.getQueueSnapshot) return;
     try {
@@ -4964,6 +5008,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
   document.addEventListener('keydown', handleKeydown);
 
   setupSidebarPanels();
+  setupLutSettingsPanel();
   renderStatus();
   renderAbout();
   initializeNodeRenderers();

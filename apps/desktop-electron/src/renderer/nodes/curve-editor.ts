@@ -139,6 +139,11 @@ const PREVIEW_UPDATE_MIN_MS = 60;
 const HIST_DOWNSAMPLE_STEP = 2; // ヒスト計算を1/2解像度で
 const ENABLE_REALTIME_HISTOGRAM = true; // 重いときは false にして負荷軽減
 let globalContext: NodeRendererContext | null = null;
+const getPreviewLutRes = (): number => {
+    if (!globalContext) return 33;
+    const val = globalContext.state.lutResolutionPreview ?? 33;
+    return Math.min(129, Math.max(17, Math.round(val)));
+};
 
 const createProcessor = (): WebGLLUTProcessor => {
     const canvas = document.createElement('canvas');
@@ -1225,7 +1230,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                                     };
 
                                     const transform = buildColorTransform(pipeline);
-                                    const lut = generateLUT3D(33, transform); // preview speed
+                                    const lut = generateLUT3D(getPreviewLutRes(), transform);
 
                                     if (DEBUG_CURVES) {
                                         console.log(
@@ -1411,7 +1416,7 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                         // LUT生成
                         const transform = buildColorTransform(pipeline);
-                        const lut = generateLUT3D(33, transform); // 33^3 preview
+                        const lut = generateLUT3D(getPreviewLutRes(), transform);
 
                         // WebGL適用
                         processor.loadLUT(lut);
