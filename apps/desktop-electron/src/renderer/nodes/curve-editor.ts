@@ -6,7 +6,7 @@ import type { RendererNode } from '../types';
 import { calculateHistogram, type HistogramData } from './histogram-utils';
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
-import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
+import { resolveExportLutRes, resolvePreviewLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
 
 // デバッグログのオンオフ
 const DEBUG_CURVES = false;
@@ -143,11 +143,11 @@ let globalContext: NodeRendererContext | null = null;
 const getPreviewLutRes = (): number => {
     if (!globalContext) return 33;
     const val = globalContext.state.lutResolutionPreview ?? 33;
-    return clampLutRes(val);
+    return resolvePreviewLutRes(val);
 };
 const getExportLutRes = (): number => {
     if (!globalContext) return 65;
-    return clampLutRes(globalContext.state.lutResolutionExport ?? 65);
+    return resolveExportLutRes(globalContext.state.lutResolutionExport);
 };
 const toastHQStart = () => {
     if (globalContext) globalContext.showToast(globalContext.t('toast.hqLutGenerating'));

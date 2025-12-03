@@ -6,7 +6,7 @@ import { WebGLColorProcessor } from './webgl-color-processor';
 import { WebGLVideoProcessor } from './webgl-video-processor';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
 import type { LUT3D } from '@nodevision/color-grading';
-import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
+import { resolveExportLutRes, resolvePreviewLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
 
 // 動的にモジュールを読み込む
 const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
@@ -14,8 +14,8 @@ const { generateLUT3D, buildLegacyColorCorrectionTransform } = colorGrading;
 
 export const createColorCorrectionNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml, t } = context;
-    const getPreviewLutRes = (): number => clampLutRes(state.lutResolutionPreview ?? 33);
-    const getExportLutRes = (): number => clampLutRes(state.lutResolutionExport ?? 65);
+    const getPreviewLutRes = (): number => resolvePreviewLutRes(state.lutResolutionPreview);
+    const getExportLutRes = (): number => resolveExportLutRes(state.lutResolutionExport);
     const toastHQStart = () => context.showToast(t('toast.hqLutGenerating'));
     const toastHQApplied = () => context.showToast(t('toast.hqLutApplied'));
     const toastHQError = (err: unknown) => context.showToast(String(err), 'error');

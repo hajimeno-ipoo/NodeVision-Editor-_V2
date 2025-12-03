@@ -25,6 +25,9 @@ export const clampLutRes = (value: number): number => {
   return Math.min(129, Math.max(17, Math.round(value)));
 };
 
+export const resolvePreviewLutRes = (value?: number): number => clampLutRes(value ?? 33);
+export const resolveExportLutRes = (value?: number): number => clampLutRes(value ?? 65);
+
 // --- Worker 管理 ---
 type LutRequest = {
   key: string;
