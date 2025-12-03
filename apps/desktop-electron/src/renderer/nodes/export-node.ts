@@ -2,6 +2,7 @@ import type { RendererNode } from '../types';
 import type { NodeRendererContext, NodeRendererModule, NodeRendererView } from './types';
 import { buildNodeInfoSection } from './shared';
 import { ensureTrimSettings } from './trim-shared';
+import { clampLutRes } from './lut-utils';
 // Node modules via preload-exposed nodeRequire
 const path: typeof import('path') | undefined = (window as any).nodeRequire?.('path');
 const os: typeof import('os') | undefined = (window as any).nodeRequire?.('os');
@@ -279,6 +280,9 @@ const bindExportEvents = (
 
         targetNode.settings = { ...settings, outputPath: result.filePath } as any;
 
+        // エクスポート処理開始のトースト（バッチ/通常どちらも）
+        context.showToast(t('toast.exportLutGenerating'));
+
         if (!isBatch) {
           const upstreamNodes = collectUpstreamNodes(programConnection.fromNodeId);
           const exportMediaNode = { id: node.id, typeId: 'export', nodeVersion: '1.0.0', container: format };
@@ -288,13 +292,15 @@ const bindExportEvents = (
             outputPath: result.filePath,
             format,
             quality,
-            nodes: chain
+            nodes: chain,
+            lutResolutionExport: clampLutRes(state.lutResolutionExport ?? 65)
           });
           if (!jobResult.ok) {
             console.error('[Export] Job enqueue failed:', jobResult.message);
             alert(`Export failed: ${jobResult.message}`);
           } else {
             console.log('[Export] Job enqueued successfully');
+            context.showToast(t('toast.exportLutQueued'));
           }
           return;
         }
@@ -391,22 +397,24 @@ const bindExportEvents = (
         }
 
         const writtenPaths: string[] = [];
-        for (const entry of builtChains) {
-          const jobResult = await window.nodevision.enqueueExportJob({
-            sourcePath: '',
-            outputPath: entry.outputPath,
-            format,
+          for (const entry of builtChains) {
+            const jobResult = await window.nodevision.enqueueExportJob({
+              sourcePath: '',
+              outputPath: entry.outputPath,
+              format,
             quality,
             nodes: entry.nodes,
-            slot: entry.slot
+            slot: entry.slot,
+            lutResolutionExport: clampLutRes(state.lutResolutionExport ?? 65)
           } as any);
-          if (!jobResult.ok) {
-            console.error('[Export] Job enqueue failed:', jobResult.message);
-            alert(`Export failed (slot ${entry.slot}): ${jobResult.message}`);
-            return;
+            if (!jobResult.ok) {
+              console.error('[Export] Job enqueue failed:', jobResult.message);
+              alert(`Export failed (slot ${entry.slot}): ${jobResult.message}`);
+              return;
+            }
+            writtenPaths.push(entry.outputPath);
+            context.showToast(t('toast.exportLutQueued'));
           }
-          writtenPaths.push(entry.outputPath);
-        }
 
         if (zipPath && writtenPaths.length > 0) {
           const zipResult = await window.nodevision.enqueueZipJob({

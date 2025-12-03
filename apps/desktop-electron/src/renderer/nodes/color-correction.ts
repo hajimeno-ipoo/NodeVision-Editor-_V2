@@ -6,6 +6,7 @@ import { WebGLColorProcessor } from './webgl-color-processor';
 import { WebGLVideoProcessor } from './webgl-video-processor';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
 import type { LUT3D } from '@nodevision/color-grading';
+import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
 
 // 動的にモジュールを読み込む
 const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
@@ -13,7 +14,11 @@ const { generateLUT3D, buildLegacyColorCorrectionTransform } = colorGrading;
 
 export const createColorCorrectionNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml, t } = context;
-    const getPreviewLutRes = (): number => Math.min(129, Math.max(17, Math.round(state.lutResolutionPreview ?? 33)));
+    const getPreviewLutRes = (): number => clampLutRes(state.lutResolutionPreview ?? 33);
+    const getExportLutRes = (): number => clampLutRes(state.lutResolutionExport ?? 65);
+    const toastHQStart = () => context.showToast(t('toast.hqLutGenerating'));
+    const toastHQApplied = () => context.showToast(t('toast.hqLutApplied'));
+    const toastHQError = (err: unknown) => context.showToast(String(err), 'error');
 
     // ノードごとにプロセッサーを保持
     // WebGL2 (LUT) > WebGL1 > Canvas の順で優先
@@ -441,10 +446,27 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                                 if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
                                     // LUT再生成
                                     const transform = buildLegacyColorCorrectionTransform(settings);
-                                lut = generateLUT3D(getPreviewLutRes(), transform); // preview uses user setting
+                                    lut = generateLUT3D(getPreviewLutRes(), transform); // preview uses user setting
                                     if (lut) {
                                         lutCache.set(node.id, { params: paramsHash, lut });
                                     }
+
+                                    const highRes = Math.max(getPreviewLutRes(), getExportLutRes());
+                                    scheduleHighResLUTViaWorker(
+                                        `${node.id}-color-correction`,
+                                        200,
+                                        () => settings,
+                                        highRes,
+                                        (hiLut) => {
+                                            lutCache.set(node.id, { params: paramsHash, lut: hiLut });
+                                            processor.loadLUT(hiLut);
+                                            processor.renderWithCurrentTexture();
+                                            toastHQApplied();
+                                        },
+                                        'legacyColor',
+                                        toastHQStart,
+                                        toastHQError
+                                    );
                                 }
 
                                 if (lut) {

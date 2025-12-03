@@ -6,11 +6,12 @@ import type { Server as HttpServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { Worker } from 'node:worker_threads';
 
 import archiver from 'archiver';
 import zipEncrypted from 'archiver-zip-encrypted';
 
-import { generateLUT3D, exportCubeLUT, buildColorTransform } from '@nodevision/color-grading';
+import { exportCubeLUT } from '@nodevision/color-grading';
 import { DEFAULT_NODE_TEMPLATES, seedDemoNodes } from '@nodevision/editor';
 import {
   createInspectHttpServer,
@@ -70,6 +71,46 @@ const inspectHistory = new InMemoryInspectRequestHistory(20);
 let httpServer: HttpServer | null = null;
 let cachedSettings: NodeVisionSettings | null = null;
 let lastExportSummary: { outputPath: string; sha256: string; generatedAt: string } | null = null;
+const clampLutRes = (value: number | undefined): number => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 65;
+  return Math.min(129, Math.max(17, Math.round(num)));
+};
+
+// LUT Worker (mainプロセス側)
+let lutWorker: Worker | null = null;
+let lutReqId = 0;
+const lutPending = new Map<number, { resolve: (lut: { resolution: number; data: Float32Array }) => void; reject: (e: Error) => void; }>();
+const getLutWorker = (): Worker => {
+  if (lutWorker) return lutWorker;
+  const workerPath = path.join(__dirname, 'renderer', 'nodes', 'lut-worker.js');
+  lutWorker = new Worker(workerPath);
+  lutWorker.on('message', (msg: any) => {
+    const record = lutPending.get(msg.requestId);
+    if (!record) return;
+    if (msg.error) {
+      record.reject(new Error(msg.error));
+    } else {
+      record.resolve({ resolution: msg.resolution, data: new Float32Array(msg.data) });
+    }
+    lutPending.delete(msg.requestId);
+  });
+  lutWorker.on('error', (err) => {
+    lutPending.forEach(({ reject }) => reject(err));
+    lutPending.clear();
+    lutWorker = null;
+  });
+  return lutWorker;
+};
+
+const requestLutMain = async (pipeline: unknown, resolution: number): Promise<{ resolution: number; data: Float32Array }> => {
+  const worker = getLutWorker();
+  const requestId = ++lutReqId;
+  return new Promise((resolve, reject) => {
+    lutPending.set(requestId, { resolve, reject });
+    worker.postMessage({ key: 'export', requestId, payload: pipeline, resolution, mode: 'pipeline' });
+  });
+};
 
 const normalizePath = (target: string | null | undefined): string | null => {
   if (!target) {
@@ -328,7 +369,7 @@ ipcMain.handle('nodevision:queue:enqueue', async (_event, payload) => {
   }
 });
 
-const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
+const planToArgs = async (plan: FFmpegPlan, outputPath: string, lutRes: number = 65): Promise<string[]> => {
   const args: string[] = [];
   const filterChain: string[] = [];
   let lastLabel = '0:v'; // Assuming single video input for now
@@ -348,9 +389,9 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
       if (stage.typeId === 'lut3d_generator') {
         const { pipeline, nodeId } = stage.params as any;
 
-        // Generate LUT
-        // 65x65x65に上げて階調の粗さを抑える（要パフォーマンス確認）
-        const lut = generateLUT3D(65, buildColorTransform(pipeline));
+        // Generate LUT (resolution from renderer setting, clamped) via worker
+        const lut = await requestLutMain(pipeline, lutRes);
+        console.info('[Export] LUT size:', lut.resolution);
 
         // Export to .cube file
         const cubeContent = exportCubeLUT(lut, { title: `NodeVision LUT ${nodeId}` });
@@ -485,7 +526,7 @@ const planToArgs = (plan: FFmpegPlan, outputPath: string): string[] => {
 
 const executeExportJob = async (
   _ctx: JobRunContext,
-  payload: { sourcePath: string; outputPath: string; format: string; quality: string; nodes?: any[] }
+  payload: { sourcePath: string; outputPath: string; format: string; quality: string; nodes?: any[]; lutResolutionExport?: number }
 ): Promise<JobRunResult> => {
   const { sourcePath, outputPath, nodes } = payload;
 
@@ -500,7 +541,7 @@ const executeExportJob = async (
     try {
       // Build FFmpeg plan from nodes
       const plan = buildFFmpegPlan({ nodes } as any);
-      args = planToArgs(plan, outputPath);
+      args = await planToArgs(plan, outputPath, clampLutRes(payload.lutResolutionExport));
       console.log('Generated FFmpeg args:', args);
     } catch (error) {
       console.error('Failed to build FFmpeg plan:', error);
@@ -979,7 +1020,7 @@ ipcMain.handle('nodevision:preview:generate', async (_event, payload) => {
     const isVideo = nodes.some(n => n.typeId === 'loadVideo');
     const ext = isVideo ? 'mp4' : 'png';
     const outputPath = path.join(previewDir, `preview-${Date.now()}.${ext}`);
-    const args = planToArgs(plan, outputPath);
+    const args = await planToArgs(plan, outputPath, 65);
 
     if (!isVideo) {
       // For images, force single frame output

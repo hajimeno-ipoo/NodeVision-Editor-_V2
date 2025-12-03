@@ -42,6 +42,7 @@ interface NodeVisionBridge {
     quality: string;
     nodes?: any[];
     slot?: number;
+    lutResolutionExport?: number;
   }): Promise<{ ok: boolean; message?: string }>;
   enqueueZipJob(payload: { files: string[]; outputPath: string; password?: string; cleanupPaths?: string[] }): Promise<{ ok: boolean; message?: string }>;
   loadImageAsDataURL(payload: { filePath: string }): Promise<{ ok: boolean; dataURL?: string; message?: string }>;

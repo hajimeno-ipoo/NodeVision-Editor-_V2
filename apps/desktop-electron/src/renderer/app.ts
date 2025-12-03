@@ -112,6 +112,15 @@ import { calculatePreviewSize } from './nodes/preview-size';
     return;
   }
 
+  // 安全策：ブートストラップのnodesが空だった場合はデモノードを補充する
+  if (!BOOTSTRAP.nodes || BOOTSTRAP.nodes.length === 0) {
+    const editorModule = rendererWindow.nodeRequire?.('@nodevision/editor');
+    if (editorModule) {
+      const { seedDemoNodes, DEFAULT_NODE_TEMPLATES } = editorModule;
+      BOOTSTRAP.nodes = seedDemoNodes(BOOTSTRAP.templates ?? DEFAULT_NODE_TEMPLATES);
+    }
+  }
+
 
   const elements: RendererDom = captureDomElements();
   let unsavedWorkflowLabel = 'Unsaved Workflow';
@@ -1798,13 +1807,48 @@ import { calculatePreviewSize } from './nodes/preview-size';
   };
 
   const showToast = (message: string, type: 'info' | 'error' = 'info'): void => {
-    elements.toast.textContent = message;
-    elements.toast.classList.remove('error');
-    if (type === 'error') {
-      elements.toast.classList.add('error');
+    let toastEl = elements.toast;
+    if (!toastEl) {
+      // フォールバックで動的生成
+      toastEl = document.createElement('div');
+      toastEl.id = 'toast';
+      toastEl.setAttribute('role', 'status');
+      toastEl.setAttribute('aria-live', 'assertive');
+      Object.assign(toastEl.style, {
+        position: 'fixed',
+        right: '24px',
+        bottom: '24px',
+        minWidth: '200px',
+        maxWidth: '360px',
+        background: 'rgba(44,132,255,0.95)',
+        color: '#fff',
+        padding: '12px 16px',
+        borderRadius: '12px',
+        fontSize: '13px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+        display: 'none',
+        zIndex: '9999'
+      });
+      document.body.appendChild(toastEl);
+      elements.toast = toastEl;
+      console.warn('[Toast] Fallback element created');
     }
-    elements.toast.classList.add('visible');
-    setTimeout(() => elements.toast.classList.remove('visible'), 3000);
+
+    toastEl.textContent = message || '';
+    toastEl.classList.remove('error');
+    if (type === 'error') {
+      toastEl.classList.add('error');
+      toastEl.style.background = 'rgba(255,82,82,0.95)';
+    } else {
+      toastEl.style.background = 'rgba(44,132,255,0.95)';
+    }
+    toastEl.style.display = 'block';
+    toastEl.classList.add('visible');
+    console.info('[Toast]', message);
+    setTimeout(() => {
+      toastEl?.classList.remove('visible');
+      toastEl?.style && (toastEl.style.display = 'none');
+    }, 5000);
   };
 
   const cleanupMediaPreview = (nodeId: string): void => {
@@ -4612,6 +4656,10 @@ import { calculatePreviewSize } from './nodes/preview-size';
   };
 
   const handleKeydown = (event: KeyboardEvent): void => {
+    if (typeof event.key !== 'string') {
+      return;
+    }
+
     if (workflowNameDialogResolver) {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -4628,13 +4676,14 @@ import { calculatePreviewSize } from './nodes/preview-size';
       return;
     }
     const modifier = event.metaKey || event.ctrlKey;
-    if (modifier && event.key.toLowerCase() === 'c') {
+    const keyLower = event.key.toLowerCase();
+    if (modifier && keyLower === 'c') {
       event.preventDefault();
       copySelection();
-    } else if (modifier && event.key.toLowerCase() === 'v') {
+    } else if (modifier && keyLower === 'v') {
       event.preventDefault();
       pasteSelection();
-    } else if (modifier && event.key.toLowerCase() === 'd') {
+    } else if (modifier && keyLower === 'd') {
       event.preventDefault();
       duplicateSelection();
     } else if (isZoomInShortcut(event)) {

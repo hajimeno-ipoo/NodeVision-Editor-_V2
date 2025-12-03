@@ -6,6 +6,7 @@ import type { RendererNode } from '../types';
 import { calculateHistogram, type HistogramData } from './histogram-utils';
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
+import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
 
 // デバッグログのオンオフ
 const DEBUG_CURVES = false;
@@ -142,7 +143,20 @@ let globalContext: NodeRendererContext | null = null;
 const getPreviewLutRes = (): number => {
     if (!globalContext) return 33;
     const val = globalContext.state.lutResolutionPreview ?? 33;
-    return Math.min(129, Math.max(17, Math.round(val)));
+    return clampLutRes(val);
+};
+const getExportLutRes = (): number => {
+    if (!globalContext) return 65;
+    return clampLutRes(globalContext.state.lutResolutionExport ?? 65);
+};
+const toastHQStart = () => {
+    if (globalContext) globalContext.showToast(globalContext.t('toast.hqLutGenerating'));
+};
+const toastHQApplied = () => {
+    if (globalContext) globalContext.showToast(globalContext.t('toast.hqLutApplied'));
+};
+const toastHQError = (err: unknown) => {
+    if (globalContext) globalContext.showToast(String(err), 'error');
 };
 
 const createProcessor = (): WebGLLUTProcessor => {
@@ -1244,6 +1258,22 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
 
                                     processor.loadLUT(lut);
                                     processor.setIntensity(1.0); // 念のため強度をリセット
+                                    // ハイレゾLUTをアイドル＋デバウンスで適用（Worker）
+                                    const highRes = Math.max(getPreviewLutRes(), getExportLutRes());
+                                    scheduleHighResLUTViaWorker(
+                                        `${node.id}-realtime`,
+                                        200,
+                                        () => pipeline,
+                                        highRes,
+                                        (hiLut) => {
+                                            processor.loadLUT(hiLut);
+                                            processor.setIntensity(1.0);
+                                            toastHQApplied();
+                                        },
+                                        'pipeline',
+                                        toastHQStart,
+                                        toastHQError
+                                    );
 
                                     // ヒストグラム更新をリクエスト
                                     needsHistogramUpdate.set(node.id, true);
@@ -1422,6 +1452,24 @@ export const createCurveEditorNodeRenderer = (context: NodeRendererContext): Nod
                         processor.loadLUT(lut);
                         processor.renderWithCurrentTexture();
                         propagateToMediaPreview(node, processor);
+
+                        // ハイレゾLUT（デバウンス＋アイドル）を後段で適用（Worker）
+                        const highRes = Math.max(getPreviewLutRes(), getExportLutRes());
+                        scheduleHighResLUTViaWorker(
+                            `${node.id}-preview`,
+                            200,
+                            () => pipeline,
+                            highRes,
+                            (hiLut) => {
+                                processor.loadLUT(hiLut);
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
+                                toastHQApplied();
+                            },
+                            'pipeline',
+                            toastHQStart,
+                            toastHQError
+                        );
 
                         // Outputヒストグラム更新
                         const pixels = processor.getOutputPixels();

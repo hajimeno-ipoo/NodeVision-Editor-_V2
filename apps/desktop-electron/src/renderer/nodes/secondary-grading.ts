@@ -5,6 +5,7 @@ import type {
 import type { SecondaryGradingNodeSettings } from '@nodevision/editor';
 
 import type { RendererNode } from '../types';
+import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
 
 // 動的にモジュールを読み込む
 const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
@@ -13,8 +14,12 @@ import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
-    const { state, escapeHtml } = context;
-    const getPreviewLutRes = (): number => Math.min(129, Math.max(17, Math.round(state.lutResolutionPreview ?? 33)));
+    const { state, escapeHtml, t } = context;
+    const getPreviewLutRes = (): number => clampLutRes(state.lutResolutionPreview ?? 33);
+    const getExportLutRes = (): number => clampLutRes(state.lutResolutionExport ?? 65);
+    const toastHQStart = () => context.showToast(t('toast.hqLutGenerating'));
+    const toastHQApplied = () => context.showToast(t('toast.hqLutApplied'));
+    const toastHQError = (err: unknown) => context.showToast(String(err), 'error');
 
     type Processor = WebGLLUTProcessor;
     const processors = new Map<string, Processor>();
@@ -328,6 +333,23 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                             if (lut) {
                                 processor.loadLUT(lut);
                                 processor.renderWithCurrentTexture();
+
+                                const highRes = Math.max(getPreviewLutRes(), getExportLutRes());
+                                scheduleHighResLUTViaWorker(
+                                    `${node.id}-secondary`,
+                                    200,
+                                    () => settings.showMask ? buildMaskTransform(settings) : buildPipeline(settings),
+                                    highRes,
+                                    (hiLut) => {
+                                        lutCache.set(node.id, { params: JSON.stringify(settings), lut: hiLut });
+                                        processor.loadLUT(hiLut);
+                                        processor.renderWithCurrentTexture();
+                                        toastHQApplied();
+                                    },
+                                    'pipeline',
+                                    toastHQStart,
+                                    toastHQError
+                                );
                             }
 
                             propagateToMediaPreview(node, processor);
