@@ -231,6 +231,33 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
         if (!processor) {
             state.mediaPreviews.delete(node.id);
             state.canvasPreviews.delete(node.id);
+
+            // DOM内のプレビューCanvasも削除
+            const connectedPreviewNodes = state.connections
+                .filter(c => c.fromNodeId === node.id)
+                .map(c => c.toNodeId)
+                .filter((id, index, self) => self.indexOf(id) === index);
+
+            connectedPreviewNodes.forEach(previewNodeId => {
+                const previewNode = state.nodes.find(n => n.id === previewNodeId);
+                if (previewNode && previewNode.typeId === 'mediaPreview') {
+                    const nodeElement = document.querySelector(`[data-node-id="${previewNodeId}"]`);
+                    if (nodeElement) {
+                        const imgOrCanvasContainer = nodeElement.querySelector('.node-media-preview');
+                        if (imgOrCanvasContainer) {
+                            const existingCanvas = imgOrCanvasContainer.querySelector('canvas.preview-canvas');
+                            if (existingCanvas) {
+                                existingCanvas.remove();
+                            }
+                            const img = imgOrCanvasContainer.querySelector('img');
+                            if (img) {
+                                img.style.display = '';
+                            }
+                        }
+                    }
+                }
+            });
+
             if (forceRender) {
                 context.renderNodes();
             }
@@ -465,8 +492,13 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
 
         return `
       <div class="node-controls" style="padding: 12px;">
-        <div class="cc-renderer-indicator" data-renderer="unknown" style="font-size: 11px; color: #9aa0a6; margin-bottom: 8px;">
-          レンダラー: -
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div class="cc-renderer-indicator" data-renderer="unknown" style="font-size: 11px; color: #9aa0a6;">
+            レンダラー: -
+          </div>
+          <button class="all-reset-btn" style="font-size: 11px; padding: 4px 8px; background: #3a3a3e; border: 1px solid #555; border-radius: 4px; color: #ddd; cursor: pointer;">
+            All Reset
+          </button>
         </div>
         ${renderSlider('nodes.colorCorrection.exposure', 'exposure', -2, 2, 0.1, settings.exposure ?? 0)}
         ${renderSlider('nodes.colorCorrection.brightness', 'brightness', -1, 1, 0.05, settings.brightness ?? 0)}
@@ -626,15 +658,33 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                     try {
                         const isVideo = sourceMedia.isVideo;
                         const wasVideo = isVideoSource.get(node.id);
+                        const lastKnownSource = lastSourceByNode.get(node.id);
+                        const sourceChanged = lastKnownSource !== sourceMedia.url;
 
+                        // ソース種別が変わった場合（画像↔動画）
                         if (wasVideo !== undefined && wasVideo !== isVideo) {
+                            console.log('[ColorCorrection] Source type changed:', wasVideo ? 'video→image' : 'image→video');
                             if (wasVideo) {
+                                // 動画→画像: 動画プロセッサーをクリア
                                 state.canvasPreviews.delete(node.id);
                                 state.mediaPreviews.delete(node.id);
+                                const vp = videoProcessors.get(node.id);
+                                if (vp) {
+                                    vp.dispose();
+                                    videoProcessors.delete(node.id);
+                                }
                             } else {
+                                // 画像→動画: 画像プロセッサーをクリア
                                 lastSourceByNode.delete(node.id);
                             }
                             propagateToMediaPreview(node, undefined);
+                        } else if (sourceChanged && !isVideo) {
+                            // 同じ種類でもソースURLが変わった場合（画像→別の画像）
+                            console.log('[ColorCorrection] Image source changed');
+                            lastSourceByNode.delete(node.id);
+                        } else if (sourceChanged && isVideo) {
+                            // 動画→別の動画
+                            console.log('[ColorCorrection] Video source changed');
                         }
 
                         isVideoSource.set(node.id, isVideo);
@@ -642,7 +692,6 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                         if (isVideo) {
                             // 動画の場合：WebGLプロセッサーで即座に更新
                             console.log('[ColorCorrection] Using WebGL real-time preview for video');
-
                             let videoUrl = sourceMedia.url;
                             // VideoProcessorの取得または作成
                             let videoProcessor = videoProcessors.get(node.id);
@@ -765,6 +814,56 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
                         }
                     });
                 });
+
+                // All Reset ボタンイベント
+                const allResetBtn = element.querySelector('.all-reset-btn');
+                if (allResetBtn) {
+                    allResetBtn.addEventListener('mousedown', (e) => {
+                        e.stopPropagation();
+                    });
+
+                    allResetBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+
+                        // 全てのスライダーをデフォルト値にリセット
+                        const allDefaults: Record<string, number> = {
+                            exposure: 0,
+                            brightness: 0,
+                            contrast: 1,
+                            saturation: 1,
+                            gamma: 1,
+                            shadows: 0,
+                            highlights: 0,
+                            temperature: 0,
+                            tint: 0
+                        };
+
+                        // 全ての設定を更新
+                        const targetNode = state.nodes.find(n => n.id === node.id);
+                        if (targetNode) {
+                            targetNode.settings = { ...targetNode.settings, ...allDefaults } as ColorCorrectionNodeSettings;
+                            node.settings = targetNode.settings;
+                        }
+
+                        // 各スライダーのUIを更新
+                        Object.entries(allDefaults).forEach(([key, defaultValue]) => {
+                            // スライダー値
+                            const slider = element.querySelector(`input[data-cc-key="${key}"]`) as HTMLInputElement;
+                            if (slider) {
+                                slider.value = String(defaultValue);
+                            }
+                            // 表示値
+                            const display = element.querySelector(`.control-value[data-cc-value="${key}"]`);
+                            if (display) {
+                                display.textContent = defaultValue.toFixed(2);
+                            }
+                        });
+
+                        // プレビューを更新（一度だけ）
+                        updateValueAndPreview('exposure', 0, false, true);
+                        updateValueAndPreview('exposure', 0, true, true);
+                    });
+                }
             }
         })
     };
