@@ -204,41 +204,44 @@ export class WebGLColorProcessor {
           void main() {
             vec4 tex = texture2D(u_image, v_texCoord);
             
-            // 1. sRGB → リニア変換
+            // Step 1: sRGB → リニア変換
             vec3 c = sRGBToLinear(tex.rgb);
 
-            // 2. Exposure (2^exposure)
+            // Step 2: Basic corrections
+            // 2a. Exposure (2^exposure)
             c *= pow(2.0, u_exposure);
 
-            // 3. Brightness
+            // 2b. Brightness
             c += u_brightness;
 
-            // 4. Contrast
+            // 2c. Contrast
             c = (c - 0.5) * u_contrast + 0.5;
 
-            // 5. Saturation
+            // 2d. Saturation
             float gray = getLuminance(c);
             c = mix(vec3(gray), c, u_saturation);
 
-            // 6. Gamma
+            // 2e. Gamma
             if (u_gamma != 1.0) {
               c = pow(max(c, vec3(0.0)), vec3(1.0 / max(0.001, u_gamma)));
             }
 
-            // 7. Temperature / Tint
-            c.r *= (1.0 + u_temperature / 100.0 * 0.3);
-            c.b *= (1.0 - u_temperature / 100.0 * 0.3);
-            c.g *= (1.0 + u_tint / 100.0 * 0.2);
+            // Step 3: Temperature / Tint
+            // 注意: uniformは既に /100 されているので、ここでは /100 不要
+            c.r *= (1.0 + u_temperature * 0.3);
+            c.b *= (1.0 - u_temperature * 0.3);
+            c.g *= (1.0 + u_tint * 0.2);
 
-            // 8. Shadows / Highlights (smoothstepマスク)
+            // Step 5: Shadows / Highlights (smoothstepマスク)
+            // 注意: uniformは既に /100 されているので、ここでは /100 不要
             float luma = getLuminance(c);
             float shadowMask = u_shadows != 0.0 ? generateTonalMask(luma, 0.0, 0.5) : 0.0;
             float highlightMask = u_highlights != 0.0 ? generateTonalMask(luma, 1.0, 0.5) : 0.0;
-            float shadowLift = (u_shadows / 100.0) * 0.2 * shadowMask;
-            float highlightLift = (u_highlights / 100.0) * 0.2 * highlightMask;
+            float shadowLift = u_shadows * 0.2 * shadowMask;
+            float highlightLift = u_highlights * 0.2 * highlightMask;
             c += shadowLift + highlightLift;
 
-            // 9. リニア → sRGB変換
+            // Step 6: リニア → sRGB変換
             c = linearToSRGB(clamp(c, 0.0, 1.0));
 
             gl_FragColor = vec4(c, tex.a);

@@ -267,19 +267,37 @@ export class WebGLVideoProcessor {
             void main() {
                 vec4 texColor = texture2D(u_texture, v_texCoord);
                 
-                // 1. sRGB → リニア変換
+                // Step 1: sRGB → リニア変換
                 vec3 color = sRGBToLinear(texColor.rgb);
                 
-                // 2. Exposure
+                // Step 2: Basic corrections
+                // 2a. Exposure
                 color = color * pow(2.0, u_exposure);
                 
-                // 3. Brightness
+                // 2b. Brightness
                 color = color + u_brightness;
                 
-                // 4. Contrast
+                // 2c. Contrast
                 color = (color - 0.5) * u_contrast + 0.5;
                 
-                // 5. Primary Grading (Lift/Gamma/Gain)
+                // 2d. Saturation
+                float luminance = getLuminance(color);
+                color = mix(vec3(luminance), color, u_saturation);
+                
+                // 2e. Gamma (Scalar)
+                if (u_gamma != 1.0) {
+                    color = pow(max(color, vec3(0.0)), vec3(1.0 / u_gamma));
+                }
+
+                // Step 3: Temperature/Tint
+                // 注意: WebGLVideoProcessorではuniformに生の値(-100〜100)が渡されるので /100.0 が必要
+                float tempFactor = u_temperature / 100.0;
+                float tintFactor = u_tint / 100.0;
+                color.r *= (1.0 + tempFactor * 0.3);
+                color.b *= (1.0 - tempFactor * 0.3);
+                color.g *= (1.0 + tintFactor * 0.2);
+                
+                // Step 4: Primary Grading (Lift/Gamma/Gain)
                 // Lift (Offset)
                 color += u_lift;
                 
@@ -289,30 +307,19 @@ export class WebGLVideoProcessor {
                 
                 // Gain (Multiply)
                 color *= (1.0 + u_gain);
-
-                // 6. Saturation
-                float luminance = getLuminance(color);
-                color = mix(vec3(luminance), color, u_saturation);
                 
-                // 7. Gamma (Scalar)
-                if (u_gamma != 1.0) {
-                    color = pow(max(color, vec3(0.0)), vec3(1.0 / u_gamma));
-                }
-
-                // 8. Temperature/Tint
-                color.r *= (1.0 + u_temperature / 100.0 * 0.3);
-                color.b *= (1.0 - u_temperature / 100.0 * 0.3);
-                color.g *= (1.0 + u_tint / 100.0 * 0.2);
-                
-                // 9. Shadows/Highlights (smoothstepマスク)
+                // Step 5: Shadows/Highlights (smoothstepマスク)
+                // 注意: WebGLVideoProcessorではuniformに生の値(-100〜100)が渡されるので /100.0 が必要
+                float shadowsFactor = u_shadows / 100.0;
+                float highlightsFactor = u_highlights / 100.0;
                 float luma = getLuminance(color);
-                float shadowMask = u_shadows != 0.0 ? generateTonalMask(luma, 0.0, 0.5) : 0.0;
-                float highlightMask = u_highlights != 0.0 ? generateTonalMask(luma, 1.0, 0.5) : 0.0;
-                float shadowLift = (u_shadows / 100.0) * 0.2 * shadowMask;
-                float highlightLift = (u_highlights / 100.0) * 0.2 * highlightMask;
+                float shadowMask = shadowsFactor != 0.0 ? generateTonalMask(luma, 0.0, 0.5) : 0.0;
+                float highlightMask = highlightsFactor != 0.0 ? generateTonalMask(luma, 1.0, 0.5) : 0.0;
+                float shadowLift = shadowsFactor * 0.2 * shadowMask;
+                float highlightLift = highlightsFactor * 0.2 * highlightMask;
                 color += shadowLift + highlightLift;
                 
-                // 10. リニア → sRGB変換
+                // Step 6: リニア → sRGB変換
                 color = linearToSRGB(clamp(color, 0.0, 1.0));
                 
                 gl_FragColor = vec4(color, texColor.a);
