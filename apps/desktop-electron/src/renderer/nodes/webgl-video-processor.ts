@@ -201,7 +201,7 @@ export class WebGLVideoProcessor {
 
     private getFragmentShaderSource(): string {
         return `
-            precision mediump float;
+            precision highp float;
             
             uniform sampler2D u_texture;
             uniform float u_exposure;
@@ -221,6 +221,32 @@ export class WebGLVideoProcessor {
             
             varying vec2 v_texCoord;
             
+            // sRGB → リニア変換（ピースワイズ関数）
+            vec3 sRGBToLinear(vec3 srgb) {
+                vec3 linearLow = srgb / 12.92;
+                vec3 linearHigh = pow((srgb + 0.055) / 1.055, vec3(2.4));
+                return mix(linearLow, linearHigh, step(vec3(0.04045), srgb));
+            }
+
+            // リニア → sRGB変換（ピースワイズ関数）
+            vec3 linearToSRGB(vec3 linear) {
+                vec3 srgbLow = linear * 12.92;
+                vec3 srgbHigh = 1.055 * pow(max(linear, vec3(0.0)), vec3(1.0/2.4)) - 0.055;
+                return mix(srgbLow, srgbHigh, step(vec3(0.0031308), linear));
+            }
+
+            // Rec.709 ルミナンス
+            float getLuminance(vec3 color) {
+                return dot(color, vec3(0.2126, 0.7152, 0.0722));
+            }
+
+            // smoothstepマスク生成
+            float generateTonalMask(float luma, float center, float width) {
+                float distance = abs(luma - center);
+                float t = clamp(1.0 - distance / width, 0.0, 1.0);
+                return t * t * (3.0 - 2.0 * t);
+            }
+            
             // RGB to HSV conversion
             vec3 rgb2hsv(vec3 c) {
                 vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -238,69 +264,56 @@ export class WebGLVideoProcessor {
                 return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
             }
             
-            // Temperature and Tint
-            vec3 applyTemperatureTint(vec3 color, float temp, float tint) {
-                // Simplified temperature/tint implementation
-                // Temp: blue <-> orange
-                // Tint: green <-> magenta
-                
-                vec3 result = color;
-                
-                // Temperature (warm/cool)
-                result.r += temp * 0.1;
-                result.b -= temp * 0.1;
-                
-                // Tint (green/magenta)
-                result.g += tint * 0.1;
-                
-                return result;
-            }
-
             void main() {
                 vec4 texColor = texture2D(u_texture, v_texCoord);
-                vec3 color = texColor.rgb;
                 
-                // 1. Exposure
+                // 1. sRGB → リニア変換
+                vec3 color = sRGBToLinear(texColor.rgb);
+                
+                // 2. Exposure
                 color = color * pow(2.0, u_exposure);
                 
-                // 2. Brightness
+                // 3. Brightness
                 color = color + u_brightness;
                 
-                // 3. Contrast
+                // 4. Contrast
                 color = (color - 0.5) * u_contrast + 0.5;
                 
-                // 4. Primary Grading (Lift/Gamma/Gain)
+                // 5. Primary Grading (Lift/Gamma/Gain)
                 // Lift (Offset)
                 color += u_lift;
                 
                 // Gamma (Power)
-                // Avoid division by zero and negative values
                 vec3 gammaExp = 1.0 / (1.0 + u_gamma_color);
                 color = pow(max(color, vec3(0.0)), gammaExp);
                 
                 // Gain (Multiply)
                 color *= (1.0 + u_gain);
 
-                // 5. Saturation
-                float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+                // 6. Saturation
+                float luminance = getLuminance(color);
                 color = mix(vec3(luminance), color, u_saturation);
                 
-                // 6. Gamma (Scalar)
+                // 7. Gamma (Scalar)
                 if (u_gamma != 1.0) {
                     color = pow(max(color, vec3(0.0)), vec3(1.0 / u_gamma));
                 }
-                
-                // 7. Shadows/Highlights (Simplified)
-                // This is a very basic implementation
-                float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-                if (luma < 0.5) {
-                    color += u_shadows * (1.0 - luma * 2.0) * 0.2;
-                } else {
-                    color += u_highlights * (luma * 2.0 - 1.0) * 0.2;
-                }
-                
+
                 // 8. Temperature/Tint
-                color = applyTemperatureTint(color, u_temperature / 100.0, u_tint / 100.0);
+                color.r *= (1.0 + u_temperature / 100.0 * 0.3);
+                color.b *= (1.0 - u_temperature / 100.0 * 0.3);
+                color.g *= (1.0 + u_tint / 100.0 * 0.2);
+                
+                // 9. Shadows/Highlights (smoothstepマスク)
+                float luma = getLuminance(color);
+                float shadowMask = u_shadows != 0.0 ? generateTonalMask(luma, 0.0, 0.5) : 0.0;
+                float highlightMask = u_highlights != 0.0 ? generateTonalMask(luma, 1.0, 0.5) : 0.0;
+                float shadowLift = (u_shadows / 100.0) * 0.2 * shadowMask;
+                float highlightLift = (u_highlights / 100.0) * 0.2 * highlightMask;
+                color += shadowLift + highlightLift;
+                
+                // 10. リニア → sRGB変換
+                color = linearToSRGB(clamp(color, 0.0, 1.0));
                 
                 gl_FragColor = vec4(color, texColor.a);
             }

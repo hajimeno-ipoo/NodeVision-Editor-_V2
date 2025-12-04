@@ -1,0 +1,11 @@
+# Color Grading System Inconsistency Issues
+- **Problem**: Color correction results differ between image (static) and video previews.
+- **Cause**:
+  - Images use `WebGLLUTProcessor` with high-precision 3D LUTs (same as export).
+  - Videos use `WebGLVideoProcessor` with simplified shader approximations for performance.
+- **Affected Nodes**:
+  - `ColorCorrection`: Significant differences in Temperature, Tint, Shadows/Highlights.
+  - `PrimaryGrading`: Differences in Lift/Gamma/Gain logic.
+  - `Curves`: Video preview is missing or incomplete.
+- **Impact**: Users cannot trust the preview for video grading.
+- **Proposed Solution**: Unify the processing pipeline by using 3D LUTs for video previews as well (`WebGLLUTProcessor`), accepting the potential performance cost for accuracy.

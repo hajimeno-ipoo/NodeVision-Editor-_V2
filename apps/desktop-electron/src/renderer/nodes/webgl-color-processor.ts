@@ -162,7 +162,7 @@ export class WebGLColorProcessor {
           }
         `;
         const fsSource = `
-          precision mediump float;
+          precision highp float;
           uniform sampler2D u_image;
           uniform float u_exposure;
           uniform float u_brightness;
@@ -175,42 +175,72 @@ export class WebGLColorProcessor {
           uniform float u_tint;
           varying vec2 v_texCoord;
 
+          // sRGB → リニア変換（ピースワイズ関数）
+          vec3 sRGBToLinear(vec3 srgb) {
+              vec3 linearLow = srgb / 12.92;
+              vec3 linearHigh = pow((srgb + 0.055) / 1.055, vec3(2.4));
+              return mix(linearLow, linearHigh, step(vec3(0.04045), srgb));
+          }
+
+          // リニア → sRGB変換（ピースワイズ関数）
+          vec3 linearToSRGB(vec3 linear) {
+              vec3 srgbLow = linear * 12.92;
+              vec3 srgbHigh = 1.055 * pow(max(linear, vec3(0.0)), vec3(1.0/2.4)) - 0.055;
+              return mix(srgbLow, srgbHigh, step(vec3(0.0031308), linear));
+          }
+
+          // Rec.709 ルミナンス
+          float getLuminance(vec3 color) {
+              return dot(color, vec3(0.2126, 0.7152, 0.0722));
+          }
+
+          // smoothstepマスク生成
+          float generateTonalMask(float luma, float center, float width) {
+              float distance = abs(luma - center);
+              float t = clamp(1.0 - distance / width, 0.0, 1.0);
+              return t * t * (3.0 - 2.0 * t);
+          }
+
           void main() {
             vec4 tex = texture2D(u_image, v_texCoord);
-            vec3 c = tex.rgb;
+            
+            // 1. sRGB → リニア変換
+            vec3 c = sRGBToLinear(tex.rgb);
 
-            // Exposure (2^exposure)
-            float exposureFactor = pow(2.0, u_exposure);
-            c *= exposureFactor;
+            // 2. Exposure (2^exposure)
+            c *= pow(2.0, u_exposure);
 
-            // Brightness (-1..1)
+            // 3. Brightness
             c += u_brightness;
 
-            // Contrast
+            // 4. Contrast
             c = (c - 0.5) * u_contrast + 0.5;
 
-            // Saturation
-            float gray = dot(c, vec3(0.299, 0.587, 0.114));
+            // 5. Saturation
+            float gray = getLuminance(c);
             c = mix(vec3(gray), c, u_saturation);
 
-            // Gamma (approx)
-            c = pow(max(c, 0.0), vec3(1.0 / max(0.001, u_gamma)));
+            // 6. Gamma
+            if (u_gamma != 1.0) {
+              c = pow(max(c, vec3(0.0)), vec3(1.0 / max(0.001, u_gamma)));
+            }
 
-            // Shadows / Highlights
-            float lum = dot(c, vec3(0.333, 0.333, 0.333));
-            float shadowLift = u_shadows * 0.2;
-            float highlightCompress = -u_highlights * 0.2;
-            float tone = lum < 0.5
-              ? 1.0 + shadowLift * (1.0 - lum * 2.0)
-              : 1.0 + highlightCompress * (lum * 2.0 - 1.0);
-            c *= tone;
+            // 7. Temperature / Tint
+            c.r *= (1.0 + u_temperature / 100.0 * 0.3);
+            c.b *= (1.0 - u_temperature / 100.0 * 0.3);
+            c.g *= (1.0 + u_tint / 100.0 * 0.2);
 
-            // Temperature / Tint
-            c.r *= (1.0 + u_temperature * 0.3);
-            c.b *= (1.0 - u_temperature * 0.3);
-            c.g *= (1.0 + u_tint * 0.2);
+            // 8. Shadows / Highlights (smoothstepマスク)
+            float luma = getLuminance(c);
+            float shadowMask = u_shadows != 0.0 ? generateTonalMask(luma, 0.0, 0.5) : 0.0;
+            float highlightMask = u_highlights != 0.0 ? generateTonalMask(luma, 1.0, 0.5) : 0.0;
+            float shadowLift = (u_shadows / 100.0) * 0.2 * shadowMask;
+            float highlightLift = (u_highlights / 100.0) * 0.2 * highlightMask;
+            c += shadowLift + highlightLift;
 
-            c = clamp(c, 0.0, 1.0);
+            // 9. リニア → sRGB変換
+            c = linearToSRGB(clamp(c, 0.0, 1.0));
+
             gl_FragColor = vec4(c, tex.a);
           }
         `;
