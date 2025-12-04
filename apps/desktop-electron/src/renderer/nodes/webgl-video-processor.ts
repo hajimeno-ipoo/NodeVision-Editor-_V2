@@ -290,7 +290,6 @@ export class WebGLVideoProcessor {
                 }
 
                 // Step 3: Temperature/Tint
-                // 注意: WebGLVideoProcessorではuniformに生の値(-100〜100)が渡されるので /100.0 が必要
                 float tempFactor = u_temperature / 100.0;
                 float tintFactor = u_tint / 100.0;
                 color.r *= (1.0 + tempFactor * 0.3);
@@ -309,7 +308,6 @@ export class WebGLVideoProcessor {
                 color *= (1.0 + u_gain);
                 
                 // Step 5: Shadows/Highlights (smoothstepマスク)
-                // 注意: WebGLVideoProcessorではuniformに生の値(-100〜100)が渡されるので /100.0 が必要
                 float shadowsFactor = u_shadows / 100.0;
                 float highlightsFactor = u_highlights / 100.0;
                 float luma = getLuminance(color);

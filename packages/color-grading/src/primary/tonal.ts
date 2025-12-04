@@ -23,6 +23,7 @@ function generateTonalMask(luma: number, center: number, width: number): number 
     return falloff * falloff * (3 - 2 * falloff);
 }
 
+
 /**
  * Apply tonal corrections to RGB
  * Adjusts shadows, midtones, and highlights independently

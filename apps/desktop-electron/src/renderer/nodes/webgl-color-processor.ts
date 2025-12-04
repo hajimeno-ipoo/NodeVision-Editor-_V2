@@ -104,6 +104,10 @@ export class WebGLColorProcessor {
         const gl = this.gl;
         gl.viewport(0, 0, this.imageSize.width, this.imageSize.height);
 
+        // キャンバスをクリア（透明な黒）
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
         gl.useProgram(this.program);
 
         // Position buffer
@@ -227,13 +231,11 @@ export class WebGLColorProcessor {
             }
 
             // Step 3: Temperature / Tint
-            // 注意: uniformは既に /100 されているので、ここでは /100 不要
             c.r *= (1.0 + u_temperature * 0.3);
             c.b *= (1.0 - u_temperature * 0.3);
             c.g *= (1.0 + u_tint * 0.2);
 
             // Step 5: Shadows / Highlights (smoothstepマスク)
-            // 注意: uniformは既に /100 されているので、ここでは /100 不要
             float luma = getLuminance(c);
             float shadowMask = u_shadows != 0.0 ? generateTonalMask(luma, 0.0, 0.5) : 0.0;
             float highlightMask = u_highlights != 0.0 ? generateTonalMask(luma, 1.0, 0.5) : 0.0;
