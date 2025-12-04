@@ -496,7 +496,7 @@ export const createColorCorrectionNodeRenderer = (context: NodeRendererContext):
           <div class="cc-renderer-indicator" data-renderer="unknown" style="font-size: 11px; color: #9aa0a6;">
             レンダラー: -
           </div>
-          <button class="all-reset-btn" style="font-size: 11px; padding: 4px 8px; background: #3a3a3e; border: 1px solid #555; border-radius: 4px; color: #ddd; cursor: pointer;">
+          <button class="all-reset-btn" style="font-size: 11px; padding: 6px 10px; border: 1px solid #cbd6ff; background: #e9edff; color: #202840; border-radius: 8px; cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease;">
             All Reset
           </button>
         </div>
