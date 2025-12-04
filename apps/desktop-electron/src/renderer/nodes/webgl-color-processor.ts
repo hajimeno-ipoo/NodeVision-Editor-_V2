@@ -46,6 +46,10 @@ export class WebGLColorProcessor {
         return this.imageSize;
     }
 
+    getCanvas(): HTMLCanvasElement {
+        return this.canvas;
+    }
+
     /**
      * Load image into WebGL texture
      */
