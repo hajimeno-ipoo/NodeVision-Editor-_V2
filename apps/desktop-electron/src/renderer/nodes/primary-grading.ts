@@ -258,12 +258,21 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
             const y = cy + r * Math.sin(rad);
 
             return `
-            <div class="color-wheel-control" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 4px;">
-                    <label style="font-size: 12px;">${label}</label>
-                    <button class="reset-wheel-btn" data-wheel-target="${keyPrefix}" style="background: none; border: none; color: #888; cursor: pointer; width: 16px; height: 16px; padding: 0; display: flex; align-items: center; justify-content: center;">${resetIcon}</button>
+            <div class="color-wheel-control" style="display: flex; flex-direction: column; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
+                    <span class="control-label-text">${label}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="control-value">
+                            <span data-wheel-value="${keyPrefix}_hue">${hue.toFixed(0)}°</span> / 
+                            <span data-wheel-value="${keyPrefix}_saturation">${(sat * 100).toFixed(0)}%</span> / 
+                            <span data-wheel-value="${keyPrefix}_luminance">${(lum * 100).toFixed(0)}%</span>
+                        </span>
+                        <button class="reset-wheel-btn" data-wheel-target="${keyPrefix}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.2s;">
+                            <span style="pointer-events: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">${resetIcon}</span>
+                        </button>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
+                <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
                     <div class="wheel-area" data-node-interactive="true" style="position: relative; width: 120px; height: 120px; cursor: crosshair;">
                         <div class="wheel-bg" style="
                             width: 100%; height: 100%; border-radius: 50%;
@@ -293,11 +302,6 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                             "
                         />
                     </div>
-                </div>
-                <div class="wheel-values" style="display: flex; gap: 8px; font-size: 10px; color: #9aa0a6; margin-top: 4px;">
-                    <span>H: <span class="wheel-value-hue" data-wheel-value="${keyPrefix}_hue">${hue.toFixed(0)}°</span></span>
-                    <span>S: <span class="wheel-value-sat" data-wheel-value="${keyPrefix}_saturation">${(sat * 100).toFixed(0)}%</span></span>
-                    <span>L: <span class="wheel-value-lum" data-wheel-value="${keyPrefix}_luminance">${(lum * 100).toFixed(0)}%</span></span>
                 </div>
             </div>
             `;
