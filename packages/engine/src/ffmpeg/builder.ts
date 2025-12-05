@@ -16,6 +16,7 @@ export type MediaNodeType =
   | 'changeFps'
   | 'colorCorrection'
   | 'curves'
+  | 'primaryGrading'
   | 'export';
 
 interface BaseMediaNode {
@@ -109,6 +110,19 @@ export interface CurvesNode extends BaseMediaNode {
   hueVsLuma?: Array<{ x: number; y: number }>;
 }
 
+export interface PrimaryGradingNode extends BaseMediaNode {
+  typeId: 'primaryGrading';
+  kind: 'primaryGrading';
+  exposure?: number;
+  contrast?: number;
+  saturation?: number;
+  temperature?: number;
+  tint?: number;
+  lift?: { hue: number; saturation: number; luminance: number };
+  gamma?: { hue: number; saturation: number; luminance: number };
+  gain?: { hue: number; saturation: number; luminance: number };
+}
+
 export interface ExportNode extends BaseMediaNode {
   typeId: 'export';
   container?: 'mp4' | 'mov' | 'mkv';
@@ -128,6 +142,7 @@ export type MediaNode =
   | ChangeFpsNode
   | ColorCorrectionNode
   | CurvesNode
+  | PrimaryGradingNode
   | ExportNode;
 
 export interface MediaChain {
@@ -287,6 +302,10 @@ const collectCurves = (nodes: MediaNode[]): CurvesNode[] => {
   return nodes.filter(node => node.typeId === 'curves') as CurvesNode[];
 };
 
+const collectPrimaryGradings = (nodes: MediaNode[]): PrimaryGradingNode[] => {
+  return nodes.filter(node => node.typeId === 'primaryGrading') as PrimaryGradingNode[];
+};
+
 const computeDuration = (load: LoadMediaNode, speedRatio: number): number | null => {
   if (typeof load.durationMs !== 'number') {
     return null;
@@ -319,6 +338,7 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
   const texts = collectTexts(chain.nodes);
   const colorCorrections = collectColorCorrections(chain.nodes);
   const curves = collectCurves(chain.nodes);
+  const primaryGradings = collectPrimaryGradings(chain.nodes);
   const speedRatio = calculateSpeed(chain.nodes);
   const fpsNode = pickChangeFps(chain.nodes);
 
@@ -482,6 +502,55 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
         params: {
           pipeline,
           nodeId: curve.id
+        }
+      });
+    }
+  });
+
+  // Primary Grading: Use 3D LUT
+  primaryGradings.forEach(pg => {
+    // Check if there are any adjustments
+    const hasAdjustments =
+      (pg.exposure ?? 0) !== 0 ||
+      (pg.contrast ?? 1) !== 1 ||
+      (pg.saturation ?? 1) !== 1 ||
+      (pg.temperature ?? 0) !== 0 ||
+      (pg.tint ?? 0) !== 0 ||
+      (pg.lift?.saturation ?? 0) !== 0 ||
+      (pg.lift?.luminance ?? 0) !== 0 ||
+      (pg.gamma?.saturation ?? 0) !== 0 ||
+      (pg.gamma?.luminance ?? 0) !== 0 ||
+      (pg.gain?.saturation ?? 0) !== 0 ||
+      (pg.gain?.luminance ?? 0) !== 0;
+
+    if (hasAdjustments) {
+      // Build ColorGradingPipeline from Primary Grading settings
+      const pipeline: ColorGradingPipeline = {
+        // Basic corrections
+        basic: {
+          exposure: pg.exposure ?? 0,
+          brightness: 0,
+          contrast: pg.contrast ?? 1,
+          saturation: pg.saturation ?? 1,
+          gamma: 1,
+        },
+        temperature: pg.temperature ?? 0,
+        tint: pg.tint ?? 0,
+        // Color Wheels
+        wheels: {
+          lift: pg.lift ?? { hue: 0, saturation: 0, luminance: 0 },
+          gamma: pg.gamma ?? { hue: 0, saturation: 0, luminance: 0 },
+          gain: pg.gain ?? { hue: 0, saturation: 0, luminance: 0 },
+        }
+      };
+
+      stages.push({
+        stage: 'filter',
+        typeId: 'lut3d_generator',
+        nodeVersion: pg.nodeVersion,
+        params: {
+          pipeline,
+          nodeId: pg.id
         }
       });
     }
