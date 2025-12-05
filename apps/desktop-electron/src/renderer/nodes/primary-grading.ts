@@ -294,6 +294,11 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                         />
                     </div>
                 </div>
+                <div class="wheel-values" style="display: flex; gap: 8px; font-size: 10px; color: #9aa0a6; margin-top: 4px;">
+                    <span>H: <span class="wheel-value-hue" data-wheel-value="${keyPrefix}_hue">${hue.toFixed(0)}°</span></span>
+                    <span>S: <span class="wheel-value-sat" data-wheel-value="${keyPrefix}_saturation">${(sat * 100).toFixed(0)}%</span></span>
+                    <span>L: <span class="wheel-value-lum" data-wheel-value="${keyPrefix}_luminance">${(lum * 100).toFixed(0)}%</span></span>
+                </div>
             </div>
             `;
         };
@@ -341,6 +346,18 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                     const slider = element.querySelector(`input[data-pg-key="${key}"]`) as HTMLInputElement;
                     if (slider && parseFloat(slider.value) !== val) {
                         slider.value = val.toString();
+                    }
+
+                    // ホイール値の表示更新
+                    const wheelValueDisplay = element.querySelector(`[data-wheel-value="${key}"]`);
+                    if (wheelValueDisplay) {
+                        if (key.endsWith('_hue')) {
+                            wheelValueDisplay.textContent = `${val.toFixed(0)}°`;
+                        } else if (key.endsWith('_saturation')) {
+                            wheelValueDisplay.textContent = `${(val * 100).toFixed(0)}%`;
+                        } else if (key.endsWith('_luminance')) {
+                            wheelValueDisplay.textContent = `${(val * 100).toFixed(0)}%`;
+                        }
                     }
 
                     const targetNode = state.nodes.find((n) => n.id === node.id);
@@ -402,27 +419,27 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                                 }
                             }
 
-                                if (lut) {
-                                    processor.loadLUT(lut);
-                                    processor.renderWithCurrentTexture();
+                            if (lut) {
+                                processor.loadLUT(lut);
+                                processor.renderWithCurrentTexture();
 
-                                    const highRes = Math.max(getPreviewLutRes(), getExportLutRes());
-                                    scheduleHighResLUTViaWorker(
-                                        `${node.id}-primary`,
-                                        200,
-                                        () => buildPipeline(settings),
-                                        highRes,
-                                        (hiLut) => {
-                                            lutCache.set(node.id, { params: JSON.stringify(settings), lut: hiLut });
-                                            processor.loadLUT(hiLut);
-                                            processor.renderWithCurrentTexture();
-                                            toastHQApplied();
-                                        },
-                                        'pipeline',
-                                        toastHQStart,
-                                        toastHQError
-                                    );
-                                }
+                                const highRes = Math.max(getPreviewLutRes(), getExportLutRes());
+                                scheduleHighResLUTViaWorker(
+                                    `${node.id}-primary`,
+                                    200,
+                                    () => buildPipeline(settings),
+                                    highRes,
+                                    (hiLut) => {
+                                        lutCache.set(node.id, { params: JSON.stringify(settings), lut: hiLut });
+                                        processor.loadLUT(hiLut);
+                                        processor.renderWithCurrentTexture();
+                                        toastHQApplied();
+                                    },
+                                    'pipeline',
+                                    toastHQStart,
+                                    toastHQError
+                                );
+                            }
 
                             propagateToMediaPreview(node, processor);
                         }

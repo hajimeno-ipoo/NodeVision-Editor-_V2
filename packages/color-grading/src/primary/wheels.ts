@@ -13,11 +13,8 @@ import type { ColorWheels, ColorWheelControl } from './types';
  * @returns RGB adjustment values
  */
 export function colorWheelToRGB(wheel: ColorWheelControl): [number, number, number] {
-    // Convert HSL to RGB
-    // Hue is in degrees (0-360), normalize to 0-1
-    // Saturation is already 0-1
-    // Luminance is -1 to 1, but we need to map it to 0-1 for HSL conversion
-    const h = wheel.hue / 360;
+    // hslToRGB expects hue in 0-360 range (it normalizes internally)
+    const h = wheel.hue;  // Already in 0-360 range
     const s = wheel.saturation;
     // For color wheels, luminance of 0.5 means "no adjustment"
     const l = 0.5;
