@@ -520,12 +520,20 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
     }
   });
 
+  // 出力形式に応じて適切なピクセルフォーマットを選択
+  // 画像形式(png, jpg, webp, gif): rgb24
+  // 動画形式(mp4, mov, mkv等): yuv420p
+  const imageFormats = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+  const containerFormat = exportNode.container?.toLowerCase() ?? '';
+  const isImageOutput = imageFormats.includes(containerFormat);
+  const defaultPixelFormat = isImageOutput ? 'rgb24' : 'yuv420p';
+
   stages.push({
     stage: 'output',
     typeId: 'export',
     nodeVersion: exportNode.nodeVersion,
     args: outputArgs,
-    pixelFormat: exportNode.pixelFormat ?? 'yuv420p',
+    pixelFormat: exportNode.pixelFormat ?? defaultPixelFormat,
     interpolation: 'bicubic'
   });
 
