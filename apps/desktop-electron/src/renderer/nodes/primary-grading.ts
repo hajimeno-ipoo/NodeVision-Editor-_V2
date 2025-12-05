@@ -535,8 +535,20 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
 
                     const updateFromEvent = (e: MouseEvent) => {
                         const rect = svg.getBoundingClientRect();
-                        const dx = e.clientX - rect.left - cx;
-                        const dy = e.clientY - rect.top - cy;
+
+                        // SVGの定義サイズ（内部座標系）
+                        const svgWidth = 120;
+                        const svgHeight = 120;
+
+                        // 表示サイズと内部サイズの比率（ズーム補正）
+                        // rect.width/height は画面上の表示サイズ（ズーム適用後）
+                        // これを使ってマウス移動量を内部座標系に変換する
+                        const scaleX = svgWidth / rect.width;
+                        const scaleY = svgHeight / rect.height;
+
+                        // 内部座標系でのマウス位置（中心からのオフセット）
+                        const dx = (e.clientX - rect.left) * scaleX - cx;
+                        const dy = (e.clientY - rect.top) * scaleY - cy;
 
                         // 距離と角度を計算
                         let r = Math.sqrt(dx * dx + dy * dy);
