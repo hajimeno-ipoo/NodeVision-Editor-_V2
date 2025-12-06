@@ -1134,7 +1134,8 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         flex: 1 1 auto;
         min-height: 0;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload,
+      .node:is(.node-type-lutloader) .load-lut-btn {
         position: relative;
         display: inline-flex;
         align-items: center;
@@ -1148,8 +1149,12 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 13px;
         cursor: pointer;
         overflow: hidden;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload.disabled {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload.disabled,
+      .node:is(.node-type-lutloader) .load-lut-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
@@ -1204,13 +1209,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         max-width: 100%;
         max-height: 100%;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview, .node-type-export) .node-media-toolbar {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-mediapreview, .node-type-export, .node-type-lutloader) .node-media-toolbar {
         display: grid;
         grid-template-columns: auto 1fr auto;
         gap: 8px;
         align-items: center;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-arrow {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export, .node-type-lutloader) .node-media-arrow {
         border-radius: 999px;
         width: 32px;
         height: 28px;
@@ -1243,7 +1248,7 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export) .node-media-file-dropdown {
+      .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia, .node-type-export, .node-type-lutloader) .node-media-file-dropdown {
         appearance: none;
         -webkit-appearance: none;
         -moz-appearance: none;

@@ -127,14 +127,38 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
             ? settings.lutFilePath.split('/').pop() || 'LUT file'
             : 'No LUT loaded';
 
+        const library = state.lutLibrary;
+        const currentIndex = library.findIndex(entry => entry.path === settings.lutFilePath);
+        const resolvedIndex = currentIndex >= 0 ? currentIndex : library.length > 0 ? 0 : -1;
+        const prevDisabled = resolvedIndex <= 0 ? 'disabled' : '';
+        const nextDisabled = resolvedIndex === -1 || resolvedIndex >= library.length - 1 ? 'disabled' : '';
+
+        const libraryOptions =
+            library.length > 0
+                ? library
+                      .map((entry, idx) => {
+                          const selected = idx === resolvedIndex ? ' selected' : '';
+                          return `<option value="${escapeHtml(entry.id)}"${selected}>${escapeHtml(entry.name || entry.filename)}</option>`;
+                      })
+                      .join('')
+                : '<option value="" selected>ファイル未選択</option>';
+
         return `
       <div class="node-controls" style="padding: 12px;">
         <div class="lut-loader-indicator" style="font-size: 11px; color: #9aa0a6; margin-bottom: 8px;">
           レンダラー: WebGL 2.0 (3D LUT)
         </div>
+
+        <div class="node-media-toolbar" style="margin-bottom: 12px;">
+          <button type="button" class="node-media-arrow lut-lib-prev" data-direction="prev" ${prevDisabled}>◀</button>
+          <select class="node-media-file-dropdown lut-lib-select" ${library.length === 0 ? 'disabled' : ''}>
+            ${libraryOptions}
+          </select>
+          <button type="button" class="node-media-arrow lut-lib-next" data-direction="next" ${nextDisabled}>▶</button>
+        </div>
         
         <div style="margin-bottom: 16px;">
-          <button class="load-lut-btn" style="width: 100%; padding: 8px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+          <button class="load-lut-btn">
             ${hasLUT ? '別のLUTを読み込む' : 'LUTファイルを読み込む'}
           </button>
           <div class="lut-file-name" style="margin-top: 8px; font-size: 11px; color: ${hasLUT ? '#e8eaed' : '#9aa0a6'
@@ -179,6 +203,108 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
 
                 const settings = node.settings as LUTLoaderNodeSettings;
                 const sourceMediaUrl = getSourceMedia(node);
+
+                const selectEl = element.querySelector<HTMLSelectElement>('.lut-lib-select');
+                const prevBtn = element.querySelector<HTMLButtonElement>('.lut-lib-prev');
+                const nextBtn = element.querySelector<HTMLButtonElement>('.lut-lib-next');
+
+                const applyLutEntry = async (entryId: string | null) => {
+                    if (!entryId) return;
+                    const library = state.lutLibrary;
+                    const entry = library.find(e => e.id === entryId);
+                    if (!entry) return;
+                    try {
+                        const fileContent = await window.nodevision.readTextFile({ filePath: entry.path });
+                        if (!fileContent?.ok || !fileContent.content) {
+                            alert('Failed to read LUT file');
+                            return;
+                        }
+                        const lut = parseCubeLUT(fileContent.content);
+                        if (!validateImportedLUT(lut)) {
+                            alert('Invalid LUT file');
+                            return;
+                        }
+                        loadedLUTs.set(node.id, lut);
+                        const targetNode = state.nodes.find(n => n.id === node.id);
+                        if (targetNode) {
+                            const newSettings: LUTLoaderNodeSettings = {
+                                kind: 'lutLoader',
+                                lutFilePath: entry.path,
+                                intensity: settings?.intensity ?? 1.0
+                            };
+                            targetNode.settings = newSettings;
+                            node.settings = newSettings;
+                        }
+                        // 適用
+                        if (processor && sourceMediaUrl) {
+                            if (sourceMediaUrl.kind === 'video') {
+                                const loopState = (videoProcessors.get(node.id) as any)?.__loopState;
+                                if (loopState) {
+                                    loopState.currentLut = lut;
+                                }
+                            } else {
+                                processor.loadLUT(lut);
+                                processor.setIntensity(settings?.intensity ?? 1.0);
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
+                            }
+                        }
+                        // UI更新
+                        const nameLabel = element.querySelector('.lut-file-name');
+                        if (nameLabel) {
+                            nameLabel.textContent = entry.filename;
+                            nameLabel.setAttribute('title', entry.filename);
+                            nameLabel.setAttribute('style', nameLabel.getAttribute('style')?.replace('#9aa0a6', '#e8eaed') ?? '');
+                        }
+                    } catch (error) {
+                        console.error('[LUTLoader] apply from library failed', error);
+                        alert('Failed to apply LUT');
+                    }
+                };
+
+                const updateNavState = () => {
+                    const library = state.lutLibrary;
+                    const idx =
+                        selectEl && library.length
+                            ? library.findIndex(e => e.id === selectEl.value)
+                            : -1;
+                    const fallbackIdx = library.findIndex(e => e.path === settings?.lutFilePath);
+                    const resolvedIdx =
+                        idx >= 0 ? idx : fallbackIdx >= 0 ? fallbackIdx : library.length > 0 ? 0 : -1;
+                    if (selectEl) {
+                        selectEl.disabled = library.length === 0;
+                        if (resolvedIdx >= 0 && library[resolvedIdx]) {
+                            selectEl.value = library[resolvedIdx].id;
+                        }
+                    }
+                    if (prevBtn) prevBtn.disabled = resolvedIdx <= 0;
+                    if (nextBtn) nextBtn.disabled = resolvedIdx === -1 || resolvedIdx >= library.length - 1;
+                };
+
+                if (selectEl) {
+                    updateNavState();
+                    selectEl.addEventListener('change', () => {
+                        void applyLutEntry(selectEl.value || null);
+                        updateNavState();
+                    });
+                }
+                const stepLibrary = (delta: number) => {
+                    const library = state.lutLibrary;
+                    if (!library.length) return;
+                    const currentIdx =
+                        library.findIndex(entry => entry.id === (selectEl?.value ?? '')) >= 0
+                            ? library.findIndex(entry => entry.id === (selectEl?.value ?? ''))
+                            : library.findIndex(entry => entry.path === settings?.lutFilePath);
+                    const baseIdx = currentIdx >= 0 ? currentIdx : 0;
+                    const nextIdx = baseIdx + delta;
+                    if (nextIdx < 0 || nextIdx >= library.length) return;
+                    const nextEntry = library[nextIdx];
+                    if (selectEl) selectEl.value = nextEntry.id;
+                    void applyLutEntry(nextEntry.id);
+                    updateNavState();
+                };
+                prevBtn?.addEventListener('click', () => stepLibrary(-1));
+                nextBtn?.addEventListener('click', () => stepLibrary(1));
 
                 // LUT読み込みボタン
                 const loadBtn = element.querySelector('.load-lut-btn');
