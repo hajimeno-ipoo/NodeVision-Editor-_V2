@@ -12,9 +12,13 @@ const { parseCubeLUT, validateImportedLUT } = colorGrading;
 export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml } = context;
 
+
     const processors = new Map<string, WebGLLUTProcessor>();
     const lastSourceByNode = new Map<string, string>();
     const loadedLUTs = new Map<string, LUT3D>();
+    // 動画プレビュー用の状態管理
+    const videoProcessors = new Map<string, HTMLVideoElement>();
+    const videoCleanup = new Map<string, () => void>();
 
     const createProcessor = (): WebGLLUTProcessor => {
         const canvas = document.createElement('canvas');
@@ -76,7 +80,10 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
     /**
      * 上流ノードから元メディアの URL を取得
      */
-    const getSourceMedia = (node: RendererNode): string | null => {
+    /**
+     * 上流ノードから元メディアの URL と種別を取得
+     */
+    const getSourceMedia = (node: RendererNode): { url: string; kind: 'image' | 'video' } | null => {
         const inputPorts = ['source'];
         const conn = state.connections.find(
             (c) => c.toNodeId === node.id && inputPorts.includes(c.toPortId)
@@ -87,12 +94,22 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
         if (!sourceNode) return null;
 
         const preview = state.mediaPreviews.get(sourceNode.id);
-        if (preview?.url) return preview.url;
+        if (preview?.url) {
+            return {
+                url: preview.url,
+                kind: preview.kind === 'video' ? 'video' : 'image'
+            };
+        }
 
-        if (sourceNode.typeId === 'loadVideo' || sourceNode.typeId === 'loadImage') {
+        if (sourceNode.typeId === 'loadVideo') {
             const settings = sourceNode.settings as { filePath?: string } | undefined;
             if (settings?.filePath) {
-                return settings.filePath;
+                return { url: settings.filePath, kind: 'video' };
+            }
+        } else if (sourceNode.typeId === 'loadImage') {
+            const settings = sourceNode.settings as { filePath?: string } | undefined;
+            if (settings?.filePath) {
+                return { url: settings.filePath, kind: 'image' };
             }
         }
 
@@ -247,10 +264,16 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                             // プレビュー更新
                             const lut = loadedLUTs.get(node.id);
                             if (lut && processor && sourceMediaUrl) {
-                                processor.setIntensity(val);
-                                processor.loadLUT(lut);
-                                processor.renderWithCurrentTexture();
-                                propagateToMediaPreview(node, processor);
+                                // 動画再生中ならループ内で自動更新されるので、ここでは設定値の更新のみで良い
+                                // 画像の場合は明示的に再描画
+                                if (sourceMediaUrl.kind === 'image') {
+                                    processor.setIntensity(val);
+                                    processor.loadLUT(lut);
+                                    processor.renderWithCurrentTexture();
+                                    propagateToMediaPreview(node, processor);
+                                }
+                                // 動画の場合はループ内で settings.intensity を参照するようにしているので、
+                                // node.settings が更新されていればOK
                             }
                         }
                     });
@@ -275,36 +298,126 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                         }
 
                         if (lut) {
-                            // ソース画像を読み込む
-                            let imageUrl = sourceMediaUrl;
+                            const { url: mediaUrl, kind } = sourceMediaUrl;
 
-                            if (sourceMediaUrl.startsWith('file://')) {
-                                const result = await window.nodevision.loadImageAsDataURL({
-                                    filePath: sourceMediaUrl,
-                                });
-                                if (result.ok && result.dataURL) {
-                                    imageUrl = result.dataURL;
+                            if (kind === 'video') {
+                                // 動画の場合
+                                const lastSource = lastSourceByNode.get(node.id);
+                                const isNewSource = lastSource !== mediaUrl;
+
+                                if (isNewSource || !videoProcessors.has(node.id)) {
+                                    // 以前の動画リソースをクリーンアップ
+                                    const oldCleanup = videoCleanup.get(node.id);
+                                    if (oldCleanup) oldCleanup();
+
+                                    // 新しい動画要素を作成
+                                    const video = document.createElement('video');
+                                    video.crossOrigin = 'anonymous';
+                                    video.muted = true;
+                                    video.loop = true;
+                                    video.playsInline = true;
+                                    video.src = mediaUrl;
+
+                                    // メタデータ読み込み完了を待つ
+                                    await new Promise<void>((resolve) => {
+                                        video.onloadedmetadata = () => resolve();
+                                    });
+
+                                    video.play().catch(err => console.error('[LUTLoader] Video play failed', err));
+                                    videoProcessors.set(node.id, video);
+                                    lastSourceByNode.set(node.id, mediaUrl);
+
+                                    // Mutable state for the loop to access current settings
+                                    const loopState = {
+                                        currentLut: lut,
+                                        currentIntensity: settings.intensity
+                                    };
+                                    // Store loop state to update it on subsequent renders
+                                    (video as any).__loopState = loopState;
+
+                                    // 更新ループ
+                                    let animationFrameId: number;
+                                    const updateLoop = () => {
+                                        if (video.paused || video.ended) {
+                                            animationFrameId = requestAnimationFrame(updateLoop);
+                                            return;
+                                        }
+
+                                        if (processor && loopState.currentLut) {
+                                            processor.loadVideoFrame(video);
+                                            processor.setIntensity(loopState.currentIntensity);
+                                            processor.loadLUT(loopState.currentLut);
+                                            processor.renderWithCurrentTexture();
+                                            propagateToMediaPreview(node, processor);
+                                        }
+
+                                        animationFrameId = requestAnimationFrame(updateLoop);
+                                    };
+                                    updateLoop();
+
+                                    // クリーンアップ関数を登録
+                                    videoCleanup.set(node.id, () => {
+                                        cancelAnimationFrame(animationFrameId);
+                                        video.pause();
+                                        video.src = '';
+                                        video.load();
+                                        videoProcessors.delete(node.id);
+                                        delete (video as any).__loopState;
+                                    });
+                                } else {
+                                    // 既存の動画ループのステートを更新する
+                                    const video = videoProcessors.get(node.id);
+                                    if (video && (video as any).__loopState) {
+                                        const loopState = (video as any).__loopState;
+                                        loopState.currentLut = lut;
+                                        loopState.currentIntensity = settings.intensity;
+                                    }
                                 }
+                            } else {
+                                // 画像の場合：動画リソースがあればクリーンアップ
+                                const oldCleanup = videoCleanup.get(node.id);
+                                if (oldCleanup) {
+                                    oldCleanup();
+                                    videoCleanup.delete(node.id);
+                                    lastSourceByNode.delete(node.id); // ソース種別が変わったのでリセット
+                                }
+
+                                // 画像読み込み処理
+                                let imageUrl = mediaUrl;
+                                if (mediaUrl.startsWith('file://')) {
+                                    const result = await window.nodevision.loadImageAsDataURL({
+                                        filePath: mediaUrl,
+                                    });
+                                    if (result.ok && result.dataURL) {
+                                        imageUrl = result.dataURL;
+                                    }
+                                }
+
+                                const lastSource = lastSourceByNode.get(node.id);
+                                const shouldReload = !processor.hasImage?.() || lastSource !== imageUrl;
+
+                                if (shouldReload) {
+                                    await processor.loadImage(imageUrl);
+                                    lastSourceByNode.set(node.id, imageUrl);
+                                }
+
+                                // LUTを適用
+                                processor.loadLUT(lut);
+                                processor.setIntensity(settings.intensity);
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
                             }
-
-                            const lastSource = lastSourceByNode.get(node.id);
-                            const shouldReload = !processor.hasImage?.() || lastSource !== imageUrl;
-
-                            if (shouldReload) {
-                                await processor.loadImage(imageUrl);
-                                lastSourceByNode.set(node.id, imageUrl);
-                            }
-
-                            // LUTを適用
-                            processor.loadLUT(lut);
-                            processor.renderWithCurrentTexture();
-                            propagateToMediaPreview(node, processor);
                         }
                     } catch (error) {
                         console.error('[LUTLoader] Preview setup failed', error);
                     }
                 } else {
                     lastSourceByNode.delete(node.id);
+                    const cleanup = videoCleanup.get(node.id);
+                    if (cleanup) {
+                        cleanup();
+                        videoCleanup.delete(node.id);
+                    }
                     propagateToMediaPreview(node, undefined);
                 }
             },

@@ -408,6 +408,37 @@ const planToArgs = async (plan: FFmpegPlan, outputPath: string, lutRes: number =
         continue;
       }
 
+      // Handle LUT file application stage
+      if (stage.typeId === 'lut3d_file') {
+        const { filePath, intensity } = stage.params as any;
+        const nextLabel = `tmp${filterChain.length}`;
+        const escapedPath = filePath.replace(/\\/g, '/').replace(/:/g, '\\:');
+
+        if (intensity >= 1.0) {
+          // Simple application
+          filterChain.push(`[${lastLabel}]lut3d=file='${escapedPath}'[${nextLabel}]`);
+          lastLabel = nextLabel;
+        } else {
+          // Intensity support using blend
+          // 1. Split input into two streams: original and processed
+          const splitLabel1 = `split${filterChain.length}_1`;
+          const splitLabel2 = `split${filterChain.length}_2`;
+          filterChain.push(`[${lastLabel}]split[${splitLabel1}][${splitLabel2}]`);
+
+          // 2. Apply LUT to one stream
+          const lutLabel = `lut${filterChain.length}`;
+          filterChain.push(`[${splitLabel2}]lut3d=file='${escapedPath}'[${lutLabel}]`);
+
+          // 3. Blend original and processed based on intensity
+          // A: Initial image (splitLabel1), B: LUT image (lutLabel)
+          // Result = A * (1 - intensity) + B * intensity
+          filterChain.push(`[${splitLabel1}][${lutLabel}]blend=all_mode=normal:all_opacity=${intensity}[${nextLabel}]`);
+
+          lastLabel = nextLabel;
+        }
+        continue;
+      }
+
       // Construct filter parameters
       const paramsList = Object.entries(stage.params)
         .map(([k, v]) => {

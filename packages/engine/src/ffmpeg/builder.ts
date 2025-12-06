@@ -160,7 +160,7 @@ export interface BuildFFmpegPlanOptions {
 
 interface BaseStage {
   stage: 'input' | 'filter' | 'output';
-  typeId: MediaNodeType | 'setsar' | 'eq' | 'curves' | 'colorchannelmixer' | 'lut3d_generator';
+  typeId: MediaNodeType | 'setsar' | 'eq' | 'curves' | 'colorchannelmixer' | 'lut3d_generator' | 'lut3d_file';
   nodeVersion: string;
 }
 
@@ -193,7 +193,17 @@ export interface LUT3DGeneratorStage extends BaseStage {
   };
 }
 
-export type BuilderStage = InputStage | FilterStage | OutputStage | LUT3DGeneratorStage;
+export interface LUT3DFileStage extends BaseStage {
+  stage: 'filter';
+  typeId: 'lut3d_file';
+  params: {
+    filePath: string;
+    intensity: number;
+    nodeId: string;
+  };
+}
+
+export type BuilderStage = InputStage | FilterStage | OutputStage | LUT3DGeneratorStage | LUT3DFileStage;
 
 export interface PreviewFilter {
   type: 'colorspace' | 'scale' | 'setsar';
@@ -341,6 +351,16 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
   const primaryGradings = collectPrimaryGradings(chain.nodes);
   const speedRatio = calculateSpeed(chain.nodes);
   const fpsNode = pickChangeFps(chain.nodes);
+
+  const lutLoaders = chain.nodes
+    .filter((n: any) => n.typeId === 'lutLoader')
+    .map((n: any) => ({
+      id: n.id,
+      nodeVersion: n.nodeVersion || '1.0.0',
+      lutFilePath: n.lutFilePath || n.settings?.lutFilePath,
+      intensity: n.intensity ?? n.settings?.intensity ?? 1.0
+    }))
+    .filter(n => !!n.lutFilePath);
 
   const inputArgs: string[] = [];
   const outputArgs: string[] = [];
@@ -554,6 +574,20 @@ export function buildFFmpegPlan(chain: MediaChain, options: BuildFFmpegPlanOptio
         }
       });
     }
+  });
+
+  // LUT Loader: Use 3D LUT file
+  lutLoaders.forEach(lut => {
+    stages.push({
+      stage: 'filter',
+      typeId: 'lut3d_file',
+      nodeVersion: lut.nodeVersion,
+      params: {
+        filePath: lut.lutFilePath!,
+        intensity: lut.intensity,
+        nodeId: lut.id
+      }
+    });
   });
 
   if (speedRatio !== 1) {
