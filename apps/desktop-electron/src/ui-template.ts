@@ -1149,8 +1149,10 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         font-size: 13px;
         cursor: pointer;
         overflow: hidden;
-        width: 100%;
-        max-width: 320px;
+      }
+      .node:is(.node-type-lutloader) .load-lut-btn {
+        display: block;
+        width: min(320px, 100%);
         margin: 0 auto;
       }
       .node:is(.node-type-loadimage, .node-type-loadvideo, .node-type-loadmedia) .node-media-upload.disabled,

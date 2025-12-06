@@ -25,6 +25,21 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
         return new WebGLLUTProcessor(canvas);
     };
 
+    const buildIdentityLut = (size = 17): LUT3D => {
+        const data = new Float32Array(size * size * size * 3);
+        let ptr = 0;
+        for (let b = 0; b < size; b++) {
+            for (let g = 0; g < size; g++) {
+                for (let r = 0; r < size; r++) {
+                    data[ptr++] = r / (size - 1);
+                    data[ptr++] = g / (size - 1);
+                    data[ptr++] = b / (size - 1);
+                }
+            }
+        }
+        return { resolution: size, data };
+    };
+
     /**
      * メディアプレビューノードへ補正後の dataURL を反映
      */
@@ -123,6 +138,7 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
         };
 
         const hasLUT = !!settings.lutFilePath;
+        const intensityValue = settings.intensity ?? 1.0;
         const lutName = settings.lutFilePath
             ? settings.lutFilePath.split('/').pop() || 'LUT file'
             : 'No LUT loaded';
@@ -171,25 +187,19 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
         <p class="lut-active-label" style="margin: 0 0 10px; text-align: center; font-size: 12px; color: rgba(48,48,60,0.75);">
           ${hasLUT ? `現在適用中: ${escapeHtml(lutName)}（ライブラリ）` : '現在適用中: なし'}
         </p>
-        
-        ${hasLUT
-                ? `
         <label class="control-label" style="display: block; margin-bottom: 8px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
             <span class="control-label-text">Intensity</span>
-            <span class="control-value" data-lut-value="intensity">${(settings.intensity * 100).toFixed(0)}%</span>
+            <span class="control-value" data-lut-value="intensity">${(intensityValue * 100).toFixed(0)}%</span>
           </div>
           <input 
             type="range" 
             class="node-slider lut-intensity-slider" 
             data-node-id="${escapeHtml(node.id)}"
-            min="0" max="1" step="0.01" value="${settings.intensity}"
+            min="0" max="1" step="0.01" value="${intensityValue}"
             style="width: 100%;"
           />
         </label>
-        `
-                : ''
-            }
       </div>
     `;
     };
@@ -265,6 +275,13 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                             nameLabel.setAttribute('style', nameLabel.getAttribute('style')?.replace('#9aa0a6', '#e8eaed') ?? '');
                         }
                         setActiveLabel(entry.filename, true);
+                        if (slider) {
+                            slider.disabled = false;
+                            slider.value = String(settings?.intensity ?? 1.0);
+                        }
+                        if (sliderValue) {
+                            sliderValue.textContent = `${((settings?.intensity ?? 1.0) * 100).toFixed(0)}%`;
+                        }
                     } catch (error) {
                         console.error('[LUTLoader] apply from library failed', error);
                         alert('Failed to apply LUT');
@@ -294,7 +311,13 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                 if (selectEl) {
                     updateNavState();
                     selectEl.addEventListener('change', () => {
-                        void applyLutEntry(selectEl.value || null);
+                        const val = selectEl.value || null;
+                        if (!val) {
+                            void clearAppliedLut();
+                            updateNavState();
+                            return;
+                        }
+                        void applyLutEntry(val);
                         updateNavState();
                     });
                 }
@@ -319,16 +342,84 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                 // LUT読み込みボタン
                 const loadBtn = element.querySelector('.load-lut-btn');
                 const activeLabel = element.querySelector<HTMLElement>('.lut-active-label');
+                const slider = element.querySelector<HTMLInputElement>('.lut-intensity-slider');
+                const sliderValue = element.querySelector<HTMLElement>('.control-value[data-lut-value="intensity"]');
 
                 const setActiveLabel = (text: string, fromLibrary: boolean): void => {
                     if (!activeLabel) return;
                     activeLabel.textContent = fromLibrary ? `現在適用中: ${text}（ライブラリ）` : text;
                 };
+
+                const clearAppliedLut = async (): Promise<void> => {
+                    const targetNode = state.nodes.find(n => n.id === node.id);
+                    if (targetNode) {
+                        const current = targetNode.settings as LUTLoaderNodeSettings;
+                        targetNode.settings = { ...current, lutFilePath: undefined };
+                        node.settings = targetNode.settings;
+                    }
+                    loadedLUTs.delete(node.id);
+
+                    const nameLabel = element.querySelector('.lut-file-name');
+                    if (nameLabel) {
+                        nameLabel.textContent = 'No LUT loaded';
+                        nameLabel.setAttribute('title', 'No LUT loaded');
+                        nameLabel.setAttribute('style', nameLabel.getAttribute('style')?.replace('#e8eaed', '#9aa0a6') ?? '');
+                    }
+                    setActiveLabel('現在適用中: なし', false);
+                    if (slider) {
+                        slider.disabled = false;
+                        slider.value = '0';
+                    }
+                    if (sliderValue) sliderValue.textContent = '0%';
+
+                    const media = getSourceMedia(node);
+                    if (processor && media) {
+                        if (media.kind === 'image') {
+                            let imageUrl = media.url;
+                            if (imageUrl.startsWith('file://')) {
+                                const res = await window.nodevision.loadImageAsDataURL({ filePath: imageUrl });
+                                if (res.ok && res.dataURL) {
+                                    imageUrl = res.dataURL;
+                                }
+                            }
+                            await processor.loadImage(imageUrl);
+                            const identity = buildIdentityLut();
+                            processor.loadLUT(identity);
+                            processor.setIntensity(0);
+                            processor.renderWithCurrentTexture();
+                            propagateToMediaPreview(node, processor);
+                        } else {
+                            const video = videoProcessors.get(node.id);
+                            if (video) {
+                                processor.loadVideoFrame(video);
+                                const identity = buildIdentityLut();
+                                processor.loadLUT(identity);
+                                processor.setIntensity(0);
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
+                                const loopState = (video as any).__loopState;
+                                if (loopState) {
+                                    loopState.currentLut = identity;
+                                    loopState.currentIntensity = 0;
+                                }
+                            }
+                        }
+                    }
+                    context.renderNodes();
+                };
+
                 // 初期表示
                 if (settings?.lutFilePath) {
                     setActiveLabel(settings.lutFilePath.split('/').pop() ?? 'LUT file', true);
+                    if (slider) slider.disabled = false;
+                    if (sliderValue) sliderValue.textContent = `${((settings.intensity ?? 1) * 100).toFixed(0)}%`;
                 } else {
                     setActiveLabel('現在適用中: なし', false);
+                    if (slider) {
+                        slider.disabled = false;
+                        slider.value = String(settings.intensity ?? 1);
+                    }
+                    if (sliderValue) sliderValue.textContent = `${((settings.intensity ?? 1) * 100).toFixed(0)}%`;
                 }
                 if (loadBtn) {
                     loadBtn.addEventListener('click', async () => {
@@ -378,16 +469,33 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                                             }
                                             setActiveLabel(filename, true);
 
-                                            // 画像プレビューなら即反映
-                                            const media = getSourceMedia(node);
-                                            if (processor && media?.kind === 'image') {
+                                        if (slider) {
+                                            slider.disabled = false;
+                                            slider.value = String(settings?.intensity ?? 1.0);
+                                        }
+                                        if (sliderValue) {
+                                            sliderValue.textContent = `${((settings?.intensity ?? 1.0) * 100).toFixed(0)}%`;
+                                        }
+
+                                        // プレビューへ適用
+                                        const media = getSourceMedia(node);
+                                        if (processor && media) {
+                                            if (media.kind === 'image') {
                                                 processor.loadLUT(lut);
                                                 processor.setIntensity(settings?.intensity ?? 1.0);
                                                 processor.renderWithCurrentTexture();
                                                 propagateToMediaPreview(node, processor);
+                                            } else if (media.kind === 'video') {
+                                                processor.setIntensity(settings?.intensity ?? 1.0);
+                                                const loopState = (videoProcessors.get(node.id) as any)?.__loopState;
+                                                if (loopState) {
+                                                    loopState.currentLut = lut;
+                                                    loopState.currentIntensity = settings?.intensity ?? 1.0;
+                                                }
                                             }
-                                            context.renderNodes();
                                         }
+                                        context.renderNodes();
+                                    }
                                     } else {
                                         alert('Invalid LUT file');
                                     }
