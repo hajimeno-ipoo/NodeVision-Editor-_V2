@@ -263,9 +263,9 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                     <span class="control-label-text">${label}</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span class="control-value">
-                            <span data-wheel-value="${keyPrefix}_hue">${hue.toFixed(0)}°</span> / 
-                            <span data-wheel-value="${keyPrefix}_saturation">${(sat * 100).toFixed(0)}%</span> / 
-                            <span data-wheel-value="${keyPrefix}_luminance">${(lum * 100).toFixed(0)}%</span>
+                            <span class="editable-value" data-wheel-value="${keyPrefix}_hue" data-input-type="hue" style="cursor: pointer; border-bottom: 1px dotted #888;">${hue.toFixed(0)}°</span> / 
+                            <span class="editable-value" data-wheel-value="${keyPrefix}_saturation" data-input-type="percent" style="cursor: pointer; border-bottom: 1px dotted #888;">${(sat * 100).toFixed(0)}%</span> / 
+                            <span class="editable-value" data-wheel-value="${keyPrefix}_luminance" data-input-type="percent" style="cursor: pointer; border-bottom: 1px dotted #888;">${(lum * 100).toFixed(0)}%</span>
                         </span>
                         <button class="reset-wheel-btn" data-wheel-target="${keyPrefix}" title="リセット" aria-label="リセット" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; color: #e8eaed; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.2s;">
                             <span style="pointer-events: none; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">${resetIcon}</span>
@@ -399,6 +399,36 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                         targetNode.settings = currentSettings;
                         node.settings = currentSettings;
 
+                        // ホイールインジケーターの同期更新
+                        if (key.includes('_')) {
+                            const [wheelKey, prop] = key.split('_');
+                            if (['lift', 'gamma', 'gain'].includes(wheelKey) && (prop === 'hue' || prop === 'saturation')) {
+                                const wheelData = (currentSettings as any)[wheelKey];
+                                const svg = element.querySelector(`.color-wheel-svg[data-wheel-key="${wheelKey}"]`);
+                                if (svg && wheelData) {
+                                    const h = wheelData.hue;
+                                    const s = wheelData.saturation;
+
+                                    const radius = 50;
+                                    const cx = 60;
+                                    const cy = 60;
+                                    const rad = (h * Math.PI) / 180;
+                                    const r = s * radius;
+                                    const paramsX = cx + r * Math.cos(rad);
+                                    const paramsY = cy + r * Math.sin(rad);
+
+                                    const indicator = svg.querySelector('.wheel-indicator');
+                                    const indicatorInner = svg.querySelector('.wheel-indicator-inner');
+                                    if (indicator && indicatorInner) {
+                                        indicator.setAttribute('cx', paramsX.toString());
+                                        indicator.setAttribute('cy', paramsY.toString());
+                                        indicatorInner.setAttribute('cx', paramsX.toString());
+                                        indicatorInner.setAttribute('cy', paramsY.toString());
+                                    }
+                                }
+                            }
+                        }
+
                         // プレビュー更新
                         const settings = currentSettings;
 
@@ -520,6 +550,104 @@ export const createPrimaryGradingNodeRenderer = (context: NodeRendererContext): 
                     area.addEventListener('click', (e) => {
                         e.stopPropagation();
                         e.preventDefault();
+                    });
+
+                    // ダブルクリックでリセット
+                    area.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const svg = area.querySelector('.color-wheel-svg');
+                        const keyPrefix = svg?.getAttribute('data-wheel-key');
+                        if (keyPrefix) {
+                            updateValueAndPreview(`${keyPrefix}_hue`, 0);
+                            updateValueAndPreview(`${keyPrefix}_saturation`, 0);
+                        }
+                    });
+                });
+
+                // 数値直接入力の処理
+                const editableValues = element.querySelectorAll('.editable-value');
+                editableValues.forEach(span => {
+                    span.addEventListener('pointerdown', (e) => e.stopPropagation()); // ノードドラッグ防止
+                    span.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const target = e.currentTarget as HTMLElement;
+                        const key = target.getAttribute('data-wheel-value');
+                        const inputType = target.getAttribute('data-input-type');
+                        if (!key) return;
+
+                        const currentText = target.textContent?.replace(/[°%]/g, '') || '0';
+                        const currentVal = parseFloat(currentText);
+
+                        // spanをinputに置換
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.value = currentVal.toString();
+                        input.style.width = '48px';
+                        input.style.height = '18px';
+                        input.style.fontSize = '12px';
+                        input.style.textAlign = 'center';
+                        input.style.background = '#202124';
+                        input.style.color = '#e8eaed';
+                        input.style.border = '1px solid #5f6368';
+                        input.style.borderRadius = '2px';
+                        input.style.padding = '0';
+
+                        const originalDisplay = target.style.display;
+                        target.style.display = 'none';
+                        target.parentNode?.insertBefore(input, target);
+                        input.focus();
+                        input.select();
+
+                        const commit = () => {
+                            let val = parseFloat(input.value);
+                            if (isNaN(val)) val = currentVal;
+
+                            // 範囲制限
+                            if (inputType === 'hue') {
+                                val = Math.max(0, Math.min(360, val));
+                            } else if (inputType === 'percent') {
+                                // 表示は%だが入力は-100~100 or 0~100。内部値は0~1 or -1~1
+                                // ここでは %値 として入力させ、内部値に変換して updateValueAndPreview に渡す
+                                // Saturation: 0-100 -> 0-1
+                                // Luminance: -100-100 -> -1-1
+                                if (key.endsWith('_saturation')) {
+                                    val = Math.max(0, Math.min(100, val));
+                                    updateValueAndPreview(key, val / 100);
+                                } else if (key.endsWith('_luminance')) {
+                                    val = Math.max(-100, Math.min(100, val));
+                                    updateValueAndPreview(key, val / 100);
+                                } else {
+                                    // Hue case handled above, passing directly
+                                    updateValueAndPreview(key, val);
+                                }
+                            } else {
+                                updateValueAndPreview(key, val);
+                            }
+
+                            if (key.endsWith('_hue')) { // Hue was kept as is
+                                updateValueAndPreview(key, val);
+                            }
+
+                            // Cleanup
+                            input.remove();
+                            target.style.display = originalDisplay;
+                        };
+
+                        input.addEventListener('blur', commit);
+                        input.addEventListener('keydown', (ev) => {
+                            if (ev.key === 'Enter') {
+                                input.blur(); // Triggers commit
+                            } else if (ev.key === 'Escape') {
+                                input.remove();
+                                target.style.display = originalDisplay;
+                            }
+                            ev.stopPropagation();
+                        });
+
+                        // Input内でのドラッグ等がノードに伝わらないように
+                        input.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+                        input.addEventListener('mousedown', (ev) => ev.stopPropagation());
                     });
                 });
 
