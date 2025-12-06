@@ -62,7 +62,8 @@ import type {
   NodeSize,
   CanvasTool,
   NodeMediaPreview,
-  StoredWorkflow
+  StoredWorkflow,
+  LutLibraryEntry
 } from './types';
 import type { NodeConnection } from '@nodevision/editor';
 import { createNodeRenderers } from './nodes';
@@ -70,6 +71,7 @@ import type { NodeRendererModule } from './nodes/types';
 import { syncPendingPortHighlight } from './ports';
 import { getLoadNodeReservedHeight, getMediaPreviewReservedHeight } from './nodes/preview-layout';
 import { calculatePreviewSize } from './nodes/preview-size';
+import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
 
 (() => {
   const rendererWindow = window as RendererBootstrapWindow;
@@ -210,6 +212,11 @@ import { calculatePreviewSize } from './nodes/preview-size';
   };
 
   const state: RendererState = createInitialState(BOOTSTRAP, detectLocale());
+  try {
+    state.lutLibrary = loadLutLibrary(localStorage);
+  } catch {
+    state.lutLibrary = [];
+  }
   const nodeRendererByType = new Map<string, NodeRendererModule>();
   let nodeResizeObserver: ResizeObserver | null = null;
   const getNodeRenderer = (typeId: string): NodeRendererModule | undefined => nodeRendererByType.get(typeId);
@@ -2757,9 +2764,186 @@ import { calculatePreviewSize } from './nodes/preview-size';
     });
   };
 
+  const closeLutContextMenu = (): void => {
+    if (!state.lutContextMenuOpen) {
+      state.lutContextTargetId = null;
+      return;
+    }
+    state.lutContextMenuOpen = false;
+    state.lutContextTargetId = null;
+    elements.lutContextMenu.dataset.open = 'false';
+    elements.lutContextMenu.setAttribute('aria-hidden', 'true');
+  };
+
+  const positionLutContextMenu = (clientX: number, clientY: number): void => {
+    const padding = 12;
+    const width = 180;
+    const height = 70;
+    const left = Math.max(padding, Math.min(window.innerWidth - width, clientX));
+    const top = Math.max(padding, Math.min(window.innerHeight - height, clientY));
+    elements.lutContextMenu.style.left = `${left}px`;
+    elements.lutContextMenu.style.top = `${top}px`;
+  };
+
+  const openLutContextMenu = (lutId: string, clientX: number, clientY: number): void => {
+    closeLutContextMenu();
+    state.lutContextTargetId = lutId;
+    state.lutContextMenuOpen = true;
+    positionLutContextMenu(clientX, clientY);
+    elements.lutContextMenu.dataset.open = 'true';
+    elements.lutContextMenu.setAttribute('aria-hidden', 'false');
+  };
+
+  const deleteLutById = async (lutId: string | null): Promise<void> => {
+    if (!lutId) return;
+    const target = state.lutLibrary.find(entry => entry.id === lutId);
+    state.lutLibrary = removeLutEntry(state.lutLibrary, lutId);
+    saveLutLibrary(localStorage, state.lutLibrary);
+    renderLutList?.();
+    closeLutContextMenu();
+    if (target?.path && nodevision?.deleteMediaFile) {
+      try {
+        await nodevision.deleteMediaFile({ path: target.path });
+      } catch (error) {
+        console.warn('[LUT] deleteMediaFile failed', error);
+      }
+    }
+    showToast(t('toast.lutDeleted'));
+  };
+
   const clampLutResolution = (value: number): number => {
     if (!Number.isFinite(value)) return 33;
     return Math.min(129, Math.max(17, Math.round(value)));
+  };
+
+  let renderLutList: (() => void) | null = null;
+
+  const setupLutLibraryPanel = (): void => {
+    const nameInput = elements.lutNameInput;
+    const chooseButton = elements.lutChooseFile;
+    const fileLabel = elements.lutFileLabel;
+    const saveButton = elements.lutSaveButton;
+    const listEl = elements.lutList;
+    const emptyEl = elements.lutEmpty;
+    if (!nameInput || !chooseButton || !fileLabel || !saveButton || !listEl || !emptyEl) {
+      return;
+    }
+
+    let selectedPath: string | null = null;
+    let selectedFilename: string | null = null;
+
+    const persist = (): void => saveLutLibrary(localStorage, state.lutLibrary);
+
+    const renderList = (): void => {
+      if (!state.lutLibrary.length) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      listEl.innerHTML = state.lutLibrary
+        .map(entry => {
+          const safeName = escapeHtml(entry.name);
+          const safeFile = escapeHtml(entry.filename);
+          const safePath = escapeHtml(entry.path);
+          return `<li class="lut-row" data-lut-id="${escapeHtml(entry.id)}" title="${safePath}">
+              <div class="lut-meta">
+                <span class="lut-name">${safeName}</span>
+                <span class="lut-path">${safeFile}</span>
+              </div>
+            </li>`;
+        })
+        .join('');
+
+      listEl.querySelectorAll<HTMLElement>('.lut-row').forEach(row => {
+        row.addEventListener('contextmenu', event => {
+          event.preventDefault();
+          const lutId = row.getAttribute('data-lut-id');
+          if (!lutId) return;
+          openLutContextMenu(lutId, event.clientX, event.clientY);
+        });
+      });
+    };
+    renderLutList = renderList;
+
+    const resetPicker = (): void => {
+      selectedPath = null;
+      selectedFilename = null;
+      fileLabel.textContent = t('lut.panel.noFile');
+      fileLabel.removeAttribute('title');
+    };
+
+    chooseButton.addEventListener('click', async () => {
+      if (!nodevision?.openFileDialog) {
+        showToast(t('toast.lutOpenMissing'), 'error');
+        return;
+      }
+      try {
+        const result = await nodevision.openFileDialog({
+          filters: [
+            { name: 'LUT Files', extensions: ['cube'] },
+            { name: 'All Files', extensions: ['*'] }
+          ],
+          properties: ['openFile']
+        });
+        if (!result?.ok || result.canceled || !result.filePaths?.length) {
+          return;
+        }
+        selectedPath = result.filePaths[0];
+        const filename = selectedPath.split(/[/\\\\]/).pop() ?? selectedPath;
+        selectedFilename = filename;
+        fileLabel.textContent = filename;
+        fileLabel.title = selectedPath;
+      } catch (error) {
+        console.error('[LUT] openFileDialog failed', error);
+        showToast(t('toast.lutOpenFailed'), 'error');
+      }
+    });
+
+    saveButton.addEventListener('click', async () => {
+      const name = nameInput.value.trim();
+      if (!name || !selectedPath) {
+        showToast(t('toast.lutMissingFields'), 'error');
+        return;
+      }
+      if (!nodevision?.loadFileByPath || !nodevision.storeMediaFile) {
+        showToast(t('toast.lutOpenMissing'), 'error');
+        return;
+      }
+      try {
+        const loaded = await nodevision.loadFileByPath({ filePath: selectedPath });
+        if (!loaded?.ok || !loaded.buffer) {
+          showToast(t('toast.lutOpenFailed'), 'error');
+          return;
+        }
+        const filename = loaded.name || selectedFilename || 'lut.cube';
+        const stored = await nodevision.storeMediaFile({ name: filename, buffer: loaded.buffer, subdir: 'Luts' });
+        if (!stored?.ok || !stored.path) {
+          showToast(t('toast.lutOpenFailed'), 'error');
+          return;
+        }
+        const entry: LutLibraryEntry = {
+          id: createId('lut'),
+          name,
+          path: stored.path,
+          filename,
+          addedAt: Date.now(),
+          originalPath: selectedPath
+        };
+        state.lutLibrary = [...state.lutLibrary, entry];
+        persist();
+        renderList();
+        nameInput.value = '';
+        resetPicker();
+        showToast(t('toast.lutSaved'));
+      } catch (error) {
+        console.error('[LUT] store LUT failed', error);
+        showToast(t('toast.lutOpenFailed'), 'error');
+      }
+    });
+
+    renderList();
+    resetPicker();
   };
 
   const setupLutSettingsPanel = (): void => {
@@ -4675,6 +4859,11 @@ import { calculatePreviewSize } from './nodes/preview-size';
       closeWorkflowContextMenu();
       return;
     }
+    if (state.lutContextMenuOpen && event.key === 'Escape') {
+      event.preventDefault();
+      closeLutContextMenu();
+      return;
+    }
     const modifier = event.metaKey || event.ctrlKey;
     const keyLower = event.key.toLowerCase();
     if (modifier && keyLower === 'c') {
@@ -4898,6 +5087,9 @@ import { calculatePreviewSize } from './nodes/preview-size';
   elements.workflowContextDelete.addEventListener('click', () => {
     deleteWorkflowById(state.workflowContextTargetId);
   });
+  elements.lutContextDelete.addEventListener('click', () => {
+    void deleteLutById(state.lutContextTargetId);
+  });
 
   document.addEventListener('pointerdown', event => {
     const target = event.target as HTMLElement | null;
@@ -4909,6 +5101,11 @@ import { calculatePreviewSize } from './nodes/preview-size';
     if (state.workflowContextMenuOpen) {
       if (!target || !elements.workflowContextMenu.contains(target)) {
         closeWorkflowContextMenu();
+      }
+    }
+    if (state.lutContextMenuOpen) {
+      if (!target || !elements.lutContextMenu.contains(target)) {
+        closeLutContextMenu();
       }
     }
   });
@@ -5057,6 +5254,7 @@ import { calculatePreviewSize } from './nodes/preview-size';
   document.addEventListener('keydown', handleKeydown);
 
   setupSidebarPanels();
+  setupLutLibraryPanel();
   setupLutSettingsPanel();
   renderStatus();
   renderAbout();

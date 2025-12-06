@@ -790,8 +790,11 @@ ipcMain.handle('nodevision:media:store', async (_event, payload) => {
     if (!cachedSettings) throw new Error('Settings not initialized');
     const buffer: ArrayBuffer | undefined = payload?.buffer;
     const name: string | undefined = payload?.name;
+    const subdirRaw: string | undefined = payload?.subdir;
     if (!buffer || !name) throw new Error('buffer and name are required');
-    const uploadDir = path.join(cachedSettings.tempRoot, 'uploads');
+    const uploadRoot = path.join(cachedSettings.tempRoot, 'uploads');
+    const safeSubdir = subdirRaw ? subdirRaw.replace(/[^a-zA-Z0-9._-]/g, '') : '';
+    const uploadDir = safeSubdir ? path.join(uploadRoot, safeSubdir) : uploadRoot;
     await fs.mkdir(uploadDir, { recursive: true });
     const safeName = name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const hash = crypto.randomBytes(6).toString('hex');
@@ -801,6 +804,27 @@ ipcMain.handle('nodevision:media:store', async (_event, payload) => {
     return { ok: true, path: outputPath, url: pathToFileURL(outputPath).toString() };
   } catch (error) {
     console.error('[NodeVision] media store failed', error);
+    return { ok: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('nodevision:media:delete', async (_event, payload) => {
+  try {
+    if (!cachedSettings) throw new Error('Settings not initialized');
+    const targetPath: string | undefined = payload?.path;
+    if (!targetPath) throw new Error('path is required');
+    const uploadDir = path.join(cachedSettings.tempRoot, 'uploads');
+    const resolvedUploadRoot = path.resolve(uploadDir);
+    const resolvedTarget = path.resolve(targetPath);
+    if (!resolvedTarget.startsWith(resolvedUploadRoot)) {
+      throw new Error('refuse to delete outside uploads');
+    }
+    await fs.unlink(resolvedTarget).catch(err => {
+      if (err?.code !== 'ENOENT') throw err;
+    });
+    return { ok: true };
+  } catch (error) {
+    console.error('[NodeVision] media delete failed', error);
     return { ok: false, message: error instanceof Error ? error.message : String(error) };
   }
 });

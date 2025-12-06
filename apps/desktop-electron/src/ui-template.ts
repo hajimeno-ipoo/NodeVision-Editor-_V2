@@ -109,6 +109,14 @@ const CONNECTION_PANEL_ICON_SYMBOL = iconSymbolFromAsset(
   DEFAULT_CONNECTION_ICON_SYMBOL
 );
 
+const LUT_PANEL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'LUT.png'], 'image/png');
+const DEFAULT_LUT_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
+                <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+                <path d="M8 7v10M12 7v10M16 7v10" />
+                <path d="M7 9h10M7 13h10M7 17h10" />
+              </svg>`;
+const LUT_PANEL_ICON_SYMBOL = iconSymbolFromAsset(LUT_PANEL_ICON_DATA_URI, DEFAULT_LUT_ICON_SYMBOL);
+
 const HELP_PANEL_ICON_DATA_URI = loadAssetDataUri(['doc', 'icon', 'キーボード.png'], 'image/png');
 const DEFAULT_HELP_ICON_SYMBOL = `<svg viewBox="0 0 24 24" role="presentation">
                 <circle cx="12" cy="12" r="9" />
@@ -2302,6 +2310,78 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         accent-color: #ffd166;
         cursor: pointer;
       }
+      .lut-file-picker {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .lut-file-label {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        word-break: break-all;
+      }
+      .lut-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .lut-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.18);
+        gap: 12px;
+      }
+      .lut-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .lut-name {
+        font-weight: 600;
+        color: #fff;
+      }
+      .lut-path {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      #lut-context-menu {
+        position: fixed;
+        min-width: 180px;
+        background: rgba(5, 8, 15, 0.96);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 6px;
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+        z-index: 90;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      #lut-context-menu[data-open='true'] {
+        display: flex;
+      }
+      #lut-context-menu button {
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 10px;
+        background: transparent;
+        color: #f5f7ff;
+        text-align: left;
+        font-size: 13px;
+      }
+      #lut-context-menu button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
       .connection-row span {
         flex: 1;
       }
@@ -2736,6 +2816,12 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
             </span>
             <span class="sr-only">Connections</span>
           </button>
+          <button type="button" class="sidebar-icon" data-panel="panel-luts" aria-controls="panel-luts" aria-expanded="false">
+            <span aria-hidden="true" class="sidebar-icon-symbol">
+              ${LUT_PANEL_ICON_SYMBOL}
+            </span>
+            <span class="sr-only">LUTs</span>
+          </button>
           <button type="button" class="sidebar-icon" data-panel="panel-diagnostics" aria-controls="panel-diagnostics" aria-expanded="false">
             <span aria-hidden="true" class="sidebar-icon-symbol">
               <svg viewBox="0 0 24 24" role="presentation">
@@ -2860,6 +2946,34 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
                 <span id="connection-pending" class="pending-hint" aria-live="polite"></span>
               </header>
               <ul id="connection-list" class="connections-list" role="list"></ul>
+            </div>
+          </div>
+          <div id="panel-luts" class="sidebar-panel" role="region" aria-hidden="true">
+            <div class="diagnostics-card" aria-label="LUT library" data-i18n-attr-aria-label="lut.panel.title">
+              <header>
+                <strong data-i18n-key="lut.panel.title">LUT library</strong>
+              </header>
+              <div class="queue-section">
+                <label class="search-box">
+                  <span style="font-size:12px; color: rgba(255,255,255,0.7);" data-i18n-key="lut.panel.nameLabel">Name</span>
+                  <input
+                    type="text"
+                    id="lut-name-input"
+                    placeholder="My LUT"
+                    autocomplete="off"
+                    data-i18n-attr-placeholder="lut.panel.namePlaceholder"
+                  />
+                </label>
+                <div class="lut-file-picker">
+                  <button type="button" id="lut-choose-file" data-i18n-key="lut.panel.chooseFile">Choose LUT file</button>
+                  <span id="lut-file-label" class="lut-file-label" data-i18n-key="lut.panel.noFile">No file selected</span>
+                </div>
+                <button type="button" class="primary" id="lut-save-btn" data-i18n-key="lut.panel.save">Save LUT</button>
+              </div>
+              <div class="queue-section">
+                <div id="lut-empty" data-i18n-key="lut.panel.empty">No LUTs saved yet</div>
+                <ul id="lut-list" class="lut-list" role="list"></ul>
+              </div>
             </div>
           </div>
           <div id="panel-settings" class="sidebar-panel" role="region" aria-hidden="true">
@@ -3048,6 +3162,9 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
     <div id="toast" role="status" aria-live="assertive"></div>
     <div id="workflow-context-menu" role="menu" aria-hidden="true">
       <button type="button" id="workflow-context-delete" data-i18n-key="workflow.context.delete">Delete workflow</button>
+    </div>
+    <div id="lut-context-menu" role="menu" aria-hidden="true">
+      <button type="button" id="lut-context-delete" data-i18n-key="lut.panel.delete">Delete LUT</button>
     </div>
     <div id="workflow-name-dialog" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="workflow-dialog-card" role="document">

@@ -28,6 +28,17 @@ export type SerializedNode = Partial<RendererNode> & { id: string; typeId: strin
 
 export type StoredWorkflow = WorkflowRecord;
 
+export type LutLibraryEntry = {
+  id: string;
+  name: string;
+  path: string;
+  filename: string;
+  addedAt: number;
+  originalPath?: string | null;
+};
+
+export type LutStorage = Pick<Storage, 'getItem' | 'setItem'>;
+
 export interface PendingConnection {
   fromNodeId: string;
   fromPortId: string;
@@ -124,8 +135,11 @@ export interface RendererState {
   workflowMenuOpen?: boolean;
   workflowContextMenuOpen?: boolean;
   workflowContextTargetId: string | null;
+  lutContextMenuOpen?: boolean;
+  lutContextTargetId: string | null;
   directoryHistory: Map<string, string>;
   nodeFileHistory: Map<string, string[]>;
+  lutLibrary: LutLibraryEntry[];
   /** プレビュー用 LUT 解像度 */
   lutResolutionPreview: number;
   /** エクスポート用 LUT 解像度 */
@@ -205,6 +219,14 @@ export interface RendererDom {
   workflowNameInput: HTMLInputElement;
   workflowNameConfirm: HTMLButtonElement;
   workflowNameCancel: HTMLButtonElement;
+  lutNameInput: HTMLInputElement;
+  lutChooseFile: HTMLButtonElement;
+  lutFileLabel: HTMLElement;
+  lutSaveButton: HTMLButtonElement;
+  lutList: HTMLUListElement;
+  lutEmpty: HTMLElement;
+  lutContextMenu: HTMLElement;
+  lutContextDelete: HTMLButtonElement;
 }
 
 export interface ExportLogsResult {
@@ -230,9 +252,18 @@ export interface NodevisionApi {
   setCrashDumpConsent?: (enabled: boolean) => Promise<{ collectCrashDumps: boolean }>;
   loadWorkflows?: () => Promise<{ ok: boolean; workflows?: StoredWorkflow[]; message?: string }>;
   saveWorkflows?: (workflows: StoredWorkflow[]) => Promise<{ ok: boolean; message?: string }>;
-  storeMediaFile?: (payload: { name: string; buffer: ArrayBuffer }) => Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
+  storeMediaFile?: (payload: { name: string; buffer: ArrayBuffer; subdir?: string }) => Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
   getSiblingMediaFile?: (payload: { currentPath: string; direction: 'next' | 'prev'; nodeKind?: 'image' | 'video' | 'any' }) => Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
   loadFileByPath?: (payload: { filePath: string }) => Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
+  deleteMediaFile?: (payload: { path: string }) => Promise<{ ok: boolean; message?: string }>;
+  openFileDialog?: (payload: {
+    title?: string;
+    defaultPath?: string;
+    filters?: { name: string; extensions: string[] }[];
+    properties?: string[];
+  }) => Promise<{ ok: boolean; filePaths?: string[]; canceled: boolean }>;
+  readTextFile?: (payload: { filePath: string }) => Promise<{ ok: boolean; content?: string; message?: string }>;
+  loadImageAsDataURL?: (payload: { filePath: string }) => Promise<{ ok: boolean; dataURL?: string; message?: string }>;
   generateCroppedPreview?: (payload: {
     sourcePath: string;
     kind: 'image' | 'video';

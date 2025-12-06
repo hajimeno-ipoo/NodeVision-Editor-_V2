@@ -14,9 +14,10 @@ interface NodeVisionBridge {
   setCrashDumpConsent(enabled: boolean): Promise<{ collectCrashDumps: boolean }>;
   loadWorkflows(): Promise<{ ok: boolean; workflows?: WorkflowRecord[]; message?: string }>;
   saveWorkflows(workflows: WorkflowRecord[]): Promise<{ ok: boolean; message?: string }>;
-  storeMediaFile(payload: { name: string; buffer: ArrayBuffer }): Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
+  storeMediaFile(payload: { name: string; buffer: ArrayBuffer; subdir?: string }): Promise<{ ok: boolean; path?: string; url?: string; message?: string }>;
   getSiblingMediaFile(payload: { currentPath: string; direction: 'next' | 'prev'; nodeKind?: 'image' | 'video' | 'any' }): Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
   loadFileByPath(payload: { filePath: string }): Promise<{ ok: boolean; name?: string; path?: string; buffer?: ArrayBuffer; message?: string }>;
+  deleteMediaFile(payload: { path: string }): Promise<{ ok: boolean; message?: string }>;
   generateCroppedPreview(payload: {
     sourcePath: string;
     kind: 'image' | 'video';
@@ -69,6 +70,7 @@ const api: NodeVisionBridge = {
   storeMediaFile: payload => ipcRenderer.invoke('nodevision:media:store', payload),
   getSiblingMediaFile: payload => ipcRenderer.invoke('nodevision:media:getSiblingFile', payload),
   loadFileByPath: payload => ipcRenderer.invoke('nodevision:media:loadFileByPath', payload),
+  deleteMediaFile: payload => ipcRenderer.invoke('nodevision:media:delete', payload),
   generateCroppedPreview: payload => ipcRenderer.invoke('nodevision:preview:crop', payload),
   generatePreview: payload => ipcRenderer.invoke('nodevision:preview:generate', payload),
   loadImageAsDataURL: payload => ipcRenderer.invoke('nodevision:image:loadAsDataURL', payload),

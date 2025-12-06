@@ -75,5 +75,13 @@ export const captureDomElements = (): RendererDom => ({
   workflowNameDialog: getElement<HTMLElement>('workflow-name-dialog'),
   workflowNameInput: getElement<HTMLInputElement>('workflow-name-input'),
   workflowNameConfirm: getElement<HTMLButtonElement>('workflow-name-confirm'),
-  workflowNameCancel: getElement<HTMLButtonElement>('workflow-name-cancel')
+  workflowNameCancel: getElement<HTMLButtonElement>('workflow-name-cancel'),
+  lutNameInput: getElement<HTMLInputElement>('lut-name-input'),
+  lutChooseFile: getElement<HTMLButtonElement>('lut-choose-file'),
+  lutFileLabel: getElement<HTMLElement>('lut-file-label'),
+  lutSaveButton: getElement<HTMLButtonElement>('lut-save-btn'),
+  lutList: getElement<HTMLUListElement>('lut-list'),
+  lutEmpty: getElement<HTMLElement>('lut-empty'),
+  lutContextMenu: getElement<HTMLElement>('lut-context-menu'),
+  lutContextDelete: getElement<HTMLButtonElement>('lut-context-delete')
 });
