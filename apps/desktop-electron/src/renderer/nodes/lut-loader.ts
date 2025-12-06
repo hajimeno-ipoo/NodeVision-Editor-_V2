@@ -129,19 +129,21 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
 
         const library = state.lutLibrary;
         const currentIndex = library.findIndex(entry => entry.path === settings.lutFilePath);
-        const resolvedIndex = currentIndex >= 0 ? currentIndex : library.length > 0 ? 0 : -1;
+        const resolvedIndex = currentIndex >= 0 ? currentIndex : -1;
         const prevDisabled = resolvedIndex <= 0 ? 'disabled' : '';
         const nextDisabled = resolvedIndex === -1 || resolvedIndex >= library.length - 1 ? 'disabled' : '';
 
+        const placeholderOption = `<option value="" ${resolvedIndex === -1 ? 'selected' : ''}>ファイル未選択</option>`;
         const libraryOptions =
-            library.length > 0
+            placeholderOption +
+            (library.length > 0
                 ? library
                       .map((entry, idx) => {
                           const selected = idx === resolvedIndex ? ' selected' : '';
                           return `<option value="${escapeHtml(entry.id)}"${selected}>${escapeHtml(entry.name || entry.filename)}</option>`;
                       })
                       .join('')
-                : '<option value="" selected>ファイル未選択</option>';
+                : '');
 
         return `
       <div class="node-controls" style="padding: 12px;">
@@ -166,6 +168,9 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
             ${escapeHtml(lutName)}
           </div>
         </div>
+        <p class="lut-active-label" style="margin: 0 0 10px; text-align: center; font-size: 12px; color: rgba(48,48,60,0.75);">
+          ${hasLUT ? `現在適用中: ${escapeHtml(lutName)}（ライブラリ）` : '現在適用中: なし'}
+        </p>
         
         ${hasLUT
                 ? `
@@ -236,12 +241,15 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                             node.settings = newSettings;
                         }
                         // 適用
-                        if (processor && sourceMediaUrl) {
-                            if (sourceMediaUrl.kind === 'video') {
+                        const media = getSourceMedia(node);
+                        if (processor && media) {
+                            if (media.kind === 'video') {
                                 const loopState = (videoProcessors.get(node.id) as any)?.__loopState;
                                 if (loopState) {
                                     loopState.currentLut = lut;
                                 }
+                                // ensure intensity up to date
+                                processor.setIntensity(settings?.intensity ?? 1.0);
                             } else {
                                 processor.loadLUT(lut);
                                 processor.setIntensity(settings?.intensity ?? 1.0);
@@ -256,6 +264,7 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                             nameLabel.setAttribute('title', entry.filename);
                             nameLabel.setAttribute('style', nameLabel.getAttribute('style')?.replace('#9aa0a6', '#e8eaed') ?? '');
                         }
+                        setActiveLabel(entry.filename, true);
                     } catch (error) {
                         console.error('[LUTLoader] apply from library failed', error);
                         alert('Failed to apply LUT');
@@ -269,12 +278,13 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                             ? library.findIndex(e => e.id === selectEl.value)
                             : -1;
                     const fallbackIdx = library.findIndex(e => e.path === settings?.lutFilePath);
-                    const resolvedIdx =
-                        idx >= 0 ? idx : fallbackIdx >= 0 ? fallbackIdx : library.length > 0 ? 0 : -1;
+                    const resolvedIdx = idx >= 0 ? idx : fallbackIdx >= 0 ? fallbackIdx : -1;
                     if (selectEl) {
                         selectEl.disabled = library.length === 0;
                         if (resolvedIdx >= 0 && library[resolvedIdx]) {
                             selectEl.value = library[resolvedIdx].id;
+                        } else {
+                            selectEl.value = '';
                         }
                     }
                     if (prevBtn) prevBtn.disabled = resolvedIdx <= 0;
@@ -308,6 +318,18 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
 
                 // LUT読み込みボタン
                 const loadBtn = element.querySelector('.load-lut-btn');
+                const activeLabel = element.querySelector<HTMLElement>('.lut-active-label');
+
+                const setActiveLabel = (text: string, fromLibrary: boolean): void => {
+                    if (!activeLabel) return;
+                    activeLabel.textContent = fromLibrary ? `現在適用中: ${text}（ライブラリ）` : text;
+                };
+                // 初期表示
+                if (settings?.lutFilePath) {
+                    setActiveLabel(settings.lutFilePath.split('/').pop() ?? 'LUT file', true);
+                } else {
+                    setActiveLabel('現在適用中: なし', false);
+                }
                 if (loadBtn) {
                     loadBtn.addEventListener('click', async () => {
                         // ファイル選択ダイアログを開く
@@ -347,6 +369,23 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                                             loadedLUTs.set(node.id, lut);
 
                                             // UIを更新
+                                            const filename = lutPath.split('/').pop() || 'LUT file';
+                                            const nameLabel = element.querySelector('.lut-file-name');
+                                            if (nameLabel) {
+                                                nameLabel.textContent = filename;
+                                                nameLabel.setAttribute('title', filename);
+                                                nameLabel.setAttribute('style', nameLabel.getAttribute('style')?.replace('#9aa0a6', '#e8eaed') ?? '');
+                                            }
+                                            setActiveLabel(filename, true);
+
+                                            // 画像プレビューなら即反映
+                                            const media = getSourceMedia(node);
+                                            if (processor && media?.kind === 'image') {
+                                                processor.loadLUT(lut);
+                                                processor.setIntensity(settings?.intensity ?? 1.0);
+                                                processor.renderWithCurrentTexture();
+                                                propagateToMediaPreview(node, processor);
+                                            }
                                             context.renderNodes();
                                         }
                                     } else {

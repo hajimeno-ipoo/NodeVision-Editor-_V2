@@ -2794,12 +2794,30 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
     elements.lutContextMenu.setAttribute('aria-hidden', 'false');
   };
 
+  const pruneLutSelections = (): void => {
+    const valid = new Set(state.lutLibrary.map(entry => entry.path));
+    let mutated = false;
+    state.nodes.forEach(node => {
+      if (node.typeId !== 'lutLoader') return;
+      const settings = node.settings as { lutFilePath?: string } | undefined;
+      if (settings?.lutFilePath && !valid.has(settings.lutFilePath)) {
+        settings.lutFilePath = undefined;
+        mutated = true;
+      }
+    });
+    if (mutated) {
+      renderNodes();
+    }
+  };
+
   const deleteLutById = async (lutId: string | null): Promise<void> => {
     if (!lutId) return;
     const target = state.lutLibrary.find(entry => entry.id === lutId);
     state.lutLibrary = removeLutEntry(state.lutLibrary, lutId);
     saveLutLibrary(localStorage, state.lutLibrary);
     renderLutList?.();
+    pruneLutSelections();
+    renderNodes();
     closeLutContextMenu();
     if (target?.path && nodevision?.deleteMediaFile) {
       try {
@@ -2832,7 +2850,11 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
     let selectedPath: string | null = null;
     let selectedFilename: string | null = null;
 
-    const persist = (): void => saveLutLibrary(localStorage, state.lutLibrary);
+    const persist = (): void => {
+      saveLutLibrary(localStorage, state.lutLibrary);
+      pruneLutSelections();
+      renderNodes();
+    };
 
     const renderList = (): void => {
       if (!state.lutLibrary.length) {
@@ -4844,6 +4866,13 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
       return;
     }
 
+    const target = event.target as HTMLElement | null;
+    const isEditableTarget =
+      !!target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        (target as HTMLElement).isContentEditable);
+
     if (workflowNameDialogResolver) {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -4895,8 +4924,10 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
       event.preventDefault();
       setActiveTool('pan');
     } else if (!modifier && !event.altKey && event.key.toLowerCase() === 'v') {
-      event.preventDefault();
-      setActiveTool('select');
+      if (!isEditableTarget) {
+        event.preventDefault();
+        setActiveTool('select');
+      }
     } else if (event.key === 'Escape' && zoomMenuOpen) {
       event.preventDefault();
       closeZoomMenu();
