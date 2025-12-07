@@ -138,6 +138,7 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
         };
 
         const hasLUT = !!settings.lutFilePath;
+        const lutSource: 'library' | 'local' = (settings as any).lutSource === 'library' ? 'library' : 'local';
         const intensityValue = settings.intensity ?? 1.0;
         const lutName = settings.lutFilePath
             ? settings.lutFilePath.split('/').pop() || 'LUT file'
@@ -185,7 +186,7 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
           </div>
         </div>
         <p class="lut-active-label" style="margin: 0 0 10px; text-align: center; font-size: 12px; color: rgba(48,48,60,0.75);">
-          ${hasLUT ? `現在適用中: ${escapeHtml(lutName)}（ライブラリ）` : '現在適用中: なし'}
+          ${hasLUT ? `現在適用中: ${escapeHtml(lutName)}（${lutSource === 'library' ? 'ライブラリ' : 'ローカル'}）` : '現在適用中: なし'}
         </p>
         <label class="control-label" style="display: block; margin-bottom: 8px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
@@ -247,6 +248,7 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                                 lutFilePath: entry.path,
                                 intensity: settings?.intensity ?? 1.0
                             };
+                            (newSettings as any).lutSource = 'library';
                             targetNode.settings = newSettings;
                             node.settings = newSettings;
                         }
@@ -347,7 +349,7 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
 
                 const setActiveLabel = (text: string, fromLibrary: boolean): void => {
                     if (!activeLabel) return;
-                    activeLabel.textContent = fromLibrary ? `現在適用中: ${text}（ライブラリ）` : text;
+                    activeLabel.textContent = fromLibrary ? `現在適用中: ${text}（ライブラリ）` : `現在適用中: ${text}（ローカル）`;
                 };
 
                 const clearAppliedLut = async (): Promise<void> => {
@@ -410,7 +412,8 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
 
                 // 初期表示
                 if (settings?.lutFilePath) {
-                    setActiveLabel(settings.lutFilePath.split('/').pop() ?? 'LUT file', true);
+                    const isLibrary = (settings as any).lutSource === 'library';
+                    setActiveLabel(settings.lutFilePath.split('/').pop() ?? 'LUT file', isLibrary);
                     if (slider) slider.disabled = false;
                     if (sliderValue) sliderValue.textContent = `${((settings.intensity ?? 1) * 100).toFixed(0)}%`;
                 } else {
@@ -453,6 +456,7 @@ export const createLUTLoaderNodeRenderer = (context: NodeRendererContext): NodeR
                                                 lutFilePath: lutPath,
                                                 intensity: settings?.intensity ?? 1.0,
                                             };
+                                            (newSettings as any).lutSource = 'local';
                                             targetNode.settings = newSettings;
                                             node.settings = newSettings;
 
