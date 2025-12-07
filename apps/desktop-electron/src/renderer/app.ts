@@ -2740,6 +2740,7 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
       activePanelId = panelId;
     };
     openSidebarPanel = setActivePanel;
+    (window as any).__openSidebarPanel = setActivePanel;
     buttons.forEach(button => {
       button.addEventListener('click', () => {
         const panelId = button.dataset.panel;
@@ -2835,6 +2836,8 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
   };
 
   let renderLutList: (() => void) | null = null;
+  let prefillLutLibrary: ((path: string, filename: string) => void) | null = null;
+  let savePrefilledLut: ((name?: string, shouldRender?: boolean) => Promise<LutLibraryEntry | null>) | null = null;
 
   const setupLutLibraryPanel = (): void => {
     const nameInput = elements.lutNameInput;
@@ -2850,10 +2853,12 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
     let selectedPath: string | null = null;
     let selectedFilename: string | null = null;
 
-    const persist = (): void => {
+    const persist = (shouldRender = true): void => {
       saveLutLibrary(localStorage, state.lutLibrary);
       pruneLutSelections();
-      renderNodes();
+      if (shouldRender) {
+        renderNodes();
+      }
     };
 
     const renderList = (): void => {
@@ -2887,6 +2892,60 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
       });
     };
     renderLutList = renderList;
+    prefillLutLibrary = (path: string, filename: string): void => {
+      selectedPath = path;
+      selectedFilename = filename;
+      fileLabel.textContent = filename;
+      fileLabel.title = path;
+      nameInput.value = filename.replace(/\.[^.]+$/, '');
+      emptyEl.style.display = 'none';
+    };
+    savePrefilledLut = async (
+      nameOverride?: string,
+      shouldRender = true
+    ): Promise<LutLibraryEntry | null> => {
+      const name = (nameOverride ?? nameInput.value).trim();
+      if (!name || !selectedPath) {
+        showToast(t('toast.lutMissingFields'), 'error');
+        return null;
+      }
+      if (!nodevision?.loadFileByPath || !nodevision.storeMediaFile) {
+        showToast(t('toast.lutOpenMissing'), 'error');
+        return null;
+      }
+      try {
+        const loaded = await nodevision.loadFileByPath({ filePath: selectedPath });
+        if (!loaded?.ok || !loaded.buffer) {
+          showToast(t('toast.lutOpenFailed'), 'error');
+          return null;
+        }
+        const filename = loaded.name || selectedFilename || 'lut.cube';
+        const stored = await nodevision.storeMediaFile({ name: filename, buffer: loaded.buffer, subdir: 'Luts' });
+        if (!stored?.ok || !stored.path) {
+          showToast(t('toast.lutOpenFailed'), 'error');
+          return null;
+        }
+        const entry: LutLibraryEntry = {
+          id: createId('lut'),
+          name,
+          path: stored.path,
+          filename,
+          addedAt: Date.now(),
+          originalPath: selectedPath
+        };
+        state.lutLibrary = [...state.lutLibrary, entry];
+        persist(shouldRender);
+        renderList();
+        nameInput.value = '';
+        resetPicker();
+        showToast(t('toast.lutSaved'));
+        return entry;
+      } catch (error) {
+        console.error('[LUT] store LUT failed', error);
+        showToast(t('toast.lutOpenFailed'), 'error');
+        return null;
+      }
+    };
 
     const resetPicker = (): void => {
       selectedPath = null;
@@ -2922,46 +2981,8 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
       }
     });
 
-    saveButton.addEventListener('click', async () => {
-      const name = nameInput.value.trim();
-      if (!name || !selectedPath) {
-        showToast(t('toast.lutMissingFields'), 'error');
-        return;
-      }
-      if (!nodevision?.loadFileByPath || !nodevision.storeMediaFile) {
-        showToast(t('toast.lutOpenMissing'), 'error');
-        return;
-      }
-      try {
-        const loaded = await nodevision.loadFileByPath({ filePath: selectedPath });
-        if (!loaded?.ok || !loaded.buffer) {
-          showToast(t('toast.lutOpenFailed'), 'error');
-          return;
-        }
-        const filename = loaded.name || selectedFilename || 'lut.cube';
-        const stored = await nodevision.storeMediaFile({ name: filename, buffer: loaded.buffer, subdir: 'Luts' });
-        if (!stored?.ok || !stored.path) {
-          showToast(t('toast.lutOpenFailed'), 'error');
-          return;
-        }
-        const entry: LutLibraryEntry = {
-          id: createId('lut'),
-          name,
-          path: stored.path,
-          filename,
-          addedAt: Date.now(),
-          originalPath: selectedPath
-        };
-        state.lutLibrary = [...state.lutLibrary, entry];
-        persist();
-        renderList();
-        nameInput.value = '';
-        resetPicker();
-        showToast(t('toast.lutSaved'));
-      } catch (error) {
-        console.error('[LUT] store LUT failed', error);
-        showToast(t('toast.lutOpenFailed'), 'error');
-      }
+    saveButton.addEventListener('click', () => {
+      void savePrefilledLut?.(undefined, true);
     });
 
     renderList();
@@ -5286,6 +5307,9 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
 
   setupSidebarPanels();
   setupLutLibraryPanel();
+  (window as any).__prefillLutLibrary = prefillLutLibrary;
+  (window as any).__savePrefilledLutLibrary = savePrefilledLut;
+  (window as any).__renderLutList = renderLutList;
   setupLutSettingsPanel();
   renderStatus();
   renderAbout();
