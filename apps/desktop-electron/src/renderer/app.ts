@@ -4650,7 +4650,10 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
       li.id = `suggestion-${index}`;
       const localizedTitle = getTemplateTitle(template);
       const localizedDescription = getTemplateDescription(template);
-      li.textContent = `${localizedTitle} — ${localizedDescription}`;
+      li.innerHTML = `
+        <span class="suggestion-title">${escapeHtml(localizedTitle)}</span>
+        <span class="suggestion-desc">${escapeHtml(localizedDescription)}</span>
+      `;
       li.addEventListener('click', () => addNodeFromTemplate(template));
       elements.suggestions.appendChild(li);
     });

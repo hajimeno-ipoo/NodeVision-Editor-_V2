@@ -2090,28 +2090,40 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
       }
       #workflow-list button {
         width: 100%;
         text-align: left;
-        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(16, 19, 28, 0.8);
-        padding: 10px 12px;
+        background: rgba(16, 19, 28, 0.85);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        padding: 12px 14px;
         color: inherit;
       }
       #workflow-list button.active {
-        border-color: rgba(255, 255, 255, 0.35);
+        border-color: rgba(255, 255, 255, 0.24);
         background: rgba(255, 255, 255, 0.12);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
       }
       .workflow-item-name {
         font-size: 13px;
         font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .workflow-item-meta {
         font-size: 11px;
         color: rgba(255, 255, 255, 0.6);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       #workflow-context-menu {
         position: fixed;
@@ -2183,31 +2195,55 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
         margin: 8px 0 0;
         max-height: 800px;
         overflow: auto;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(8, 10, 16, 0.9);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border: none;
+        background: transparent;
       }
       .suggestions li {
         padding: 10px 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         cursor: pointer;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(16, 19, 28, 0.85);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
       }
       .suggestions li:last-child {
         border-bottom: none;
       }
       .suggestions li.active {
         background: rgba(78, 158, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.24);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      }
+      .suggestion-title {
+        font-weight: 700;
+        color: #fff;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .suggestion-desc {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .help-card {
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        padding: 16px;
-        background: rgba(13, 16, 25, 0.9);
-        font-size: 13px;
+        font-size: 12px;
+        gap: 8px;
       }
       .queue-card,
       .diagnostics-card,
-      .connections-card {
+      .connections-card,
+      .about-card,
+      .help-card {
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 14px;
         padding: 16px;
@@ -2219,26 +2255,13 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       }
       .queue-card header,
       .diagnostics-card header,
-      .connections-card header {
+      .connections-card header,
+      .about-card header,
+      .help-card header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 8px;
-      }
-      .about-card {
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 16px;
-        background: rgba(13, 16, 25, 0.85);
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        font-size: 13px;
-      }
-      .about-card header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
       }
       .about-card dl {
         margin: 0;
