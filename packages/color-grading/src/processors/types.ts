@@ -15,6 +15,8 @@ export interface SecondaryCorrection {
         hueShift?: number;   // degrees shift
         brightness?: number; // offset
     };
+    /** Blend strength for this secondary (0-1). Default 1.0 */
+    intensity?: number;
 }
 
 /**

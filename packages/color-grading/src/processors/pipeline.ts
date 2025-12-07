@@ -70,8 +70,9 @@ export function buildColorTransform(pipeline: ColorGradingPipeline): ColorTransf
             for (const sec of pipeline.secondary) {
                 // Calculate key (alpha mask)
                 const key = calculateHSLKey(rOut, gOut, bOut, sec.keyer);
+                const effKey = key * (sec.intensity ?? 1);
 
-                if (key > 0) {
+                if (effKey > 0) {
                     // Apply corrections if key is active
                     let [h, s, l] = rgbToHSL(rOut, gOut, bOut);
 
@@ -97,9 +98,9 @@ export function buildColorTransform(pipeline: ColorGradingPipeline): ColorTransf
                     const [rCorr, gCorr, bCorr] = hslToRGB(h, s, l);
 
                     // Mix original and corrected based on key
-                    rOut = rOut * (1 - key) + rCorr * key;
-                    gOut = gOut * (1 - key) + gCorr * key;
-                    bOut = bOut * (1 - key) + bCorr * key;
+                    rOut = rOut * (1 - effKey) + rCorr * effKey;
+                    gOut = gOut * (1 - effKey) + gCorr * effKey;
+                    bOut = bOut * (1 - effKey) + bCorr * effKey;
                 }
             }
         }

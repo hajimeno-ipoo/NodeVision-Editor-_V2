@@ -1338,6 +1338,19 @@ async function handleBootstrapError(error: unknown): Promise<void> {
 }
 
 app.whenReady().then(() => {
+  // GPUクラッシュでWebGLがドメインごとにブロックされるのを防ぐ（Electron公式推奨API）
+  try {
+    app.disableDomainBlockingFor3DAPIs();
+    console.log('[NodeVision] 3D API domain blocking disabled');
+  } catch (e) {
+    console.warn('[NodeVision] Failed to disable domain blocking for 3D APIs', e);
+  }
+
+  app.on('gpu-process-crashed', (_event, kill) => {
+    console.error('[NodeVision] GPU process crashed', { kill });
+    // ここで必要ならレンダラーへ通知（IPC）やトースト表示を追加する余地あり
+  });
+
   bootstrapFoundation()
     .then(status => {
       console.log('[NodeVision] FFmpeg ready at', status.ffmpeg.ffmpeg.path);

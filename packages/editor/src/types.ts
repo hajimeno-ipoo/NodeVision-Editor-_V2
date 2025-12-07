@@ -137,6 +137,33 @@ export interface SecondaryGradingNodeSettings {
 
   // View options
   showMask: boolean;
+
+  // Blend strength (0-1). Default 1.0
+  intensity?: number;
+
+  // Multiple layer support
+  layers?: SecondaryGradingLayer[];
+  activeLayerIndex?: number;
+}
+
+export interface SecondaryGradingLayer {
+  id?: string;
+  name?: string;
+  hueCenter: number;
+  hueWidth: number;
+  hueSoftness: number;
+  satCenter: number;
+  satWidth: number;
+  satSoftness: number;
+  lumCenter: number;
+  lumWidth: number;
+  lumSoftness: number;
+  invert: boolean;
+  saturation: number;
+  hueShift: number;
+  brightness: number;
+  showMask?: boolean;
+  intensity?: number;
 }
 
 export interface ScopeViewerNodeSettings {
