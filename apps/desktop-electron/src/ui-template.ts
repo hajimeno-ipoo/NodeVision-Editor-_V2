@@ -2355,10 +2355,16 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .lut-name {
         font-weight: 600;
         color: #fff;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .lut-path {
         font-size: 11px;
         color: rgba(255, 255, 255, 0.7);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       #lut-context-menu {
         position: fixed;
@@ -2597,6 +2603,32 @@ export const buildRendererHtml = (payload: RendererPayload): string => {
       .inspect-row-meta {
         font-size: 11px;
         color: rgba(255, 255, 255, 0.7);
+      }
+      #export-status {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.8);
+        line-height: 1.5;
+        margin-top: 6px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      #inspect-history {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+      .inspect-row {
+        min-width: 0;
+      }
+      .inspect-row-main span,
+      .inspect-row-meta span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        max-width: 100%;
       }
       .diagnostics-export {
         display: flex;
