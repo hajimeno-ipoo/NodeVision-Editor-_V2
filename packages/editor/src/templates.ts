@@ -256,8 +256,8 @@ export const DEFAULT_NODE_TEMPLATES: NodeTemplate[] = [
     category: 'Color',
     description: 'Apply 3D LUTs (.cube) to the footage',
     keywords: ['color', 'lut', 'cube', 'look'],
-    width: 300,
-    height: 200,
+    width: 390,
+    height: 483,
     inputs: [
       { id: 'source', label: 'Source', direction: 'input', dataType: 'video', required: true }
     ],

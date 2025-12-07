@@ -2354,7 +2354,16 @@ import { loadLutLibrary, removeLutEntry, saveLutLibrary } from './lut-library';
   }
 
   const getMinimumHeightForWidth = (nodeId: string, width: number): number => {
+    const node = state.nodes.find(n => n.id === nodeId);
+    const isPreviewNode = node?.typeId === 'mediaPreview';
+    const isLoadNode = node ? LOAD_NODE_TYPE_IDS.has(node.typeId) : false;
     const chrome = getNodeChromePadding(nodeId);
+    // LUT Loaderなど、プレビュー枠を持たないノードは余白を最小限に
+    if (!isPreviewNode && !isLoadNode) {
+      const chromeOnly = Math.max(chrome, MIN_NODE_CHROME);
+      // UIパーツ分のゆとりを少しだけ足す
+      return Math.min(NODE_MAX_HEIGHT, chromeOnly + 140);
+    }
     const desiredPreviewWidth = getPreviewWidthForNodeWidth(width);
     const aspectRatio = getPreviewAspectRatio(nodeId);
     const previewHeight = Math.max(MIN_PREVIEW_HEIGHT, desiredPreviewWidth / aspectRatio);
