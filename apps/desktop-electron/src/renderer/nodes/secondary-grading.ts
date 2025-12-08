@@ -380,6 +380,24 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
             activeLayerIndex: 0,
         };
 
+        const scrollbarStyles = `
+      <style>
+        .sg-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .sg-scroll::-webkit-scrollbar-track {
+          background: #e6ebff;
+          border-radius: 8px;
+        }
+        .sg-scroll::-webkit-scrollbar-thumb {
+          background: #b7c5ff;
+          border-radius: 8px;
+        }
+        .sg-scroll::-webkit-scrollbar-thumb:hover {
+          background: #9fb2ff;
+        }
+      </style>`;
+
         const renderSlider = (
             label: string,
             key: keyof Layer,
@@ -394,8 +412,8 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
             return `
       <label class="control-label" style="display: block; margin-bottom: 8px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
-          <span class="control-label-text" style="font-size: 12px; color: #e6eaff; font-weight: 600; letter-spacing: 0.01em;">${label}</span>
-          <span class="control-value" data-sg-value="${key}">${formatted}</span>
+          <span class="control-label-text" style="font-size: 13px; color: #1f2430; font-weight: 600; letter-spacing: 0.01em;">${label}</span>
+          <span class="control-value" data-sg-value="${key}" style="color: #1f2933; font-weight: 600; font-variant-numeric: tabular-nums;">${formatted}</span>
         </div>
         <input 
           type="range" 
@@ -434,7 +452,8 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
         };
 
         return `
-      <div class="node-controls" style="
+      ${scrollbarStyles}
+      <div class="node-controls sg-scroll" style="
         padding: 12px;
         max-height: calc(100vh - 180px);
         overflow-y: auto;
@@ -449,35 +468,35 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
         ${renderLayerTabs()}
         
         <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #333;">
-            <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">HSL Qualifier</div>
+            <div style="font-size: 14px; font-weight: 700; color: #1f2430; margin-bottom: 6px;">HSL Qualifier</div>
             
             <div style="margin-bottom: 8px;">
-                <div style="font-size: 11px; color: #aaa; margin-bottom: 4px;">Hue</div>
+                <div style="font-size: 13px; color: #2d3238; font-weight: 600; margin-bottom: 4px;">Hue</div>
                 ${renderSlider('Center', 'hueCenter', 0, 360, 1, activeLayer.hueCenter)}
                 ${renderSlider('Width', 'hueWidth', 0, 180, 1, activeLayer.hueWidth)}
                 ${renderSlider('Softness', 'hueSoftness', 0, 50, 1, activeLayer.hueSoftness)}
             </div>
 
             <div style="margin-bottom: 8px;">
-                <div style="font-size: 11px; color: #aaa; margin-bottom: 4px;">Saturation</div>
+                <div style="font-size: 13px; color: #2d3238; font-weight: 600; margin-bottom: 4px;">Saturation</div>
                 ${renderSlider('Center', 'satCenter', 0, 1, 0.01, activeLayer.satCenter)}
                 ${renderSlider('Width', 'satWidth', 0, 1, 0.01, activeLayer.satWidth)}
                 ${renderSlider('Softness', 'satSoftness', 0, 0.5, 0.01, activeLayer.satSoftness)}
             </div>
 
             <div style="margin-bottom: 8px;">
-                <div style="font-size: 11px; color: #aaa; margin-bottom: 4px;">Luminance</div>
+                <div style="font-size: 13px; color: #2d3238; font-weight: 600; margin-bottom: 4px;">Luminance</div>
                 ${renderSlider('Center', 'lumCenter', 0, 1, 0.01, activeLayer.lumCenter)}
                 ${renderSlider('Width', 'lumWidth', 0, 1, 0.01, activeLayer.lumWidth)}
                 ${renderSlider('Softness', 'lumSoftness', 0, 0.5, 0.01, activeLayer.lumSoftness)}
             </div>
 
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
-                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #ccc; cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #2d3238; cursor: pointer;">
                     <input type="checkbox" data-sg-key="invert" ${activeLayer.invert ? 'checked' : ''}>
                     Invert Selection
                 </label>
-                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: #ccc; cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #2d3238; cursor: pointer;">
                     <input type="checkbox" data-sg-key="showMask" ${activeLayer.showMask ? 'checked' : ''}>
                     Show Mask
                 </label>
@@ -485,7 +504,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
         </div>
 
         <div style="margin-bottom: 8px; padding-bottom: 8px;">
-            <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Correction</div>
+            <div style="font-size: 14px; font-weight: 700; color: #1f2430; margin-bottom: 6px;">Correction</div>
             ${renderSlider('Saturation', 'saturation', 0, 2, 0.01, activeLayer.saturation)}
             ${renderSlider('Hue Shift', 'hueShift', -180, 180, 1, activeLayer.hueShift)}
             ${renderSlider('Brightness', 'brightness', -1, 1, 0.01, activeLayer.brightness)}
