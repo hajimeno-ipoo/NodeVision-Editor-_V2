@@ -7,15 +7,58 @@ import type { SecondaryGradingNodeSettings, SecondaryGradingLayer } from '@nodev
 import type { RendererNode } from '../types';
 import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
 
-// 動的にモジュールを読み込む
-const crypto = (window as any).nodeRequire?.('crypto');
-const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
-const { buildColorTransform, calculateHSLKey, generateLUT3D } = colorGrading;
+// 動的にモジュールを読み込む（nodeRequire が無い環境でも落ちないようガード）
+const nodeRequire = (window as any).nodeRequire ?? (typeof require !== 'undefined' ? require : null);
+const crypto = nodeRequire?.('crypto');
+
+let colorGrading: any = null;
+try {
+    colorGrading = nodeRequire?.('@nodevision/color-grading') ?? null;
+} catch (e) {
+    console.error('[SecondaryGrading] Failed to require @nodevision/color-grading', e);
+}
+
+const fallbackTransform = (() => {
+    throw new Error('[SecondaryGrading] color-grading module missing');
+}) as typeof import('@nodevision/color-grading').buildColorTransform;
+const fallbackHslKey = (() => {
+    throw new Error('[SecondaryGrading] color-grading module missing');
+}) as typeof import('@nodevision/color-grading').calculateHSLKey;
+const fallbackLut = (() => {
+    throw new Error('[SecondaryGrading] color-grading module missing');
+}) as typeof import('@nodevision/color-grading').generateLUT3D;
+
+const buildColorTransform = (colorGrading?.buildColorTransform ?? fallbackTransform) as typeof import('@nodevision/color-grading').buildColorTransform;
+const calculateHSLKey = (colorGrading?.calculateHSLKey ?? fallbackHslKey) as typeof import('@nodevision/color-grading').calculateHSLKey;
+const generateLUT3D = (colorGrading?.generateLUT3D ?? fallbackLut) as typeof import('@nodevision/color-grading').generateLUT3D;
+
+const guardColorGrading = () => {
+    if (!colorGrading) {
+        console.error('[SecondaryGrading] color-grading module is unavailable');
+        return false;
+    }
+    return true;
+};
 import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
     const { state, escapeHtml, t } = context;
+
+    // color-grading モジュールが取得できない場合は、落ちずに簡易UIだけ出す
+    if (!guardColorGrading()) {
+        return {
+            id: 'secondary-grading',
+            typeIds: ['secondaryGrading'],
+            render: () => ({
+                afterPortsHtml:
+                    '<div style="padding:12px;color:#f55;font-size:12px;">Secondary Grading の内部モジュールが読み込めなくて無効化されたよ。nodeIntegration と preload 設定を確認してね。</div>',
+                afterRender: () => {
+                    context.showToast('Secondary Grading module missing. Check preload / nodeIntegration.', 'error');
+                }
+            })
+        };
+    }
     const getPreviewLutRes = (): number => clampLutRes(state.lutResolutionPreview ?? 33);
     const getExportLutRes = (): number => clampLutRes(state.lutResolutionExport ?? 65);
     const toastHQStart = () => context.showToast(t('toast.hqLutGenerating'));
@@ -146,6 +189,16 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
         showMask: false,
         intensity: 1.0,
     });
+
+    const hydrateLayer = (layer: Partial<Layer>, idx = 0): Layer => {
+        const base = defaultLayer();
+        return {
+            ...base,
+            ...layer,
+            id: layer.id ?? base.id ?? `sg-${idx}`,
+            intensity: layer.intensity ?? base.intensity,
+        };
+    };
 
     /**
      * Secondary Grading設定からColorGradingPipelineを構築
@@ -335,26 +388,30 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
             step: number,
             value: number
         ) => {
+            const safeValue = Number.isFinite(value) ? value : 0;
+            const formatted =
+                Math.abs(max) > 5 ? safeValue.toFixed(0) : safeValue.toFixed(2);
             return `
       <label class="control-label" style="display: block; margin-bottom: 8px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
-          <span class="control-label-text">${label}</span>
-          <span class="control-value" data-sg-value="${key}">${value.toFixed(2)}</span>
+          <span class="control-label-text" style="font-size: 12px; color: #e6eaff; font-weight: 600; letter-spacing: 0.01em;">${label}</span>
+          <span class="control-value" data-sg-value="${key}">${formatted}</span>
         </div>
         <input 
           type="range" 
           class="node-slider" 
           data-sg-key="${key}" 
           data-node-id="${escapeHtml(node.id)}"
-          min="${min}" max="${max}" step="${step}" value="${value}"
+          min="${min}" max="${max}" step="${step}" value="${safeValue}"
           style="width: 100%;"
         />
       </label>
     `;
         };
 
-        const activeIdx = Math.max(0, Math.min(settings.activeLayerIndex ?? 0, Math.max(0, (settings.layers?.length ?? 1) - 1)));
-        const layers = (settings.layers && settings.layers.length > 0 ? settings.layers : [settings as unknown as Layer]);
+        const rawLayers = settings.layers && settings.layers.length > 0 ? settings.layers : [settings as unknown as Layer];
+        const layers = rawLayers.map((layer, idx) => hydrateLayer(layer, idx));
+        const activeIdx = Math.max(0, Math.min(settings.activeLayerIndex ?? 0, Math.max(0, layers.length - 1)));
         const activeLayer = layers[activeIdx] || defaultLayer();
 
         const renderLayerTabs = () => {

@@ -3,7 +3,7 @@
 # NodeVision Editor _V2 - Serena Indexing Script
 # このスクリプトはSerenaがプロジェクトをインデックス化するためのものです
 
-PROJECT_ROOT="/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2"
+PROJECT_ROOT="/Users/apple/Desktop/Dev_App/NodeVision Editor _V2"
 
 echo "🔍 Serenaプロジェクトのインデックス化を開始します..."
 echo "📁 プロジェクトルート: $PROJECT_ROOT"

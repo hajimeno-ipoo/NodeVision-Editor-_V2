@@ -4,7 +4,7 @@
 project_name: "NodeVision Editor _V2"
 
 # プロジェクトのルートパス
-project_root: "/Users/apple/Desktop/AI アプリ/NodeVision Editor _V2"
+project_root: "/Users/apple/Desktop/Dev_App/NodeVision Editor _V2"
 
 # プロジェクトの説明
 description: "NodeVision Editor - A sophisticated video editing application built with Electron, TypeScript, and FFmpeg"

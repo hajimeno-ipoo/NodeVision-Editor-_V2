@@ -1320,10 +1320,22 @@ function createWindow(status: BootStatus): void {
     win.webContents.openDevTools();
   }
 
-  const baseForData = `file://${status.settings.tempRoot}/`;
-  win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`, {
-    baseURLForDataURL: baseForData
+  // レンダラのエラーをコンソールに流して白画面時の原因を掴みやすくする
+  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    console.log(`[Renderer][level=${level}] ${message} (${sourceId}:${line})`);
   });
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Renderer] process gone', details);
+  });
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('[Renderer] did-fail-load', { errorCode, errorDescription, validatedURL });
+  });
+
+  // data URL が長すぎると ERR_INVALID_URL になるので、一時ファイルに落としてから loadFile する
+  const htmlPath = path.join(status.settings.tempRoot, 'renderer.html');
+  fsSync.mkdirSync(status.settings.tempRoot, { recursive: true });
+  fsSync.writeFileSync(htmlPath, html, 'utf8');
+  win.loadFile(htmlPath);
 }
 
 function reportFatal(error: unknown, options: { silent?: boolean } = {}): void {
