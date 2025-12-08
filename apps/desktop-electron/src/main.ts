@@ -49,6 +49,14 @@ import { buildRendererHtml } from './ui-template';
 const preloadPath = path.join(__dirname, 'preload.js');
 // ... (rest of imports and constants)
 
+// 3D API ブロック解除は app 準備前に実行する必要がある
+try {
+  app.disableDomainBlockingFor3DAPIs();
+  console.log('[NodeVision] 3D API domain blocking disabled (pre-ready)');
+} catch (e) {
+  console.warn('[NodeVision] Failed to disable domain blocking for 3D APIs (pre-ready)', e);
+}
+
 // ...
 
 
@@ -1346,9 +1354,12 @@ app.whenReady().then(() => {
     console.warn('[NodeVision] Failed to disable domain blocking for 3D APIs', e);
   }
 
-  app.on('gpu-process-crashed', (_event, kill) => {
-    console.error('[NodeVision] GPU process crashed', { kill });
-    // ここで必要ならレンダラーへ通知（IPC）やトースト表示を追加する余地あり
+  // GPUクラッシュ監視（child-process-gone の GPU タイプで判定）
+  app.on('child-process-gone', (_event, details) => {
+    if (details.type === 'GPU') {
+      console.error('[NodeVision] GPU process crashed', details);
+      // 必要ならここで IPC 通知やトースト表示を追加できるよ
+    }
   });
 
   bootstrapFoundation()

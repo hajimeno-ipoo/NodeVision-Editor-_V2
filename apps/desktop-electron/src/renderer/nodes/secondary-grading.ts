@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import type {
     ColorGradingPipeline,
     LUT3D
@@ -9,6 +8,7 @@ import type { RendererNode } from '../types';
 import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
 
 // 動的にモジュールを読み込む
+const crypto = (window as any).nodeRequire?.('crypto');
 const colorGrading = (window as any).nodeRequire('@nodevision/color-grading');
 const { buildColorTransform, calculateHSLKey, generateLUT3D } = colorGrading;
 import type { NodeRendererContext, NodeRendererModule } from './types';
@@ -21,6 +21,9 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
     const toastHQStart = () => context.showToast(t('toast.hqLutGenerating'));
     const toastHQApplied = () => context.showToast(t('toast.hqLutApplied'));
     const toastHQError = (err: unknown) => context.showToast(String(err), 'error');
+
+    const randomId = () =>
+        crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
 
     type Processor = WebGLLUTProcessor;
     const processors = new Map<string, Processor>();
@@ -109,7 +112,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
         }
     };
 
-    const createProcessor = (): Processor | null => {
+    const createProcessor = (): Processor | undefined => {
         const canvas = document.createElement('canvas');
         const gl2 = canvas.getContext('webgl2');
         if (!gl2) {
@@ -117,7 +120,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                 'sg-webgl2-missing',
                 'Secondary Grading は WebGL2 必須だよ。環境に WebGL2 が無いのでプレビューをスキップするね。'
             );
-            return null;
+            return undefined;
         }
         return new WebGLLUTProcessor(canvas);
     };
@@ -125,7 +128,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
     type Layer = SecondaryGradingLayer;
 
     const defaultLayer = (): Layer => ({
-        id: crypto.randomUUID?.() ?? `${Date.now()}`,
+        id: randomId(),
         name: '',
         hueCenter: 0,
         hueWidth: 20,
@@ -326,7 +329,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
 
         const renderSlider = (
             label: string,
-            key: string,
+            key: keyof Layer,
             min: number,
             max: number,
             step: number,
@@ -335,8 +338,8 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
             return `
       <label class="control-label" style="display: block; margin-bottom: 8px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;">
-          <span class="control-label-text" style="font-size: 11px; color: #ccc;">${label}</span>
-          <span class="control-value" data-sg-value="${key}" style="font-size: 11px; color: #888;">${value.toFixed(2)}</span>
+          <span class="control-label-text">${label}</span>
+          <span class="control-value" data-sg-value="${key}">${value.toFixed(2)}</span>
         </div>
         <input 
           type="range" 
@@ -360,29 +363,36 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                 ${layers
                     .map(
                         (layer, idx) =>
-                            `<button class="sg-layer-tab" data-sg-layer-idx="${idx}" style="padding:4px 8px; border-radius:6px; border:1px solid ${
-                                idx === activeIdx ? '#6ea8ff' : '#555'
-                            }; background:${idx === activeIdx ? '#1f3b69' : '#2b2f38'}; color:#e8eaed; font-size:11px; cursor:pointer;">
+                            `<button class="sg-layer-tab" data-sg-layer-idx="${idx}" style="padding:6px 10px; border-radius:8px; border:1px solid ${
+                                idx === activeIdx ? '#99b4ff' : '#cbd6ff'
+                            }; background:${idx === activeIdx ? '#c0cbf7' : '#e9edff'}; color:${idx === activeIdx ? '#111' : '#202840'}; font-size:11px; cursor:pointer; transition: background-color 120ms ease, border-color 120ms ease;">
                               ${layer.name || `Layer ${idx + 1}`}
                             </button>`
                     )
                     .join('')}
-                <button class="sg-layer-add" style="padding:4px 8px; border-radius:6px; border:1px solid #6ea8ff; background:#1f3b69; color:#e8eaed; font-size:11px; cursor:pointer;">＋追加</button>
-                ${layers.length > 1 ? `<button class="sg-layer-delete" style="padding:4px 8px; border-radius:6px; border:1px solid #ff6b6b; background:#3b1f1f; color:#ffdede; font-size:11px; cursor:pointer;">－削除</button>` : ''}
+                <button class="sg-layer-add" style="padding:6px 10px; border-radius:8px; border:1px solid #cbd6ff; background:#e9edff; color:#202840; font-size:11px; cursor:pointer; transition: background-color 120ms ease, border-color 120ms ease;">+ Add</button>
+                ${layers.length > 1 ? `<button class="sg-layer-delete" style="padding:6px 10px; border-radius:8px; border:1px solid #cbd6ff; background:#e9edff; color:#202840; font-size:11px; cursor:pointer; transition: background-color 120ms ease, border-color 120ms ease;">- Delete</button>` : ''}
               </div>
             `;
         };
 
         return `
-      <div class="node-controls" style="padding: 12px;">
+      <div class="node-controls" style="
+        padding: 12px;
+        max-height: calc(100vh - 180px);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      ">
         <div class="sg-renderer-indicator" data-renderer="WebGL 2.0 (3D LUT)" style="font-size: 11px; color: #9aa0a6; margin-bottom: 8px;">
           レンダラー: WebGL 2.0 (3D LUT)
         </div>
 
         ${renderLayerTabs()}
         
-        <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #333;">
-            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: #eee;">HSL Qualifier</div>
+        <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #333;">
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">HSL Qualifier</div>
             
             <div style="margin-bottom: 8px;">
                 <div style="font-size: 11px; color: #aaa; margin-bottom: 4px;">Hue</div>
@@ -417,17 +427,27 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
             </div>
         </div>
 
-        <div>
-            <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: #eee;">Correction</div>
+        <div style="margin-bottom: 8px; padding-bottom: 8px;">
+            <div style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Correction</div>
             ${renderSlider('Saturation', 'saturation', 0, 2, 0.01, activeLayer.saturation)}
             ${renderSlider('Hue Shift', 'hueShift', -180, 180, 1, activeLayer.hueShift)}
             ${renderSlider('Brightness', 'brightness', -1, 1, 0.01, activeLayer.brightness)}
             ${renderSlider('Intensity', 'intensity', 0, 1, 0.01, activeLayer.intensity ?? 1)}
         </div>
 
-        <div style="display:flex; gap:8px; margin-top:12px;">
-          <button class="sg-layer-reset" style="flex:1; padding:8px; border:1px solid #cbd6ff; background:#e9edff; color:#202840; border-radius:8px; font-size:11px; cursor:pointer;">レイヤーリセット</button>
-          <button class="sg-all-reset" style="flex:1; padding:8px; border:1px solid #ffb4b4; background:#ffecec; color:#4a1f1f; border-radius:8px; font-size:11px; cursor:pointer;">全部リセット</button>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="sg-layer-reset press-feedback"
+            data-base-bg="#e9edff" data-base-border="#cbd6ff"
+            data-active-bg="#c0cbf7" data-active-border="#99b4ff"
+            style="flex:1; padding:6px 10px; border:1px solid #cbd6ff; background:#e9edff; color:#202840; border-radius:8px; font-size:11px; cursor:pointer; transition: background-color 120ms ease, border-color 120ms ease;">
+            Reset Layer
+          </button>
+          <button class="sg-all-reset press-feedback"
+            data-base-bg="#e9edff" data-base-border="#cbd6ff"
+            data-active-bg="#c0cbf7" data-active-border="#99b4ff"
+            style="flex:1; padding:6px 10px; border:1px solid #cbd6ff; background:#e9edff; color:#202840; border-radius:8px; font-size:11px; cursor:pointer; transition: background-color 120ms ease, border-color 120ms ease;">
+            Reset All
+          </button>
         </div>
       </div>
     `;
@@ -562,7 +582,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                     addBtn?.addEventListener('click', () => {
                         const settings = ensureLayerState();
                         const activeLayer = getActiveLayer(settings);
-                        const newLayer = { ...activeLayer, id: crypto.randomUUID?.() ?? `${Date.now()}`, name: '' };
+                        const newLayer = { ...activeLayer, id: randomId(), name: '' };
                         settings.layers!.push(newLayer);
                         settings.activeLayerIndex = settings.layers!.length - 1;
                         syncBaseFromLayer0(settings);
@@ -626,18 +646,18 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
 
                 const rebuildControlsAndBind = () => {
                     const html = buildControls(node);
-                    const container = element.querySelector('.node-controls')?.parentElement;
-                    if (container) {
-                        container.innerHTML = html;
+                    const controls = element.querySelector('.node-controls');
+                    if (controls) {
+                        controls.outerHTML = html;
                     }
                     // rebind to freshly rendered controls
                     bindInteractions();
                 };
 
                 const updateValueAndPreview = (key: keyof SecondaryGradingNodeSettings, val: number | boolean, highRes: boolean = true) => {
-                    const settings = ensureLayerState();
-                    const layers = settings.layers!;
-                    const activeIdx = settings.activeLayerIndex ?? 0;
+                    const settingsState = ensureLayerState();
+                    const layers = settingsState.layers!;
+                    const activeIdx = settingsState.activeLayerIndex ?? 0;
                     const activeLayer = layers[activeIdx];
 
                     // UI表示更新
@@ -653,21 +673,21 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                         applyToLayer(activeLayer as any, key as any, val);
                         // active layer 0 なら互換用フィールドも更新
                         if (activeIdx === 0 && key !== 'kind') {
-                            (settings as any)[key] = val as any;
+                            (settingsState as any)[key] = val as any;
                         }
-                        syncBaseFromLayer0(settings);
+                        syncBaseFromLayer0(settingsState);
 
-                        targetNode.settings = settings;
-                        node.settings = settings;
+                        targetNode.settings = settingsState;
+                        node.settings = settingsState;
 
                         // プレビュー更新
-                        const settings = targetNode.settings as SecondaryGradingNodeSettings;
-                        const activeLayerNow = getActiveLayer(settings);
+                        const currentSettings = targetNode.settings as SecondaryGradingNodeSettings;
+                        const activeLayerNow = getActiveLayer(currentSettings);
 
                         if (processor) {
                             const paramsHash = JSON.stringify({
-                                layers: settings.layers,
-                                active: settings.activeLayerIndex,
+                                layers: currentSettings.layers,
+                                active: currentSettings.activeLayerIndex,
                                 showMask: activeLayerNow.showMask,
                             });
                             let lut = lutCache.get(node.id)?.lut;
@@ -678,7 +698,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                                 if (activeLayerNow.showMask) {
                                     transform = buildMaskTransform(activeLayerNow);
                                 } else {
-                                    const pipeline = buildPipeline(settings);
+                                    const pipeline = buildPipeline(currentSettings);
                                     transform = buildColorTransform(pipeline);
                                 }
                                 lut = generateLUT3D(getPreviewLutRes(), transform); // preview speed
@@ -696,7 +716,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                                     scheduleHighResLUTViaWorker(
                                         `${node.id}-secondary`,
                                         120,
-                                        () => activeLayerNow.showMask ? buildMaskTransform(activeLayerNow) : buildPipeline(settings),
+                                        () => activeLayerNow.showMask ? buildMaskTransform(activeLayerNow) : buildPipeline(currentSettings),
                                         highResSize,
                                         (hiLut) => {
                                             lutCache.set(node.id, { params: paramsHash, lut: hiLut });
