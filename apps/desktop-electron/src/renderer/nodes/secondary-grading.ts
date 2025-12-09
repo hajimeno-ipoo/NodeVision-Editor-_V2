@@ -5,7 +5,7 @@ import type {
 import type { SecondaryGradingNodeSettings, SecondaryGradingLayer } from '@nodevision/editor';
 
 import type { RendererNode } from '../types';
-import { clampLutRes, scheduleHighResLUTViaWorker } from './lut-utils';
+import { clampLutRes } from './lut-utils';
 
 // 動的にモジュールを読み込む（nodeRequire が無い環境でも落ちないようガード）
 const nodeRequire = (window as any).nodeRequire ?? (typeof require !== 'undefined' ? require : null);
@@ -43,7 +43,7 @@ import type { NodeRendererContext, NodeRendererModule } from './types';
 import { WebGLLUTProcessor } from './webgl-lut-processor';
 
 export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext): NodeRendererModule => {
-    const { state, escapeHtml, t } = context;
+    const { state, escapeHtml } = context;
 
     // color-grading モジュールが取得できない場合は、落ちずに簡易UIだけ出す
     if (!guardColorGrading()) {
@@ -60,10 +60,6 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
         };
     }
     const getPreviewLutRes = (): number => clampLutRes(state.lutResolutionPreview ?? 33);
-    const getExportLutRes = (): number => clampLutRes(state.lutResolutionExport ?? 65);
-    const toastHQStart = () => context.showToast(t('toast.hqLutGenerating'));
-    const toastHQApplied = () => context.showToast(t('toast.hqLutApplied'));
-    const toastHQError = (err: unknown) => context.showToast(String(err), 'error');
 
     const randomId = () =>
         crypto?.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
@@ -75,6 +71,33 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
     const issuedWarnings = new Set<string>();
     const videoProcessors = new Map<string, HTMLVideoElement>();
     const videoCleanup = new Map<string, () => void>();
+    const videoLastLut = new Map<string, LUT3D | null>();
+    const canvasPreviewAttached = new Map<string, { w: number; h: number }>();
+    const scrollPositions = new Map<string, number>();
+    const lastPreviewAt = new Map<string, number>();
+    const pendingPreviewHandles = new Map<string, number>();
+
+    const setVideoPreview = (node: RendererNode, processor?: Processor) => {
+        if (!processor) return;
+        const glCanvas = processor.getContext().canvas as HTMLCanvasElement;
+        state.canvasPreviews.set(node.id, glCanvas);
+        state.mediaPreviews.set(node.id, {
+            url: '',
+            width: glCanvas.width,
+            height: glCanvas.height,
+            kind: 'video',
+            name: 'Preview',
+            size: 0,
+            type: 'video/mp4',
+            ownedUrl: true,
+        });
+
+        // ノード再レンダーは行わず、サイズだけ記録（再レンダーはスクロール位置をリセットするため避ける）
+        const prev = canvasPreviewAttached.get(node.id);
+        if (!prev || prev.w !== glCanvas.width || prev.h !== glCanvas.height) {
+            canvasPreviewAttached.set(node.id, { w: glCanvas.width, h: glCanvas.height });
+        }
+    };
 
     const warnOnce = (key: string, msg: string, level: 'error' | 'info' = 'error') => {
         if (issuedWarnings.has(key)) return;
@@ -119,31 +142,55 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
             };
             (video as any).__loopState = loopState;
 
-            let animationFrameId: number;
-            const updateLoop = () => {
-                if (video.paused || video.ended) {
-                    animationFrameId = requestAnimationFrame(updateLoop);
-                    return;
-                }
+            let animationFrameId: number | null = null;
+            let videoFrameCallbackId: number | null = null;
+            let lastRendered = 0;
+            const targetInterval = 1000 / 24; // 24fps で十分
 
-                if (processor && loopState.currentLut) {
-                    processor.loadVideoFrame(video);
-                    processor.loadLUT(loopState.currentLut);
-                    processor.renderWithCurrentTexture();
-                    propagateToMediaPreview(node, processor);
+            const renderFrame = () => {
+                if (!processor || !loopState.currentLut) return;
+                processor.loadVideoFrame(video);
+                const currentLut = loopState.currentLut;
+                const lastLut = videoLastLut.get(node.id);
+                if (lastLut !== currentLut) {
+                    processor.loadLUT(currentLut);
+                    videoLastLut.set(node.id, currentLut);
                 }
-
-                animationFrameId = requestAnimationFrame(updateLoop);
+                processor.renderWithCurrentTexture();
+                setVideoPreview(node, processor); // Canvasを直接使う
             };
-            updateLoop();
+
+            if ('requestVideoFrameCallback' in video) {
+                const onVideoFrame = (_now: number, _metadata: VideoFrameCallbackMetadata) => {
+                    renderFrame();
+                    videoFrameCallbackId = video.requestVideoFrameCallback(onVideoFrame);
+                };
+                videoFrameCallbackId = video.requestVideoFrameCallback(onVideoFrame);
+            } else {
+                const updateLoop = (now: number) => {
+                    const elapsed = now - lastRendered;
+                    if (elapsed >= targetInterval) {
+                        lastRendered = now;
+                        renderFrame();
+                    }
+                    animationFrameId = requestAnimationFrame(updateLoop);
+                };
+                animationFrameId = requestAnimationFrame(updateLoop);
+            }
 
             videoCleanup.set(node.id, () => {
-                cancelAnimationFrame(animationFrameId);
+                if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+                if (videoFrameCallbackId !== null && 'cancelVideoFrameCallback' in video) {
+                    (video as any).cancelVideoFrameCallback(videoFrameCallbackId);
+                }
                 video.pause();
                 video.src = '';
                 video.load();
                 videoProcessors.delete(node.id);
+                videoLastLut.delete(node.id);
+                canvasPreviewAttached.delete(node.id);
                 delete (video as any).__loopState;
+                state.canvasPreviews.delete(node.id);
             });
         } else {
             const video = videoProcessors.get(node.id);
@@ -277,55 +324,83 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
     }
 
     /**
-     * メディアプレビューノードへ補正後の dataURL を反映
+     * メディアプレビューノードへ補正後のプレビューを反映
+     * heavyな toDataURL を使わず、Canvas を直接コピーする
      */
     const propagateToMediaPreview = (node: RendererNode, processor?: Processor) => {
-        let dataUrl: string | null = null;
-        let size = { width: 0, height: 0 };
-
-        if (processor) {
-            const canvas = processor.getContext().canvas;
-            size = { width: canvas.width, height: canvas.height };
-            dataUrl = (canvas as HTMLCanvasElement).toDataURL();
-        }
-
-        if (dataUrl) {
-            state.mediaPreviews.set(node.id, {
-                url: dataUrl,
-                name: 'Preview',
-                kind: 'image',
-                width: size.width,
-                height: size.height,
-                size: 0,
-                type: 'image/png',
-                ownedUrl: true,
-            });
-        } else {
+        if (!processor) {
             state.mediaPreviews.delete(node.id);
+            state.canvasPreviews.delete(node.id);
+            const connectedPreviewNodes = state.connections
+                .filter((c) => c.fromNodeId === node.id)
+                .map((c) => c.toNodeId);
+            connectedPreviewNodes.forEach((previewNodeId) => {
+                const container = document.querySelector(
+                    `[data-node-id="${previewNodeId}"] .node-media-preview`
+                );
+                if (container) {
+                    const existingCanvas = container.querySelector('canvas.preview-canvas') as
+                        | HTMLCanvasElement
+                        | null;
+                    if (existingCanvas) existingCanvas.style.display = 'none';
+                    const img = container.querySelector('img');
+                    if (img) img.style.display = '';
+                }
+            });
+            return;
         }
+
+        const canvas = processor.getContext().canvas as HTMLCanvasElement;
+        const width = canvas.width;
+        const height = canvas.height;
+
+        state.canvasPreviews.set(node.id, canvas);
+        state.mediaPreviews.set(node.id, {
+            url: '', // Canvas優先なので空でOK
+            name: 'Preview',
+            kind: 'image',
+            width,
+            height,
+            size: 0,
+            type: 'image/png',
+            ownedUrl: false,
+        });
 
         const connectedPreviewNodes = state.connections
             .filter((c) => c.fromNodeId === node.id)
             .map((c) => c.toNodeId);
 
-        if (connectedPreviewNodes.length > 0) {
-            requestAnimationFrame(() => {
-                connectedPreviewNodes.forEach((previewNodeId) => {
-                    const previewNode = state.nodes.find((n) => n.id === previewNodeId);
-                    if (previewNode && previewNode.typeId === 'mediaPreview') {
-                        const img = document.querySelector(
-                            `.node-media[data-node-id="${previewNodeId}"] img`
-                        );
+        connectedPreviewNodes.forEach((previewNodeId) => {
+            const container = document.querySelector(
+                `[data-node-id="${previewNodeId}"] .node-media-preview`
+            );
+            if (!container) return;
 
-                        if (img && dataUrl) {
-                            (img as HTMLImageElement).src = dataUrl;
-                        } else if (!img && dataUrl) {
-                            context.renderNodes();
-                        }
-                    }
-                });
-            });
-        }
+            let previewCanvas = container.querySelector(
+                'canvas.preview-canvas'
+            ) as HTMLCanvasElement | null;
+            const img = container.querySelector('img');
+            if (img) img.style.display = 'none';
+
+            if (!previewCanvas) {
+                previewCanvas = document.createElement('canvas');
+                previewCanvas.className = 'preview-canvas';
+                previewCanvas.style.cssText =
+                    'display:block;width:100%;height:auto;max-width:100%;object-fit:contain;';
+                container.appendChild(previewCanvas);
+            }
+
+            if (previewCanvas.width !== width || previewCanvas.height !== height) {
+                previewCanvas.width = width;
+                previewCanvas.height = height;
+            }
+
+            const ctx = previewCanvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(canvas, 0, 0);
+            }
+            previewCanvas.style.display = 'block';
+        });
     };
 
     /**
@@ -603,22 +678,35 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                 };
 
                 const bindInteractions = () => {
+                    const controlsEl = element.querySelector('.node-controls');
+                    if (controlsEl) {
+                        controlsEl.addEventListener('scroll', () => {
+                            scrollPositions.set(node.id, controlsEl.scrollTop);
+                        });
+                    }
+
                     // スライダー入力イベント
                     const inputs = element.querySelectorAll('input[type="range"]');
                     inputs.forEach((input) => {
+                        // ドラッグ中は低解像度（17^3）で軽いプレビュー
                         input.addEventListener('input', (e) => {
                             const target = e.target as HTMLInputElement;
                             const key = target.getAttribute('data-sg-key');
                             if (!key) return;
                             const val = parseFloat(target.value);
-                            updateValueAndPreview(key as keyof SecondaryGradingNodeSettings, val, false); // 低画質プレビュー
+                            const controls = element.querySelector('.node-controls');
+                            if (controls) scrollPositions.set(node.id, controls.scrollTop);
+                            updateValueAndPreview(key as keyof SecondaryGradingNodeSettings, val, 17);
                         });
+                        // ドラッグ終了時に通常解像度で確定
                         input.addEventListener('change', (e) => {
                             const target = e.target as HTMLInputElement;
                             const key = target.getAttribute('data-sg-key');
                             if (!key) return;
                             const val = parseFloat(target.value);
-                            updateValueAndPreview(key as keyof SecondaryGradingNodeSettings, val, true); // 高画質LUT再生成
+                            const controls = element.querySelector('.node-controls');
+                            if (controls) scrollPositions.set(node.id, controls.scrollTop);
+                            updateValueAndPreview(key as keyof SecondaryGradingNodeSettings, val, undefined);
                         });
                     });
 
@@ -630,7 +718,9 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                             const key = target.getAttribute('data-sg-key');
                             if (!key) return;
                             const val = target.checked;
-                            updateValueAndPreview(key as keyof SecondaryGradingNodeSettings, val);
+                            const controls = element.querySelector('.node-controls');
+                            if (controls) scrollPositions.set(node.id, controls.scrollTop);
+                            updateValueAndPreview(key as keyof SecondaryGradingNodeSettings, val, undefined);
                         });
                     });
 
@@ -724,13 +814,30 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                     const html = buildControls(node);
                     const controls = element.querySelector('.node-controls');
                     if (controls) {
-                        controls.outerHTML = html;
+                        const scrollTop = controls.scrollTop;
+                        controls.innerHTML = html;
+                        const newControls = element.querySelector('.node-controls');
+                        if (newControls) newControls.scrollTop = scrollTop;
+                        bindInteractions();
+                    } else {
+                        bindInteractions();
                     }
-                    // rebind to freshly rendered controls
-                    bindInteractions();
                 };
 
-                const updateValueAndPreview = (key: keyof SecondaryGradingNodeSettings, val: number | boolean, highRes: boolean = true) => {
+                // 初回描画直後にもスクロール位置を復元
+                requestAnimationFrame(() => {
+                    const controls = element.querySelector('.node-controls');
+                    if (controls) {
+                        const saved = scrollPositions.get(node.id);
+                        if (typeof saved === 'number') controls.scrollTop = saved;
+                    }
+                });
+
+                const updateValueAndPreview = (
+                    key: keyof SecondaryGradingNodeSettings,
+                    val: number | boolean,
+                    lutResOverride?: number
+                ) => {
                     const settingsState = ensureLayerState();
                     const layers = settingsState.layers!;
                     const activeIdx = settingsState.activeLayerIndex ?? 0;
@@ -757,27 +864,29 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                         node.settings = settingsState;
 
                         // プレビュー更新
-                        const currentSettings = targetNode.settings as SecondaryGradingNodeSettings;
-                        const activeLayerNow = getActiveLayer(currentSettings);
+                        const schedulePreview = () => {
+                            const processor = processors.get(node.id);
+                            const hasImage = processor?.hasImage ? processor.hasImage() : true;
+                            if (!(processor && hasImage)) {
+                                propagateToMediaPreview(node, undefined);
+                                return;
+                            }
 
-                        if (processor) {
+                            const latestSettings = node.settings as SecondaryGradingNodeSettings;
+                            const activeLayerLatest = getActiveLayer(latestSettings);
                             const paramsHash = JSON.stringify({
-                                layers: currentSettings.layers,
-                                active: currentSettings.activeLayerIndex,
-                                showMask: activeLayerNow.showMask,
+                                layers: latestSettings.layers,
+                                active: latestSettings.activeLayerIndex,
+                                showMask: activeLayerLatest.showMask,
                             });
                             let lut = lutCache.get(node.id)?.lut;
 
-                            // 設定が変わったらLUT再生成
                             if (!lut || lutCache.get(node.id)?.params !== paramsHash) {
-                                let transform;
-                                if (activeLayerNow.showMask) {
-                                    transform = buildMaskTransform(activeLayerNow);
-                                } else {
-                                    const pipeline = buildPipeline(currentSettings);
-                                    transform = buildColorTransform(pipeline);
-                                }
-                                lut = generateLUT3D(getPreviewLutRes(), transform); // preview speed
+                                const transform = activeLayerLatest.showMask
+                                    ? buildMaskTransform(activeLayerLatest)
+                                    : buildColorTransform(buildPipeline(latestSettings));
+                                const res = lutResOverride ?? getPreviewLutRes();
+                                lut = generateLUT3D(res, transform);
                                 if (lut) {
                                     lutCache.set(node.id, { params: paramsHash, lut });
                                 }
@@ -786,30 +895,6 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                             if (lut) {
                                 processor.loadLUT(lut);
                                 processor.renderWithCurrentTexture();
-
-                                if (highRes) {
-                                    const highResSize = Math.max(getPreviewLutRes(), getExportLutRes());
-                                    scheduleHighResLUTViaWorker(
-                                        `${node.id}-secondary`,
-                                        120,
-                                        () => activeLayerNow.showMask ? buildMaskTransform(activeLayerNow) : buildPipeline(currentSettings),
-                                        highResSize,
-                                        (hiLut) => {
-                                            lutCache.set(node.id, { params: paramsHash, lut: hiLut });
-                                            processor.loadLUT(hiLut);
-                                            processor.renderWithCurrentTexture();
-                                            toastHQApplied();
-                                            const video = videoProcessors.get(node.id);
-                                            if (video && (video as any).__loopState) {
-                                                (video as any).__loopState.currentLut = hiLut;
-                                                (video as any).__loopState.currentParams = paramsHash;
-                                            }
-                                        },
-                                        'pipeline',
-                                        toastHQStart,
-                                        toastHQError
-                                    );
-                                }
                                 const video = videoProcessors.get(node.id);
                                 if (video && (video as any).__loopState) {
                                     (video as any).__loopState.currentLut = lut;
@@ -818,6 +903,24 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                             }
 
                             propagateToMediaPreview(node, processor);
+                            lastPreviewAt.set(node.id, performance.now());
+                        };
+
+                        const now = performance.now();
+                        const last = lastPreviewAt.get(node.id) ?? 0;
+                        const elapsed = now - last;
+                        if (elapsed >= 33) {
+                            schedulePreview();
+                        } else {
+                            if (pendingPreviewHandles.has(node.id)) {
+                                // 既に予約済みなら何もしない（最新状態はnode.settingsに反映済み）
+                            } else {
+                                const handle = window.setTimeout(() => {
+                                    pendingPreviewHandles.delete(node.id);
+                                    schedulePreview();
+                                }, 33 - elapsed);
+                                pendingPreviewHandles.set(node.id, handle as number);
+                            }
                         }
                     }
                 };
@@ -825,6 +928,16 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                 // 初期化処理
                 if (sourceMedia) {
                     try {
+                        // 直前まで動画ループが回っていた場合、静止画に切り替えるタイミングでクリーンアップ
+                        if (sourceMedia.kind !== 'video') {
+                            const cleanup = videoCleanup.get(node.id);
+                            if (cleanup) {
+                                cleanup();
+                                videoCleanup.delete(node.id);
+                                videoProcessors.delete(node.id);
+                            }
+                        }
+
                         if (sourceMedia.kind === 'video') {
                             const settings = ensureLayerState();
                             const activeLayerNow = getActiveLayer(settings);

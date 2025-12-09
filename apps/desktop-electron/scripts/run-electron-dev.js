@@ -21,7 +21,7 @@ if (build.status !== 0) {
 /* Step 2: launch Electron with sanitized env. */
 const electronPath = require('electron');
 const mainPath = path.join(projectRoot, 'dist', 'main.js');
-const child = spawn(electronPath, [mainPath], {
+const child = spawn(electronPath, [mainPath, '--remote-debugging-port=9222'], {
   cwd: projectRoot,
   stdio: 'inherit',
   env

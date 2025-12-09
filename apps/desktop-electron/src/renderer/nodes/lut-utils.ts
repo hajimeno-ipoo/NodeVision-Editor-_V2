@@ -17,6 +17,8 @@ if (nodeRequire) {
     WorkerCtor = null;
   }
 }
+
+export const isWorkerSupported = (): boolean => Boolean(WorkerCtor);
 import type { LUT3D } from '@nodevision/color-grading';
 
 // 共通: LUT解像度を 17〜129 にクランプ
