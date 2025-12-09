@@ -67,15 +67,29 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
     type Processor = WebGLLUTProcessor;
     const processors = new Map<string, Processor>();
     const lastSourceByNode = new Map<string, string>();
+    const lastSourceKindByNode = new Map<string, 'video' | 'image' | null>();
     const lutCache = new Map<string, { params: string; lut: LUT3D }>();
     const issuedWarnings = new Set<string>();
     const videoProcessors = new Map<string, HTMLVideoElement>();
     const videoCleanup = new Map<string, () => void>();
     const videoLastLut = new Map<string, LUT3D | null>();
     const canvasPreviewAttached = new Map<string, { w: number; h: number }>();
+    const sourceWatchers = new Map<string, number>();
     const scrollPositions = new Map<string, number>();
     const lastPreviewAt = new Map<string, number>();
     const pendingPreviewHandles = new Map<string, number>();
+    const clearVideoState = (nodeId: string) => {
+        const cleanup = videoCleanup.get(nodeId);
+        if (cleanup) {
+            cleanup();
+            videoCleanup.delete(nodeId);
+        }
+        videoProcessors.delete(nodeId);
+        videoLastLut.delete(nodeId);
+        canvasPreviewAttached.delete(nodeId);
+        state.canvasPreviews.delete(nodeId);
+        lastSourceByNode.delete(nodeId);
+    };
 
     const setVideoPreview = (node: RendererNode, processor?: Processor) => {
         if (!processor) return;
@@ -158,6 +172,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                 }
                 processor.renderWithCurrentTexture();
                 setVideoPreview(node, processor); // Canvasを直接使う
+                propagateToMediaPreview(node, processor); // DOM へも即反映
             };
 
             if ('requestVideoFrameCallback' in video) {
@@ -339,12 +354,8 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                     `[data-node-id="${previewNodeId}"] .node-media-preview`
                 );
                 if (container) {
-                    const existingCanvas = container.querySelector('canvas.preview-canvas') as
-                        | HTMLCanvasElement
-                        | null;
-                    if (existingCanvas) existingCanvas.style.display = 'none';
-                    const img = container.querySelector('img');
-                    if (img) img.style.display = '';
+                    // ソース切断時は過去の video/img を含めて完全に消す
+                    container.innerHTML = '';
                 }
             });
             return;
@@ -376,30 +387,23 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
             );
             if (!container) return;
 
-            let previewCanvas = container.querySelector(
-                'canvas.preview-canvas'
-            ) as HTMLCanvasElement | null;
-            const img = container.querySelector('img');
-            if (img) img.style.display = 'none';
+            // 既存コンテンツを全消しして重なりを防ぐ
+            container.innerHTML = '';
 
-            if (!previewCanvas) {
-                previewCanvas = document.createElement('canvas');
-                previewCanvas.className = 'preview-canvas';
-                previewCanvas.style.cssText =
-                    'display:block;width:100%;height:auto;max-width:100%;object-fit:contain;';
-                container.appendChild(previewCanvas);
-            }
-
-            if (previewCanvas.width !== width || previewCanvas.height !== height) {
-                previewCanvas.width = width;
-                previewCanvas.height = height;
-            }
+            // 描画用キャンバスを都度生成（1コンテナ1枚）
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.className = 'preview-canvas';
+            previewCanvas.style.cssText =
+                'display:block;width:100%;height:100%;max-width:100%;object-fit:contain;';
+            previewCanvas.width = width;
+            previewCanvas.height = height;
 
             const ctx = previewCanvas.getContext('2d');
             if (ctx) {
                 ctx.drawImage(canvas, 0, 0);
             }
-            previewCanvas.style.display = 'block';
+
+            container.appendChild(previewCanvas);
         });
     };
 
@@ -610,6 +614,13 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
         render: (node) => ({
             afterPortsHtml: buildControls(node),
             afterRender: async (element) => {
+                // 既存のソース監視タイマーをクリア
+                const prevWatch = sourceWatchers.get(node.id);
+                if (prevWatch) {
+                    window.clearInterval(prevWatch);
+                    sourceWatchers.delete(node.id);
+                }
+
                 let processor = processors.get(node.id);
                 if (!processor) {
                     processor = createProcessor();
@@ -623,6 +634,27 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                 }
 
                 const sourceMedia = getSourceMedia(node);
+                const prevKind = lastSourceKindByNode.get(node.id) ?? null;
+                const currentKind: 'video' | 'image' | null = sourceMedia?.kind === 'video'
+                    ? 'video'
+                    : sourceMedia?.kind === 'image'
+                        ? 'image'
+                        : null;
+
+                // ソース種別が video→image/null に変わったときは即クリーンアップ＆表示リセット
+                if (currentKind !== 'video') {
+                    const cleanup = videoCleanup.get(node.id);
+                    if (cleanup) {
+                        cleanup();
+                        videoCleanup.delete(node.id);
+                    }
+                    videoProcessors.delete(node.id);
+                    videoLastLut.delete(node.id);
+                    canvasPreviewAttached.delete(node.id);
+                    state.canvasPreviews.delete(node.id);
+                    lastSourceByNode.delete(node.id);
+                    propagateToMediaPreview(node, undefined);
+                }
 
                 const ensureLayerState = () => {
                     const settings = (node.settings as SecondaryGradingNodeSettings) || {} as SecondaryGradingNodeSettings;
@@ -964,8 +996,20 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                                     processor.loadLUT(lut);
                                 }
                                 await ensureVideoLoop(node, processor, sourceMedia.url);
+                                // 初回フレーム待ちで真っ白に見えないよう、直後にレンダー＆伝播
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
                             }
                         } else {
+                            // 直前まで動画だった場合は完全クリーンアップしてから静止画処理
+                            const wasVideo = prevKind === 'video';
+                            if (!processor || wasVideo) {
+                                processor = createProcessor();
+                                if (processor) {
+                                    processors.set(node.id, processor);
+                                }
+                            }
+
                             let imageUrl = sourceMedia.url;
 
                             if (sourceMedia.url.startsWith('file://')) {
@@ -983,6 +1027,9 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                             if (shouldReload && processor) {
                                 await processor.loadImage(imageUrl);
                                 lastSourceByNode.set(node.id, imageUrl);
+                                // 読み込み直後に即描画して反映
+                                processor.renderWithCurrentTexture();
+                                propagateToMediaPreview(node, processor);
                             }
 
                             // 初回描画
@@ -997,6 +1044,7 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                     }
                 } else {
                     lastSourceByNode.delete(node.id);
+                    lastSourceKindByNode.set(node.id, null);
                     const cleanup = videoCleanup.get(node.id);
                     if (cleanup) {
                         cleanup();
@@ -1004,6 +1052,83 @@ export const createSecondaryGradingNodeRenderer = (context: NodeRendererContext)
                     }
                     propagateToMediaPreview(node, undefined);
                 }
+
+                // 現在のソース種別を記録（次回比較用）
+                lastSourceKindByNode.set(node.id, currentKind);
+
+                // ソース変更を定期監視して自動でプレビュー更新
+                const watchHandle = window.setInterval(async () => {
+                    const mediaNow = getSourceMedia(node);
+                    const kindNow: 'video' | 'image' | null = mediaNow?.kind === 'video'
+                        ? 'video'
+                        : mediaNow?.kind === 'image'
+                            ? 'image'
+                            : null;
+                    const urlNow = mediaNow?.url ?? null;
+                    const lastUrl = lastSourceByNode.get(node.id) ?? null;
+                    const lastKind = lastSourceKindByNode.get(node.id) ?? null;
+
+                    if (kindNow === lastKind && urlNow === lastUrl) return;
+
+                    // ソースがなくなった場合
+                    if (!mediaNow) {
+                        clearVideoState(node.id);
+                        propagateToMediaPreview(node, undefined);
+                        lastSourceKindByNode.set(node.id, null);
+                        return;
+                    }
+
+                    if (kindNow === 'video') {
+                        let proc = processors.get(node.id);
+                        if (!proc) {
+                            proc = createProcessor();
+                            if (!proc) return;
+                            processors.set(node.id, proc);
+                        }
+                        const settings = ensureLayerState();
+                        const activeLayerNow = getActiveLayer(settings);
+                        const paramsHash = JSON.stringify({
+                            layers: settings.layers,
+                            active: settings.activeLayerIndex,
+                            showMask: activeLayerNow.showMask,
+                        });
+                        if (!lutCache.get(node.id) || lutCache.get(node.id)?.params !== paramsHash) {
+                            const transform = activeLayerNow.showMask
+                                ? buildMaskTransform(activeLayerNow)
+                                : buildColorTransform(buildPipeline(settings));
+                            const lut = generateLUT3D(getPreviewLutRes(), transform);
+                            if (lut) lutCache.set(node.id, { params: paramsHash, lut });
+                        }
+                        const lut = lutCache.get(node.id)?.lut;
+                        if (lut) proc.loadLUT(lut);
+                        await ensureVideoLoop(node, proc, mediaNow.url);
+                        proc.renderWithCurrentTexture();
+                        propagateToMediaPreview(node, proc);
+                        lastSourceByNode.set(node.id, mediaNow.url);
+                        lastSourceKindByNode.set(node.id, 'video');
+                        return;
+                    }
+
+                    // image
+                    let proc = processors.get(node.id);
+                    if (!proc) {
+                        proc = createProcessor();
+                        if (!proc) return;
+                        processors.set(node.id, proc);
+                    }
+                    let imageUrl = mediaNow.url;
+                    if (imageUrl.startsWith('file://')) {
+                        const result = await window.nodevision.loadImageAsDataURL({ filePath: imageUrl });
+                        if (result.ok && result.dataURL) imageUrl = result.dataURL;
+                    }
+                    await proc.loadImage(imageUrl);
+                    lastSourceByNode.set(node.id, imageUrl);
+                    const settings = ensureLayerState();
+                    const activeLayerNow = getActiveLayer(settings);
+                    updateValueAndPreview('hueCenter', activeLayerNow.hueCenter ?? 0);
+                    lastSourceKindByNode.set(node.id, 'image');
+                }, 400);
+                sourceWatchers.set(node.id, watchHandle);
 
                 // 初回バインド
                 bindInteractions();
