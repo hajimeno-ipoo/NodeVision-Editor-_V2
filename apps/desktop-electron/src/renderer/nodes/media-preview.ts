@@ -90,6 +90,46 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
     return { badge: t('nodes.mediaPreview.trimmedBadge'), messages };
   };
 
+  /**
+   * ソースノードから元のソース（loadImage/loadVideo）を遡って取得する
+   * Color Correction、Primary Grading、Secondary Grading などの処理ノードを越えて
+   * 実際のメディアソースを見つける
+   */
+  const findOriginalSourceNode = (sourceNodeId: string | null): RendererNode | undefined => {
+    if (!sourceNodeId) return undefined;
+
+    let currentNodeId: string | null = sourceNodeId;
+    let depth = 0;
+    const maxDepth = 10; // 無限ループ防止
+
+    while (currentNodeId && depth < maxDepth) {
+      const currentNode = state.nodes.find(n => n.id === currentNodeId);
+      if (!currentNode) return undefined;
+
+      // loadImage や loadVideo に到達したら終了
+      if (currentNode.typeId === 'loadImage' || currentNode.typeId === 'loadVideo') {
+        return currentNode;
+      }
+
+      // 処理ノード（colorCorrection, primaryGrading, secondaryGrading, curves, lutLoader）の場合は上流を辿る
+      const processingNodes = ['colorCorrection', 'primaryGrading', 'secondaryGrading', 'curves', 'lutLoader'];
+      if (processingNodes.includes(currentNode.typeId)) {
+        const upstreamConnection = state.connections.find(
+          conn => conn.toNodeId === currentNodeId && conn.toPortId === 'source'
+        );
+        if (upstreamConnection) {
+          currentNodeId = upstreamConnection.fromNodeId;
+          depth++;
+          continue;
+        }
+      }
+
+      // それ以外のノードはそのまま返す
+      return currentNode;
+    }
+
+    return state.nodes.find(n => n.id === sourceNodeId);
+  };
   const buildPreviewSection = (node: RendererNode): string => {
     const connection = state.connections.find(
       conn => conn.toNodeId === node.id && conn.toPortId === 'source'
@@ -143,27 +183,47 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       minimumNodePortion: 0.95
     });
 
-  if (DEBUG_MEDIA_PREVIEW) {
-    console.log('[MediaPreview] Node size:', nodeWidth, 'x', nodeHeight);
-    console.log(
-      '[MediaPreview] widthLimit:',
-      widthLimit,
-      '=>',
-      effectiveWidthLimit,
-      'chromePadding:',
-      chrome,
-      '=>',
-      effectiveChrome,
-      'reservedHeight:',
-      reservedHeight
-    );
-    console.log('[MediaPreview] Canvas dimensions:', canvasPreview?.width, 'x', canvasPreview?.height);
-    console.log('[MediaPreview] Calculated previewBox:', previewBox);
-  }
+    if (DEBUG_MEDIA_PREVIEW) {
+      console.log('[MediaPreview] Node size:', nodeWidth, 'x', nodeHeight);
+      console.log(
+        '[MediaPreview] widthLimit:',
+        widthLimit,
+        '=>',
+        effectiveWidthLimit,
+        'chromePadding:',
+        chrome,
+        '=>',
+        effectiveChrome,
+        'reservedHeight:',
+        reservedHeight
+      );
+      console.log('[MediaPreview] Canvas dimensions:', canvasPreview?.width, 'x', canvasPreview?.height);
+      console.log('[MediaPreview] Calculated previewBox:', previewBox);
+    }
 
     const inlineStyle = ` style="--preview-width:${previewBox.width}px;--preview-height:${previewBox.height}px"`;
-    const sourceTitle = resolveNodeTitle(sourceNode, context);
-    const fileLabel = escapeHtml(preview?.name ?? sourceTitle);
+
+    // 処理ノード経由の場合は元のソース（loadImage/loadVideo）を遡って取得
+    const originalSourceNode = findOriginalSourceNode(sourceNodeId);
+    const sourceTitle = resolveNodeTitle(originalSourceNode ?? sourceNode, context);
+
+    // ファイル名は、プレビュー情報 > 元のソースノードのファイルパス > ソースタイトルの順で取得
+    let fileLabel: string;
+    if (preview?.name) {
+      fileLabel = escapeHtml(preview.name);
+    } else if (originalSourceNode) {
+      const settings = originalSourceNode.settings as { filePath?: string } | undefined;
+      if (settings?.filePath) {
+        // ファイルパスからファイル名を抽出
+        const fileName = settings.filePath.split('/').pop()?.split('\\').pop() ?? settings.filePath;
+        fileLabel = escapeHtml(fileName);
+      } else {
+        fileLabel = escapeHtml(sourceTitle);
+      }
+    } else {
+      fileLabel = escapeHtml(sourceTitle);
+    }
+
     const trimHints = buildTrimHints(sourceNode);
     const trimHintHtml = trimHints
       ? `
@@ -181,6 +241,7 @@ export const createMediaPreviewNodeRenderer = (context: NodeRendererContext): No
       <p class="node-media-aspect">${escapeHtml(t('nodes.mediaPreview.sourceLabel', { title: sourceTitle }))}</p>
       ${trimHintHtml}
     `;
+
     const aspectText = (preview?.width && preview?.height)
       ? `${preview.width} × ${preview.height}`
       : (canvasPreview ? `${canvasPreview.width} × ${canvasPreview.height}` : t('nodes.mediaPreview.metaUnknown'));
